@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 /** Opens the database once and runs migrations. */
@@ -47,6 +47,16 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
       CREATE INDEX idx_points_category_status ON points (category, status);
     `);
     version = 1;
+  }
+
+  if (version === 1) {
+    await db.execAsync(`
+      CREATE TABLE settings (
+        id INTEGER PRIMARY KEY NOT NULL CHECK (id = 1),
+        json TEXT NOT NULL
+      );
+    `);
+    version = 2;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

@@ -4,7 +4,7 @@
 
 A study aid for iPhone, iPad and Android that repeats your own short "points of remembrance" many times through the day, so what you want to learn stays in mind. It is not a to-do reminder: repetition is the whole point.
 
-Status: early development. You can add, edit, archive and list points (Daily and Long-term), stored on the phone. Reminders, settings, spoken delivery and the app lock are not built yet. Points are not yet encrypted (see docs/SPEC.md).
+Status: early development. You can add, edit, archive and list points (Daily and Long-term), stored on the phone. Reminders are scheduled as local notifications (hourly by default, 7:00 AM to 10:00 PM), with an Awake/Sleep button and a Settings screen for frequency, active hours, notification style and private mode. Not built yet: the Review now screen (tapping a notification just opens the app), Remembered / Again soon buttons, quiet hours settings, spoken delivery and the app lock. Points are not yet encrypted (see docs/SPEC.md).
 
 ## Run it
 

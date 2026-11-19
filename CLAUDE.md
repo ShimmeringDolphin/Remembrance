@@ -40,6 +40,7 @@ Add unit tests for pure logic as soon as it exists, especially the reminder sche
 
 ## Code conventions
 
+- Files in `src/core` are plain TypeScript with no Expo or React Native imports so `npm test` can run them under Node. Relative runtime imports inside `src/core` need the `.ts` extension (type-only imports do not).
 - Expo with TypeScript, strict mode. Add packages with `npx expo install`; if that is blocked, use the versions in `node_modules/expo/bundledNativeModules.json`.
 - Database changes are versioned migrations in `src/db/database.ts` using `PRAGMA user_version`. Never edit a migration that has shipped; add a new one. Update `src/core/types.ts` and `docs/SPEC.md` in the same PR as the change.
 - Single-line points today, but keep `kind`, `prompt` and `answer` so question-and-answer points can be added without a rewrite.
