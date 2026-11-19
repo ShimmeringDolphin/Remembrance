@@ -57,6 +57,10 @@ const strings = {
     skyRecall: '{n}% remembered',
     skyEmpty: 'Add a point and it will appear as a star.',
     rhythmLine: 'Run of {n} days',
+    adviceReword: 'keeps slipping. Try rewording it or splitting it.',
+    adviceGentler: 'is often ignored. A gentler gap may suit it.',
+    adviceGraduate: 'is solid. Move it to Long-term if you like.',
+    adviceQuiet: 'Reminders around {range} are mostly ignored. Consider quiet hours.',
   },
   hi: {
     languageTitle: 'भाषा',
@@ -113,6 +117,10 @@ const strings = {
     skyRecall: '{n}% याद',
     skyEmpty: 'एक बिंदु जोड़ें, वह तारे के रूप में दिखेगा।',
     rhythmLine: 'लगातार {n} दिन',
+    adviceReword: 'बार-बार भूल जाता है। इसे दूसरे शब्दों में लिखें या दो भागों में बाँटें।',
+    adviceGentler: 'अक्सर अनदेखा हो जाता है। धीमा अंतराल बेहतर हो सकता है।',
+    adviceGraduate: 'पक्का हो गया है। चाहें तो इसे दीर्घकालिक में ले जाएँ।',
+    adviceQuiet: '{range} के आसपास के रिमाइंडर अक्सर अनदेखे रहते हैं। शांत समय रखने पर विचार करें।',
   },
   gu: {
     languageTitle: 'ભાષા',
@@ -169,6 +177,10 @@ const strings = {
     skyRecall: '{n}% યાદ',
     skyEmpty: 'એક મુદ્દો ઉમેરો, તે તારા તરીકે દેખાશે.',
     rhythmLine: 'સતત {n} દિવસ',
+    adviceReword: 'વારંવાર ભુલાઈ જાય છે. તેને બીજા શબ્દોમાં લખો અથવા બે ભાગમાં વહેંચો.',
+    adviceGentler: 'ઘણીવાર અવગણાય છે. ધીમું અંતર વધુ યોગ્ય હોઈ શકે.',
+    adviceGraduate: 'પાકું થઈ ગયું છે. ઈચ્છો તો તેને લાંબા ગાળામાં લઈ જાઓ.',
+    adviceQuiet: '{range} આસપાસના રિમાઇન્ડર મોટે ભાગે અવગણાય છે. શાંત સમય રાખવા વિચારો.',
   },
 } as const;
 
