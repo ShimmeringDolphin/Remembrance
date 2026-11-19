@@ -20,6 +20,16 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#3B4A9C",
+          "defaultChannel": "reminders",
+          "enableRemoteNotifications": false
+        }
+      ]
+    ]
   }
 }

@@ -64,6 +64,13 @@ export async function listPoints(category: Category): Promise<Point[]> {
   return rows.map(toPoint);
 }
 
+/** All active points of both categories, for planning reminders. */
+export async function listActivePoints(): Promise<Point[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<PointRow>("SELECT * FROM points WHERE status = 'active'");
+  return rows.map(toPoint);
+}
+
 export async function createPoint(input: {
   prompt: string;
   category: Category;
