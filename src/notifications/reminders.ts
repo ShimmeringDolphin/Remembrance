@@ -1,8 +1,10 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { buildContent } from '../core/reminderContent';
-import { planReminders } from '../core/scheduler';
+import { planAll, reconcile } from '../core/labs/review';
+import { listMemories, saveMemory } from '../db/memory';
 import { listActivePoints } from '../db/points';
+import { appendReview } from '../db/reviewLog';
 import { getSettings } from '../db/settings';
 import { getStrings } from '../i18n/strings';
 
@@ -78,7 +80,17 @@ async function syncOnce(): Promise<void> {
   if (!settings.awake || (await getPermissionState()) !== 'granted') return;
 
   const points = await listActivePoints();
-  const plan = planReminders(points, settings, new Date());
+  const now = new Date();
+  // Adaptive (Labs) points: record missed reminders as dismissed and seed missing memory first,
+  // so the due time does not slide forward on every app open.
+  const memories = await listMemories();
+  const fixes = reconcile(points, memories, settings, now);
+  for (const m of fixes.memories) {
+    await saveMemory(m);
+    memories.set(m.pointId, m);
+  }
+  for (const entry of fixes.log) await appendReview(entry);
+  const plan = planAll(points, memories, settings, now);
   const byId = new Map(points.map((p) => [p.id, p]));
   const t = getStrings(settings.appLanguage);
   const text = { title: t.appName, groupedBody: t.groupedBody, privateBody: t.privateBody };

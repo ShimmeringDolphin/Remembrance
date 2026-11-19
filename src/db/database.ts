@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 
-const DATABASE_VERSION = 3;
+const DATABASE_VERSION = 4;
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 /** Opens the database once and runs migrations. */
@@ -74,6 +74,20 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
       );
     `);
     version = 3;
+  }
+
+  // Every answer to a reminder or Review now card. Holds ids and times only, never point text.
+  if (version === 3) {
+    await db.execAsync(`
+      CREATE TABLE review_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        point_id TEXT NOT NULL,
+        shown_at TEXT NOT NULL,
+        answer TEXT NOT NULL
+      );
+      CREATE INDEX idx_review_log_shown_at ON review_log (shown_at);
+    `);
+    version = 4;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

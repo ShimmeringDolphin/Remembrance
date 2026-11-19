@@ -34,6 +34,12 @@ The project's running list of what is not done yet, what is postponed, and which
 - Dark theme colours are provisional.
 - Store listings, privacy policy and anything involving accounts or money need the owner first.
 
+## Open-creativity branch (PR #14, not for main)
+
+- Adds a Labs switch (adaptive gaps for Long-term points), Remembered / Again soon buttons in Review now, `review_log`, Memory Sky. Migration numbers 3 and 4 may collide with other work; renumber on rebase.
+- Fixed-grid points still ignore Again soon (no early retry). Only adaptive points retry after 10 minutes.
+- Constants are untuned; unanswered reminders are reconciled on app open, which is untested on a device.
+
 ## Not tested on a device
 
 - Everything except the owner's Android phone in Expo Go. Nothing has been run on iPhone or iPad.

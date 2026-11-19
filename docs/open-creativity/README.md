@@ -1,6 +1,6 @@
 # open-creativity: exploration summary
 
-A sandbox branch for pushing YaadOM's product thinking further. Nothing here is merged into `main`, and nothing touches the in-flight scaffold or wireframe work. The one edit to existing code is a 4-line additive export in `src/core/scheduler.ts` (`isActiveMinute`), plus migration 3 in `src/db/database.ts`.
+A sandbox branch for pushing YaadOM's product thinking further. Nothing here is merged into `main`, and nothing touches the in-flight scaffold or wireframe work. Edits to existing code: an additive `isActiveMinute` export in `scheduler.ts`, migrations 3 and 4, a `labs` field in Settings, and the Labs wiring listed below.
 
 **Try it first:** the interactive [Memory Sky concept](concept/index.html) (open the file in a browser). It runs the real planner, memory and queue code from `src/core`, not a mock.
 
@@ -20,7 +20,8 @@ Today every point repeats on the same fixed grid. Memory does not work like that
 | App-lock policy | `src/core/labs/lock.ts` | Pure timeout rules and "lock on means notification text hidden". |
 | Sky layout | `src/core/labs/sky.ts` | Stable star positions on a golden-angle spiral: a new point lands at the edge, old stars never move. |
 | Storage | `src/db/memory.ts`, migration 3 | One `point_memory` table, bound parameters only. |
-| Screen | `src/ui/labs/MemorySky.tsx`, `src/i18n/labsStrings.ts` | Static view, at most 60 Views, no timers. Not imported by the app yet. |
+| Screen | `src/ui/labs/MemorySky.tsx`, `SkyScreen.tsx` | Static view, at most 60 Views, no timers. Opened from Settings, Labs. |
+| Wiring | `review.ts`, `reminders.ts`, `ReviewScreen`, `SettingsScreen`, `App.tsx` | Labs switch (off by default); Remembered / Again soon buttons in Review now; every answer logged to `review_log`; opted-in Long-term points planned adaptively and missed reminders recorded as dismissed on app open. |
 | Concept page | `concept/` | `node scripts/build-concept.mjs` rebuilds it from the real code. |
 
 ## What is only proposed
@@ -37,4 +38,4 @@ See [DESIGN.md](DESIGN.md) for rationale, costs and the order I would build thin
 
 ## Not tested
 
-Nothing here has run on a phone. Battery and memory were not measured. Hindi and Gujarati strings are drafts. The adaptive constants (ease steps, 0.4 shrink, 10-minute retry, caps) are reasonable starting points, not tuned on real use.
+Nothing here has run on a phone; it type-checks, the unit tests pass and the Android bundle builds. Battery and memory were not measured. Hindi and Gujarati strings are drafts. The adaptive constants (ease steps, 0.4 shrink, 10-minute retry, caps) are reasonable starting points, not tuned on real use.

@@ -3,10 +3,13 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, FlatList, Linking, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { recordAnswer } from './src/core/labs/review';
 import { pointIdsFromData } from './src/core/reminderData';
 import { defaultSettings } from './src/core/settingsDefaults';
 import type { Category, Point, Settings } from './src/core/types';
+import { listMemories, saveMemory } from './src/db/memory';
 import { archivePoint, createPoint, listPoints, updatePoint } from './src/db/points';
+import { appendReview } from './src/db/reviewLog';
 import { getSettings, saveSettings } from './src/db/settings';
 import { detectLanguage, getStrings } from './src/i18n/strings';
 import {
@@ -21,6 +24,7 @@ import { PointEditor } from './src/ui/PointEditor';
 import { ReviewScreen } from './src/ui/ReviewScreen';
 import { ArchivedScreen } from './src/ui/ArchivedScreen';
 import { SettingsScreen } from './src/ui/SettingsScreen';
+import { SkyScreen } from './src/ui/labs/SkyScreen';
 
 function Home() {
   const colors = calmStudy[useColorScheme() === 'dark' ? 'dark' : 'light'];
@@ -35,6 +39,7 @@ function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewIds, setReviewIds] = useState<string[]>([]);
+  const [skyOpen, setSkyOpen] = useState(false);
 
   // Tapping a reminder opens Review now with that reminder's points. Each tap is handled once.
   const lastResponse = Notifications.useLastNotificationResponse();
@@ -109,6 +114,15 @@ function Home() {
   };
 
   const closeEditor = () => setEditorOpen(false);
+
+  // Every answer is logged. With the Labs switch on, Long-term points also update their own gap.
+  const answerPoint = async (point: Point, answer: 'remembered' | 'again_soon') => {
+    const memories = await listMemories();
+    const { log, memory } = recordAnswer(point, memories.get(point.id), answer, settings, new Date());
+    await appendReview(log);
+    if (memory) await saveMemory(memory);
+    await syncReminders();
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top + 12 }]}>
@@ -226,7 +240,8 @@ function Home() {
           await syncReminders();
         }}
       />
-      <ReviewScreen visible={reviewOpen} pointIds={reviewIds} t={t} colors={colors} onClose={() => setReviewOpen(false)} />
+      <ReviewScreen visible={reviewOpen} pointIds={reviewIds} t={t} colors={colors} onAnswer={answerPoint} onClose={() => setReviewOpen(false)} />
+      <SkyScreen visible={skyOpen} hideText={settings.privateNotifications} t={t} colors={colors} onClose={() => setSkyOpen(false)} />
       <ArchivedScreen
         visible={archivedOpen}
         t={t}
@@ -243,6 +258,10 @@ function Home() {
         t={t}
         colors={colors}
         onChange={(next) => void updateSettings(next)}
+        onOpenSky={() => {
+          setSettingsOpen(false);
+          setSkyOpen(true);
+        }}
         onClose={() => setSettingsOpen(false)}
       />
       <StatusBar style="auto" />

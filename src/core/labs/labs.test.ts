@@ -6,6 +6,7 @@ import { effectivePrivate, initialLockState, isLocked, onAuthenticated, onBackgr
 import { applyAnswer, EASE_MAX, EASE_MIN, MAX_INTERVAL, newMemory, retrievability, AGAIN_SOON_MINUTES } from './memory.ts';
 import { buildSession, summariseSession } from './queue.ts';
 import { buildVoiceScript } from './voice.ts';
+import { isAdaptive, planAll, reconcile, recordAnswer, LONG_TERM_START_MINUTES } from './review.ts';
 import { layoutSky, MAX_STARS } from './sky.ts';
 import type { Point, ReviewLogEntry, Settings } from '../types';
 
@@ -21,6 +22,7 @@ const settings: Settings = {
   appLock: { enabled: false, timeoutSeconds: 60 },
   notificationStyle: 'grouped',
   privateNotifications: false,
+  labs: { adaptiveLongTerm: false },
 };
 
 function point(id: string, o: Partial<Point> = {}): Point {
@@ -207,4 +209,60 @@ test('sky layout is deterministic, in bounds, evenly spaced and stable when poin
   const more = layoutSky([...pts, point('zzz', { createdAt: '2026-02-01T00:00:00.000Z' })]);
   assert.deepEqual(more.slice(0, 30), a);
   assert.equal(layoutSky(Array.from({ length: 200 }, (_, i) => point(`x${i}`))).length, MAX_STARS);
+});
+
+const labsOn: Settings = { ...settings, labs: { adaptiveLongTerm: true } };
+
+test('adaptivity is opt-in and only for Long-term points', () => {
+  const lt = point('l', { category: 'long_term' });
+  assert.equal(isAdaptive(lt, settings), false);
+  assert.equal(isAdaptive(lt, labsOn), true);
+  assert.equal(isAdaptive(point('d'), labsOn), false);
+});
+
+test('recordAnswer always logs, but only changes memory for adaptive points', () => {
+  const now = at(5, 9);
+  const daily = recordAnswer(point('d'), undefined, 'remembered', labsOn, now);
+  assert.equal(daily.memory, null);
+  assert.equal(daily.log.answer, 'remembered');
+  const off = recordAnswer(point('l', { category: 'long_term' }), undefined, 'remembered', settings, now);
+  assert.equal(off.memory, null);
+  const on = recordAnswer(point('l', { category: 'long_term' }), undefined, 'remembered', labsOn, now);
+  assert.ok(on.memory && on.memory.intervalMinutes > LONG_TERM_START_MINUTES);
+  assert.equal(on.memory.streak, 1);
+});
+
+test('planAll sends ordinary points to the grid planner and opted-in ones to the adaptive planner', () => {
+  const now = at(5, 8);
+  const pts = [point('d'), point('l', { category: 'long_term' })];
+  const off = planAll(pts, new Map(), settings, now);
+  assert.ok(off.some((r) => r.pointIds.length === 2)); // grid planner groups both points
+  const on = planAll(pts, new Map(), labsOn, now);
+  const longTermTimes = on.filter((r) => r.pointIds.includes('l'));
+  assert.ok(longTermTimes.length <= 3 && longTermTimes.length >= 1);
+  const dailyTimes = on.filter((r) => r.pointIds.includes('d'));
+  assert.ok(dailyTimes.length > 3);
+  assert.ok(on.every((r, i) => i === 0 || on[i - 1].at.getTime() <= r.at.getTime()));
+  assert.ok(planAll(pts, new Map(), labsOn, now, 4).length <= 4);
+  assert.deepEqual(planAll(pts, new Map(), { ...labsOn, awake: false }, now), []);
+});
+
+test('reconcile records a missed adaptive reminder as dismissed and seeds missing memory', () => {
+  const now = at(5, 12);
+  const lt = point('l', { category: 'long_term' });
+  const missed = { ...newMemory('l', at(5, 6), 120), nextDueAt: at(5, 8).toISOString() };
+  const r = reconcile([lt], new Map([['l', missed]]), labsOn, now);
+  assert.equal(r.memories[0].ignored, 1);
+  assert.equal(r.memories[0].intervalMinutes, 120);
+  assert.ok(Date.parse(r.memories[0].nextDueAt) > now.getTime());
+  assert.deepEqual(r.log, [{ pointId: 'l', shownAt: missed.nextDueAt, answer: 'dismissed' }]);
+  // not yet due, still inside the grace period, not adaptive: nothing happens
+  const future = { ...missed, nextDueAt: at(5, 14).toISOString() };
+  assert.deepEqual(reconcile([lt], new Map([['l', future]]), labsOn, now).memories, []);
+  const justNow = { ...missed, nextDueAt: at(5, 11, 58).toISOString() };
+  assert.deepEqual(reconcile([lt], new Map([['l', justNow]]), labsOn, now).memories, []);
+  assert.deepEqual(reconcile([lt], new Map([['l', missed]]), settings, now).memories, []);
+  const seeded = reconcile([lt], new Map(), labsOn, now);
+  assert.equal(seeded.memories[0].pointId, 'l');
+  assert.deepEqual(seeded.log, []);
 });

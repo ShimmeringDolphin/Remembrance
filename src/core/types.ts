@@ -70,4 +70,6 @@ export interface Settings {
   /** Default is `grouped`. */
   notificationStyle: NotificationStyle;
   privateNotifications: boolean;
+  /** Opt-in experiments. Off by default. */
+  labs: { adaptiveLongTerm: boolean };
 }

@@ -26,6 +26,13 @@ test('mergeSettings falls back to defaults for junk', () => {
   }
 });
 
+test('labs switch defaults off and only accepts a boolean', () => {
+  assert.equal(defaultSettings('en').labs.adaptiveLongTerm, false);
+  assert.equal(mergeSettings({ labs: { adaptiveLongTerm: true } }, 'en').labs.adaptiveLongTerm, true);
+  assert.equal(mergeSettings({ labs: { adaptiveLongTerm: 'yes' } }, 'en').labs.adaptiveLongTerm, false);
+  assert.equal(mergeSettings({ labs: 5 }, 'en').labs.adaptiveLongTerm, false);
+});
+
 test('shiftTime wraps around midnight', () => {
   assert.equal(shiftTime('23:30', 60), '00:30');
   assert.equal(shiftTime('00:15', -30), '23:45');

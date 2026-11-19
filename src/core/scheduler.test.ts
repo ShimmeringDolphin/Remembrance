@@ -21,6 +21,7 @@ const settings: Settings = {
   appLock: { enabled: false, timeoutSeconds: 60 },
   notificationStyle: 'grouped',
   privateNotifications: false,
+  labs: { adaptiveLongTerm: false },
 };
 
 function point(id: string, overrides: Partial<Point> = {}): Point {

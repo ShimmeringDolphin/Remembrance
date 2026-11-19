@@ -15,10 +15,11 @@ interface Props {
   t: Strings;
   colors: Colors;
   onChange: (next: Settings) => void;
+  onOpenSky: () => void;
   onClose: () => void;
 }
 
-export function SettingsScreen({ visible, settings, t, colors, onChange, onClose }: Props) {
+export function SettingsScreen({ visible, settings, t, colors, onChange, onOpenSky, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const everyMinutes = settings.defaultFrequency.mode === 'interval' ? settings.defaultFrequency.everyMinutes : 60;
 
@@ -106,6 +107,21 @@ export function SettingsScreen({ visible, settings, t, colors, onChange, onClose
               trackColor={{ true: colors.accent }}
             />
           </View>
+
+          <Text style={[styles.label, { color: colors.mutedText }]}>{t.labsTitle}</Text>
+          <View style={[styles.row, { flexWrap: 'nowrap', justifyContent: 'space-between' }]}>
+            <Text style={[styles.switchLabel, { color: colors.text }]}>{t.labsAdaptive}</Text>
+            <Switch
+              accessibilityLabel={t.labsAdaptive}
+              value={settings.labs.adaptiveLongTerm}
+              onValueChange={(adaptiveLongTerm) => onChange({ ...settings, labs: { ...settings.labs, adaptiveLongTerm } })}
+              trackColor={{ true: colors.accent }}
+            />
+          </View>
+          <Text style={[styles.hint, { color: colors.mutedText }]}>{t.labsAdaptiveHint}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={t.openSky} onPress={onOpenSky} style={styles.skyLink}>
+            <Text style={{ color: colors.accent, fontSize: 16 }}>{t.openSky}</Text>
+          </Pressable>
         </ScrollView>
         <Pressable
           accessibilityRole="button"
@@ -132,5 +148,7 @@ const styles = StyleSheet.create({
   time: { fontSize: 20, fontVariant: ['tabular-nums'], minWidth: 64, textAlign: 'center' },
   switchRow: { marginTop: 28, justifyContent: 'space-between', flexWrap: 'nowrap' },
   switchLabel: { flex: 1, fontSize: 16 },
+  hint: { marginTop: 6, fontSize: 13 },
+  skyLink: { marginTop: 8, minHeight: 44, justifyContent: 'center' },
   close: { paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
 });

@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { layoutSky } from '../../core/labs/sky';
 import { retrievability, type PointMemory } from '../../core/labs/memory';
 import type { Point } from '../../core/types';
-import type { LabsStrings } from '../../i18n/labsStrings';
+import type { Strings } from '../../i18n/strings';
 
 interface Colors {
   background: string;
@@ -20,7 +20,7 @@ interface Props {
   memories: ReadonlyMap<string, PointMemory>;
   /** Evaluated once per render; pass a new Date when the screen is shown. */
   now: Date;
-  t: LabsStrings;
+  t: Strings;
   colors: Colors;
   /** Hide point text when private mode is on; stars still show. */
   hideText: boolean;

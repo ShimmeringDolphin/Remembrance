@@ -13,6 +13,7 @@ export function defaultSettings(language: Language): Settings {
     appLock: { enabled: false, timeoutSeconds: 60 },
     notificationStyle: 'grouped',
     privateNotifications: false,
+    labs: { adaptiveLongTerm: false },
   };
 }
 
@@ -50,5 +51,9 @@ export function mergeSettings(stored: unknown, language: Language): Settings {
     appLock: base.appLock,
     notificationStyle: s.notificationStyle === 'individual' || s.notificationStyle === 'grouped' ? s.notificationStyle : base.notificationStyle,
     privateNotifications: typeof s.privateNotifications === 'boolean' ? s.privateNotifications : base.privateNotifications,
+    labs: {
+      adaptiveLongTerm:
+        isObject(s.labs) && typeof s.labs.adaptiveLongTerm === 'boolean' ? s.labs.adaptiveLongTerm : base.labs.adaptiveLongTerm,
+    },
   };
 }

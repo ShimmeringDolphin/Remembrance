@@ -14,11 +14,12 @@ interface Props {
   pointIds: readonly string[];
   t: Strings;
   colors: Colors;
+  onAnswer: (point: Point, answer: 'remembered' | 'again_soon') => Promise<void>;
   onClose: () => void;
 }
 
 /** Shows the points to read now. Loads only the points on this screen and nothing stays cached. */
-export function ReviewScreen({ visible, pointIds, t, colors, onClose }: Props) {
+export function ReviewScreen({ visible, pointIds, t, colors, onAnswer, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const [points, setPoints] = useState<Point[]>([]);
 
@@ -36,6 +37,12 @@ export function ReviewScreen({ visible, pointIds, t, colors, onClose }: Props) {
     };
   }, [visible, pointIds]);
 
+  // An answered card leaves the list, so a point is never answered twice in one visit.
+  const answer = async (point: Point, result: 'remembered' | 'again_soon') => {
+    setPoints((current) => current.filter((p) => p.id !== point.id));
+    await onAnswer(point, result);
+  };
+
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
@@ -48,6 +55,24 @@ export function ReviewScreen({ visible, pointIds, t, colors, onClose }: Props) {
           renderItem={({ item }) => (
             <View style={[styles.card, { borderColor: colors.mutedText }]}>
               <Text style={[styles.cardText, { color: colors.text }]}>{item.prompt}</Text>
+              <View style={styles.answers}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.remembered}
+                  onPress={() => void answer(item, 'remembered')}
+                  style={[styles.answer, { backgroundColor: colors.accent }]}
+                >
+                  <Text style={{ color: colors.onAccent, fontWeight: '600' }}>{t.remembered}</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.againSoon}
+                  onPress={() => void answer(item, 'again_soon')}
+                  style={[styles.answer, { borderColor: colors.accent, borderWidth: 1 }]}
+                >
+                  <Text style={{ color: colors.accent, fontWeight: '600' }}>{t.againSoon}</Text>
+                </Pressable>
+              </View>
             </View>
           )}
         />
@@ -70,5 +95,7 @@ const styles = StyleSheet.create({
   empty: { textAlign: 'center', marginTop: 48, fontSize: 16, paddingHorizontal: 24 },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 16 },
   cardText: { fontSize: 22, lineHeight: 32 },
+  answers: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  answer: { flex: 1, minHeight: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   done: { alignItems: 'center', paddingVertical: 14, borderRadius: 12 },
 });

@@ -36,10 +36,11 @@
 
 ## 4. Known gaps in the prototype
 
-- An unanswered reminder is not yet recorded as `dismissed`. It needs a reconcile step on app open: any booked reminder whose time passed with no answer becomes `dismissed`. This needs the review log from the in-flight work.
+- Unanswered adaptive reminders are reconciled on app open (recorded as `dismissed`, gap kept). If the phone was off or the user was asleep, that can wrongly count as a dismissal. It only nudges the "gentler?" suggestion, never the gap.
+- Points on the fixed grid still ignore "Again soon" (no early retry).
 - The chain assumes the gap stays constant across follow-ups.
 - The constants are untuned. They want a week of real use before anyone trusts them.
-- `MemorySky.tsx` and `memory.ts` (db) are type-checked but not wired into the app or run on a device.
+- The Labs wiring (review buttons, log, adaptive booking, Memory Sky) is type-checked and bundles, but has not run on a device. Insight suggestions (quiet hours, reword) are built in core but not yet shown in the UI.
 
 ## 5. Proposals not built
 
