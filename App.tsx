@@ -28,6 +28,9 @@ function Home() {
   const language = useMemo(detectLanguage, []);
   const [settings, setSettings] = useState<Settings>(() => defaultSettings(language));
   const t = useMemo(() => getStrings(settings.appLanguage), [settings.appLanguage]);
+  // Settings and the Awake button stay disabled until the saved settings have loaded, so the
+  // defaults can never be saved over the user's real settings.
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [permission, setPermission] = useState<PermissionState>('undetermined');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -65,6 +68,7 @@ function Home() {
         console.warn('Could not set up notifications:', error);
       }
       setSettings(await getSettings());
+      setSettingsLoaded(true);
       setPermission(await getPermissionState());
       await syncReminders();
     })();
@@ -111,7 +115,8 @@ function Home() {
       <View style={styles.header}>
         <Pressable
           accessibilityRole="switch"
-          accessibilityState={{ checked: settings.awake }}
+          accessibilityState={{ checked: settings.awake, disabled: !settingsLoaded }}
+          disabled={!settingsLoaded}
           onPress={() => void toggleAwake()}
           style={[styles.awake, { borderColor: colors.accent, backgroundColor: settings.awake ? colors.accent : 'transparent' }]}
         >
@@ -133,7 +138,7 @@ function Home() {
         <Pressable accessibilityRole="button" accessibilityLabel={t.archived} onPress={() => setArchivedOpen(true)} style={styles.archived}>
           <Text style={{ color: colors.accent }}>{t.archived}</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={t.settings} onPress={() => setSettingsOpen(true)} style={styles.gear}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t.settings} disabled={!settingsLoaded} onPress={() => setSettingsOpen(true)} style={[styles.gear, !settingsLoaded && { opacity: 0.4 }]}>
           <Text style={{ color: colors.accent, fontSize: 22 }}>⚙</Text>
         </Pressable>
       </View>
