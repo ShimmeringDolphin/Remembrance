@@ -16,6 +16,7 @@ import {
 } from './src/notifications/reminders';
 import { calmStudy } from './src/theme/calmStudy';
 import { PointEditor } from './src/ui/PointEditor';
+import { ArchivedScreen } from './src/ui/ArchivedScreen';
 import { SettingsScreen } from './src/ui/SettingsScreen';
 
 function Home() {
@@ -26,6 +27,7 @@ function Home() {
   const t = useMemo(() => getStrings(settings.appLanguage), [settings.appLanguage]);
   const [permission, setPermission] = useState<PermissionState>('undetermined');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [archivedOpen, setArchivedOpen] = useState(false);
 
   const [category, setCategory] = useState<Category>('daily');
   const [points, setPoints] = useState<Point[]>([]);
@@ -99,6 +101,9 @@ function Home() {
           <Text style={{ color: settings.awake ? colors.onAccent : colors.accent, fontWeight: '600' }}>
             {settings.awake ? `● ${t.awake}` : `○ ${t.asleep}`}
           </Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={t.archived} onPress={() => setArchivedOpen(true)} style={styles.archived}>
+          <Text style={{ color: colors.accent }}>{t.archived}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={t.settings} onPress={() => setSettingsOpen(true)} style={styles.gear}>
           <Text style={{ color: colors.accent, fontSize: 22 }}>⚙</Text>
@@ -188,6 +193,16 @@ function Home() {
           await syncReminders();
         }}
       />
+      <ArchivedScreen
+        visible={archivedOpen}
+        t={t}
+        colors={colors}
+        onClose={() => setArchivedOpen(false)}
+        onRestored={() => {
+          void reload();
+          void syncReminders();
+        }}
+      />
       <SettingsScreen
         visible={settingsOpen}
         settings={settings}
@@ -213,6 +228,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 8 },
   awake: { borderWidth: 1, borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16 },
+  archived: { marginLeft: 'auto', paddingVertical: 12, paddingHorizontal: 12 },
   gear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   banner: { marginHorizontal: 16, marginBottom: 8, padding: 12, borderWidth: 1, borderRadius: 12 },
   tabs: { flexDirection: 'row', paddingHorizontal: 16 },
