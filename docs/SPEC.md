@@ -44,7 +44,7 @@ See [src/core/types.ts](../src/core/types.ts). Points have `kind` (`note` now, `
 - Minimum interval of 15 minutes (proposed).
 - Virtualised lists, no large media, speech loaded only while speaking, widget reads one small snapshot.
 - Measure on real phones before release: Android Studio Profiler, `adb` battery stats, Android vitals in Play Console; Xcode gauges and MetricKit on iPhone.
-- Reminder volume: with hourly reminders and many points, propose one reminder per slot that rotates through due points (open question).
+- Notification style (Settings, or per point): `grouped` (default) sends one notification per slot, "Time to review: N points", that opens Review now; `individual` sends one per point with Remembered and Again soon buttons. Grouping keeps many points at hourly frequency to one notification an hour. In grouped mode spoken reminders read the due points one after another in Review now, and private mode shows only the count.
 
 ## Screens
 
@@ -68,7 +68,7 @@ No account, no server, no analytics. Encrypted database with the key in Keychain
 ## Open questions
 
 - Name (ideas: Smaran, Smriti, Yaad, Echo; availability not yet checked). Style is decided: Calm Study.
-- Reminder volume per slot when many points are due.
+- Confirm grouped notifications as the default.
 - Default frequency for Long-term points.
 - Spoken reminders: read the exact text, or chime plus notification?
 - One device or sync across iPhone and iPad?

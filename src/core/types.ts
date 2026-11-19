@@ -26,6 +26,8 @@ export interface Point {
   frequency: Frequency;
   nextDueAt: string; // ISO 8601
   speak: boolean;
+  /** Overrides Settings.notificationStyle when set. */
+  notificationStyle: NotificationStyle | null;
   private: boolean;
   createdAt: string;
   updatedAt: string;
@@ -33,6 +35,9 @@ export interface Point {
   timesShown: number;
   timesRemembered: number;
 }
+
+/** `grouped`: one notification per slot that opens Review now. `individual`: one notification per point. */
+export type NotificationStyle = 'grouped' | 'individual';
 
 export type ReviewAnswer = 'remembered' | 'again_soon' | 'dismissed';
 
@@ -55,5 +60,7 @@ export interface Settings {
   speechRate: number;
   delivery: { notification: boolean; widget: boolean; voice: boolean };
   appLock: { enabled: boolean; timeoutSeconds: number };
+  /** Default is `grouped`. */
+  notificationStyle: NotificationStyle;
   privateNotifications: boolean;
 }
