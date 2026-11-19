@@ -1,0 +1,230 @@
+<title>Memory Sky</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600&display=swap">
+<style>
+/* Layout: one calm column. A night-sky panel is the hero; review card, rhythm and cost sit below it. */
+:root {
+  --bg: #FAF7F0; --fg: #1F2433; --muted: #5B6070; --accent: #3B4A9C; --on-accent: #FFFFFF;
+  --panel: #FFFFFF; --line: #DDD8CB; --sky: #E4E3F3; --star: #3B4A9C; --warm: #B5651D;
+  --display: 'Fraunces', Georgia, serif; --body: 'Hanken Grotesk', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #14161F; --fg: #ECEAF4; --muted: #A3A7B8; --accent: #8E9BEA; --on-accent: #14161F;
+  --panel: #1C1F2C; --line: #2E3245; --sky: #0C0E1A; --star: #C9D0FF; --warm: #E8B36A; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #14161F; --fg: #ECEAF4; --muted: #A3A7B8; --accent: #8E9BEA; --on-accent: #14161F;
+  --panel: #1C1F2C; --line: #2E3245; --sky: #0C0E1A; --star: #C9D0FF; --warm: #E8B36A; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.5;
+  padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+h1, h2 { font-family: var(--display); font-weight: 600; text-wrap: balance; margin: 0; }
+h1 { font-size: 2.1rem; line-height: 1.1; } h2 { font-size: 1.25rem; }
+p { margin: 0; } .muted { color: var(--muted); } .small { font-size: 0.85rem; }
+.label { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+header > div { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); padding: 10px 14px; min-height: 44px; }
+button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.sky { background: var(--sky); border-radius: 18px; padding: 8px; position: relative; }
+.sky svg { display: block; width: 100%; height: auto; }
+.star { cursor: pointer; } .star:focus-visible { outline: none; }
+.star:focus-visible .ring { stroke: var(--accent); stroke-width: 2; }
+.timebar { display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 4px; }
+.timebar input { width: 100%; accent-color: var(--accent); min-height: 32px; }
+.timebar .row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.prompt { font-family: var(--display); font-size: 1.35rem; line-height: 1.3; text-wrap: balance; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; } .actions button { flex: 1 1 140px; }
+.stats { display: flex; gap: 8px 20px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.stats b { font-weight: 600; }
+.meter { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; } .meter i { display: block; height: 100%; background: var(--accent); }
+.week { display: flex; gap: 8px; } .week span { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line); }
+.week span.on { background: var(--accent); border-color: var(--accent); }
+.week span.today { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--muted); }
+.compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.compare > div { border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.big { font-family: var(--display); font-size: 2.4rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.advice { display: flex; flex-direction: column; gap: 6px; padding: 0; margin: 0; list-style: none; }
+.advice li { border-left: 3px solid var(--warm); padding-left: 10px; }
+.note { border: 1px dashed var(--line); border-radius: 12px; padding: 12px 14px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <span class="label">Concept · open-creativity branch</span>
+      <h1>Memory Sky</h1>
+      <p class="muted">Every point you keep is a star. It glows while you remember it and fades as you forget it, along a real forgetting curve. Reviewing it brightens it again.</p>
+    </div>
+    <button id="theme" type="button" aria-label="Switch between light and dark">Theme</button>
+  </header>
+
+  <section aria-label="Your points as a sky">
+    <div class="sky">
+      <svg id="svg" viewBox="0 0 400 280" role="group" aria-label="Sky of points. Brighter means better remembered."></svg>
+      <div class="timebar">
+        <div class="row"><span class="label">Skip ahead</span><span id="clock" class="small" aria-live="polite"></span></div>
+        <input id="slider" type="range" min="0" max="72" step="1" value="0" aria-label="Skip ahead in hours">
+      </div>
+    </div>
+    <p class="small muted" style="margin-top:8px">All points here are examples. Drag the slider to see what a day or two without reviewing does. Tap a star to pick it.</p>
+  </section>
+
+  <section class="card" aria-live="polite">
+    <span class="label">Review now · weakest first</span>
+    <p class="prompt" id="prompt"></p>
+    <div class="meter" aria-hidden="true"><i id="meter"></i></div>
+    <div class="stats small muted" id="stats"></div>
+    <div class="actions">
+      <button class="primary" id="ok" type="button">Remembered</button>
+      <button id="again" type="button">Again soon</button>
+      <button id="weak" type="button">Pick the weakest</button>
+    </div>
+    <p class="small" id="result"></p>
+  </section>
+
+  <section class="card">
+    <h2>A gentle rhythm</h2>
+    <div class="week" id="week" aria-label="Last seven days"></div>
+    <p class="small muted" id="rhythm"></p>
+    <p class="small muted">A missed day spends a rest token before it touches your run. Dismissing a reminder never counts against you.</p>
+  </section>
+
+  <section class="card">
+    <h2>What it costs your phone</h2>
+    <p class="small muted">Notifications booked for the next 24 hours with these nine example points, 7 AM to 10 PM, grouped style. Both numbers come from the real planner code.</p>
+    <div class="compare">
+      <div><span class="label">Fixed hourly grid</span><span class="big" id="fixed">0</span><span class="small muted">same for every point, all day</span></div>
+      <div><span class="label">Adaptive</span><span class="big" id="adaptive">0</span><span class="small muted">follows each point's own gap</span></div>
+    </div>
+  </section>
+
+  <section class="card" id="adviceCard">
+    <h2>Suggestions, never automatic</h2>
+    <ul class="advice" id="advice"></ul>
+  </section>
+
+  <p class="small muted note">Prototype. Runs the same TypeScript as the unit tests (adaptive memory, planner, review queue, rhythm), nothing is stored and nothing is sent anywhere. Not run on a phone.</p>
+</div>
+
+<script>
+/*CORE*/
+const root = document.documentElement;
+try { const t = localStorage.getItem('ms-theme'); if (t) root.dataset.theme = t; } catch (e) {}
+document.getElementById('theme').onclick = () => {
+  const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  root.dataset.theme = dark ? 'light' : 'dark';
+  try { localStorage.setItem('ms-theme', root.dataset.theme); } catch (e) {}
+};
+
+const settings = { defaultFrequency: { mode: 'interval', everyMinutes: 60 }, activeHours: { start: '07:00', end: '22:00' },
+  activeMode: 'hours', awake: true, quietHours: [], appLanguage: 'en', speechRate: 1,
+  delivery: { notification: true, widget: false, voice: false }, appLock: { enabled: false, timeoutSeconds: 60 },
+  notificationStyle: 'grouped', privateNotifications: false };
+
+const base = new Date(); base.setHours(9, 0, 0, 0);
+const H = 3600000;
+const P = (id, prompt, category, x, y, gapMin, agoMin, streak, lapses) => ({
+  point: { id, kind: 'note', prompt, answer: null, detail: null, language: 'en', category, tags: [], status: 'active', frequency: { mode: 'default' },
+    nextDueAt: base.toISOString(), speak: false, private: false, notificationStyle: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
+    lastShownAt: null, timesShown: 0, timesRemembered: 0 },
+  x, y,
+  mem: { pointId: id, intervalMinutes: gapMin, ease: 2.0, streak, lapses, ignored: 0, lastReviewedAt: new Date(base.getTime() - agoMin * 60000).toISOString(),
+    nextDueAt: new Date(base.getTime() + (gapMin - agoMin) * 60000).toISOString() },
+});
+const items = [
+  P('a', 'I choose calm over reaction.', 'daily', 70, 70, 60, 30, 3, 0),
+  P('b', 'Drink water before tea.', 'daily', 190, 45, 120, 150, 9, 0),
+  P('c', 'Light reactions happen in the thylakoid membranes.', 'long_term', 320, 80, 2880, 2000, 4, 1),
+  P('d', 'ખૂબ આભાર means thank you very much.', 'long_term', 130, 150, 1440, 1700, 2, 1),
+  P('e', 'Check my posture.', 'daily', 250, 165, 60, 55, 1, 5),
+  P('f', 'Mitochondria make most of the cell\'s ATP.', 'long_term', 55, 225, 4320, 1200, 6, 0),
+  P('g', 'Breathe out longer than you breathe in.', 'daily', 345, 215, 180, 40, 2, 0),
+  P('h', 'Call Dadi on Sunday.', 'long_term', 200, 235, 10080, 5000, 7, 0),
+  P('i', 'Do the one thing that matters first.', 'daily', 285, 120, 90, 200, 0, 2),
+];
+const byId = new Map(items.map((i) => [i.point.id, i]));
+const mems = new Map(items.map((i) => [i.point.id, i.mem]));
+let offsetH = 0;
+let selected = 'e';
+const simNow = () => new Date(base.getTime() + offsetH * H);
+const $ = (id) => document.getElementById(id);
+
+function fmt(min) {
+  if (min < 90) return Math.round(min) + ' min';
+  if (min < 2880) return (Math.round(min / 6) / 10) + ' h';
+  return Math.round(min / 1440) + ' days';
+}
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent) { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; }
+
+function drawSky() {
+  const svg = $('svg'); svg.textContent = '';
+  const now = simNow();
+  // fixed background specks so the sky reads as a sky
+  for (let i = 0; i < 40; i++) el('circle', { cx: (i * 97) % 400, cy: (i * 53) % 280, r: 0.8, fill: 'var(--star)', opacity: 0.18 }, svg);
+  for (const it of items) {
+    const r = Core.retrievability(mems.get(it.point.id), now);
+    const g = el('g', { class: 'star', tabindex: 0, role: 'button', 'aria-label': it.point.prompt + ', ' + Math.round(r * 100) + ' percent remembered' }, svg);
+    el('circle', { class: 'ring', cx: it.x, cy: it.y, r: 22, fill: 'none', stroke: it.point.id === selected ? 'var(--accent)' : 'none', 'stroke-width': 2 }, g);
+    el('circle', { cx: it.x, cy: it.y, r: 8 + 20 * r, fill: 'var(--star)', opacity: (0.05 + 0.3 * r).toFixed(3) }, g);
+    el('circle', { cx: it.x, cy: it.y, r: it.point.category === 'long_term' ? 5 : 3.6, fill: 'var(--star)', opacity: (0.3 + 0.7 * r).toFixed(3) }, g);
+    if (it.point.category === 'long_term') el('circle', { cx: it.x, cy: it.y, r: 9, fill: 'none', stroke: 'var(--star)', 'stroke-width': 0.8, opacity: (0.3 + 0.5 * r).toFixed(3) }, g);
+    g.onclick = () => { selected = it.point.id; render(); };
+    g.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); g.onclick(); } };
+  }
+}
+
+function drawReview() {
+  const it = byId.get(selected), m = mems.get(selected), now = simNow();
+  const r = Core.retrievability(m, now);
+  $('prompt').textContent = it.point.prompt;
+  $('meter').style.width = Math.round(r * 100) + '%';
+  $('stats').innerHTML = '<span>Recall <b>' + Math.round(r * 100) + '%</b></span><span>Gap <b>' + fmt(m.intervalMinutes) + '</b></span><span>In a row <b>' + m.streak +
+    '</b></span><span>Forgotten <b>' + m.lapses + '</b></span><span>' + (it.point.category === 'daily' ? 'Daily' : 'Long-term') + '</span>';
+}
+
+function drawCost() {
+  const now = simNow(), end = now.getTime() + 24 * H, pts = items.map((i) => i.point);
+  const within = (plan) => plan.filter((p) => p.at.getTime() <= end).length;
+  $('fixed').textContent = within(Core.planReminders(pts, settings, now, 200));
+  $('adaptive').textContent = within(Core.planAdaptive(pts, mems, settings, now, 200));
+}
+
+function drawRhythm() {
+  const today = new Date(base); const log = [];
+  for (const d of [1, 2, 4, 5, 6, 7, 8, 9]) log.push({ pointId: 'a', shownAt: new Date(today.getFullYear(), today.getMonth(), today.getDate() - d, 12).toISOString(), answer: 'remembered' });
+  const r = Core.rhythm(log, today);
+  $('week').innerHTML = r.week.map((on, i) => '<span class="' + (on ? 'on ' : '') + (i === 6 ? 'today' : '') + '"></span>').join('');
+  $('rhythm').textContent = 'Run of ' + r.run + ' days with ' + r.restTokens + ' rest token' + (r.restTokens === 1 ? '' : 's') + ' left. (Example history with one missed day.)';
+}
+
+function drawAdvice() {
+  const list = Core.adviseOnPoints(items.map((i) => i.point), mems);
+  const text = { reword: 'keeps slipping. Try rewording it or splitting it into two points.', gentler: 'is often ignored. A gentler frequency may suit it.', graduate: 'is solid. Move it to Long-term if you like.' };
+  $('advice').innerHTML = list.length ? list.map((a) => '<li><b>' + byId.get(a.pointId).point.prompt.replace(/</g, '&lt;') + '</b> ' + text[a.kind] + '</li>').join('') : '<li class="muted">Nothing to suggest right now.</li>';
+}
+
+function answer(kind) {
+  const it = byId.get(selected), now = simNow();
+  const before = mems.get(selected);
+  const next = Core.applyAnswer(before, kind, it.point.category, now);
+  mems.set(selected, next);
+  const when = (Date.parse(next.nextDueAt) - now.getTime()) / 60000;
+  $('result').textContent = kind === 'remembered'
+    ? 'Gap stretches from ' + fmt(before.intervalMinutes) + ' to ' + fmt(next.intervalMinutes) + '. Next reminder in about ' + fmt(when) + '.'
+    : 'Back in ' + fmt(when) + '. The normal gap shrinks to ' + fmt(next.intervalMinutes) + '.';
+  render();
+}
+function render() {
+  drawSky(); drawReview(); drawCost(); drawAdvice();
+  const n = simNow();
+  $('clock').textContent = offsetH === 0 ? 'Now' : '+' + offsetH + ' h · ' + n.toLocaleString([], { weekday: 'short', hour: 'numeric' });
+}
+$('slider').oninput = (e) => { offsetH = Number(e.target.value); render(); };
+$('ok').onclick = () => answer('remembered');
+$('again').onclick = () => answer('again_soon');
+$('weak').onclick = () => { const s = Core.buildSession(items.map((i) => i.point), mems, simNow(), { size: 1 }); if (s[0]) { selected = s[0].id; $('result').textContent = ''; render(); } };
+drawRhythm(); render();
+</script>
