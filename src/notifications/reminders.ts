@@ -21,10 +21,16 @@ export async function initNotifications(): Promise<void> {
     }),
   });
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-      name: 'Reminders',
-      importance: Notifications.AndroidImportance.DEFAULT,
-    });
+    // Creating the channel must never stop the app from starting. If it fails (seen in Expo Go on
+    // Android), notifications still show: the library falls back to its own default channel.
+    try {
+      await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+        name: 'Reminders',
+        importance: Notifications.AndroidImportance.DEFAULT,
+      });
+    } catch (error) {
+      console.warn('Could not create the reminders notification channel:', error);
+    }
   }
 }
 
