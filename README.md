@@ -4,7 +4,17 @@
 
 A study aid for iPhone, iPad and Android that repeats your own short "points of remembrance" many times through the day, so what you want to learn stays in mind. It is not a to-do reminder: repetition is the whole point.
 
-Status: planning. This repository currently holds the spec and the data-model types. The app itself has not been scaffolded yet.
+Status: early development. You can add, edit, archive and list points (Daily and Long-term), stored on the phone. Reminders, settings, spoken delivery and the app lock are not built yet. Points are not yet encrypted (see docs/SPEC.md).
+
+## Run it
+
+```bash
+npm install
+npx expo start      # then open in Expo Go on your phone
+npx tsc --noEmit    # typecheck
+```
+
+Bundle ID (iOS) and package name (Android) are not set yet. They will be chosen, neutral and permanent, before the first store build.
 
 ## How it works
 
