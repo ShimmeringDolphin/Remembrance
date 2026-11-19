@@ -31,8 +31,20 @@ See [src/core/types.ts](../src/core/types.ts). Points have `kind` (`note` now, `
 - Daily points use the frequency all day. Long-term points use the same kind of frequency with a gentler default. The user moves a point between categories; it never happens automatically.
 - Each reminder time is nudged by a few minutes so reminders do not always arrive on the hour. Points sharing a slot are interleaved.
 - First launch asks for default times or active hours, quiet hours and default frequency. If skipped, the app asks for confirmation before creating reminders at random times.
+- Defaults: every hour, active hours 7:00 AM to 10:00 PM (both editable in Settings). An Awake/Sleep button switches reminders on and off by hand; Sleep cancels all booked reminders. The user can choose fixed hours or button-only.
 - "Again soon" brings a point back within a few minutes. In v1 answers do not change the set frequency.
 - The app books the soonest ~60 reminders across all points and refills on app open, on answering a reminder, and on OS background refresh. At hourly reminders over 16 active hours this lasts about 4 days; at 30 minutes about 2 days.
+
+## Battery and memory
+
+- No background service, polling, wake locks, location or network. Reminders are OS-fired local notifications, so the app uses no battery while idle.
+- Android: no exact-alarm permission; a few minutes of drift is fine for study.
+- Rebook notifications only on app open, answering a reminder, changing a point or setting, or an OS background refresh (a few a day), in one database transaction.
+- Sleep and out-of-hours leave nothing scheduled.
+- Minimum interval of 15 minutes (proposed).
+- Virtualised lists, no large media, speech loaded only while speaking, widget reads one small snapshot.
+- Measure on real phones before release: Android Studio Profiler, `adb` battery stats, Android vitals in Play Console; Xcode gauges and MetricKit on iPhone.
+- Reminder volume: with hourly reminders and many points, propose one reminder per slot that rotates through due points (open question).
 
 ## Screens
 
@@ -55,8 +67,9 @@ No account, no server, no analytics. Encrypted database with the key in Keychain
 
 ## Open questions
 
-- Name and colour style (name ideas: Smaran, Smriti, Yaad, Echo; styles: Calm Study, Focus Dark, Saffron).
-- Default frequency for Daily and Long-term points, and active hours.
+- Name (ideas: Smaran, Smriti, Yaad, Echo; availability not yet checked). Style is decided: Calm Study.
+- Reminder volume per slot when many points are due.
+- Default frequency for Long-term points.
 - Spoken reminders: read the exact text, or chime plus notification?
 - One device or sync across iPhone and iPad?
 - Is the iOS limit (about 2 to 4 days of reminders without opening the app) acceptable?
