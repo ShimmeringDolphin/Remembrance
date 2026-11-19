@@ -15,6 +15,7 @@ A study aid for iPhone, iPad and Android. It repeats the user's own short points
 ```bash
 npm ci
 npx tsc --noEmit                                   # typecheck, strict
+npm test                                           # unit tests (node:test), in src/core
 npx expo export --platform android --output-dir /tmp/yaadom-export   # confirms it bundles
 ```
 

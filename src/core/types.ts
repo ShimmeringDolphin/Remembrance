@@ -52,9 +52,16 @@ export interface TimeRange {
   end: string; // "HH:mm"
 }
 
+/** `hours`: remind inside active hours while awake. `button_only`: remind whenever awake (quiet hours still apply). */
+export type ActiveMode = 'hours' | 'button_only';
+
 export interface Settings {
   defaultFrequency: Exclude<Frequency, { mode: 'default' }>;
+  /** Reminders run from `start` up to, but not including, `end`. May cross midnight. */
   activeHours: TimeRange;
+  activeMode: ActiveMode;
+  /** The Awake/Sleep button. When false nothing is scheduled. */
+  awake: boolean;
   quietHours: TimeRange[];
   appLanguage: Language;
   speechRate: number;
