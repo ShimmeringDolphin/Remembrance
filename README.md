@@ -1,4 +1,6 @@
-# Remembrance
+# YaadOM
+
+(Repository name: Remembrance. The app name can change later.)
 
 A study aid for iPhone, iPad and Android that repeats your own short "points of remembrance" many times through the day, so what you want to learn stays in mind. It is not a to-do reminder: repetition is the whole point.
 

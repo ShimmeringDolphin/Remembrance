@@ -1,4 +1,4 @@
-# Remembrance: Spec
+# YaadOM: Spec
 
 Status: draft for review. Open questions are listed at the end.
 
@@ -67,7 +67,7 @@ No account, no server, no analytics. Encrypted database with the key in Keychain
 
 ## Open questions
 
-- Name (ideas: Smaran, Smriti, Yaad, Echo; availability not yet checked). Style is decided: Calm Study.
+- Name: YaadOM (chosen; store and trademark availability not yet checked). Bundle ID and package name will be neutral so the display name can change. Style is decided: Calm Study.
 - Confirm grouped notifications as the default.
 - Default frequency for Long-term points.
 - Spoken reminders: read the exact text, or chime plus notification?
