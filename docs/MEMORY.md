@@ -16,13 +16,13 @@ The project's running list of what is not done yet, what is postponed, and which
 ## Findings to follow up
 
 - Second 15-minute reminder did not arrive on the owner's Android phone (Expo Go). The planner produces a 15-minute sequence when run on a computer, so Android delaying approximate alarms is the leading suspect. Not confirmed on a device. Test: open the app, leave the phone charging with the screen on for about 30 minutes, with Expo Go battery set to Unrestricted.
-- Tapping a notification crashes Expo Go (the app has no response listener yet). Fixed properly by the Review screen below.
+- Tapping a notification crashed Expo Go before the app had a tap listener. The Review screen adds one, but whether that stops the crash is not known. Test on the phone; a development build is the dependable check.
 - Expo Go throws an error when creating the Android notification channel. Made non-fatal in PR #8. Recheck in a development build.
 
 ## Deferred and not built yet
 
 - Archived view: archived points cannot be seen or restored today. Add a list with Restore, and Delete forever only after confirmation. Needs DB functions, strings in en/hi/gu and a SPEC update.
-- Review Now screen, notification tap handling, and the Remembered / Again soon buttons.
+- Review Now screen and notification tap handling: built, not tested on a device. Still to build: the Remembered / Again soon buttons and the review log.
 - Quiet hours settings screen (the scheduler already supports quiet hours).
 - Spoken delivery (text to speech), with resources released after use.
 - App lock.

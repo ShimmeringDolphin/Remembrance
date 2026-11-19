@@ -1,7 +1,9 @@
+import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, FlatList, Linking, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { pointIdsFromData } from './src/core/reminderData';
 import { defaultSettings } from './src/core/settingsDefaults';
 import type { Category, Point, Settings } from './src/core/types';
 import { archivePoint, createPoint, listPoints, updatePoint } from './src/db/points';
@@ -16,6 +18,7 @@ import {
 } from './src/notifications/reminders';
 import { calmStudy } from './src/theme/calmStudy';
 import { PointEditor } from './src/ui/PointEditor';
+import { ReviewScreen } from './src/ui/ReviewScreen';
 import { ArchivedScreen } from './src/ui/ArchivedScreen';
 import { SettingsScreen } from './src/ui/SettingsScreen';
 
@@ -30,6 +33,20 @@ function Home() {
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [permission, setPermission] = useState<PermissionState>('undetermined');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewIds, setReviewIds] = useState<string[]>([]);
+
+  // Tapping a reminder opens Review now with that reminder's points. Each tap is handled once.
+  const lastResponse = Notifications.useLastNotificationResponse();
+  const handledResponse = useRef<string | null>(null);
+  useEffect(() => {
+    if (!lastResponse) return;
+    const key = `${lastResponse.notification.request.identifier}:${lastResponse.notification.date}`;
+    if (handledResponse.current === key) return;
+    handledResponse.current = key;
+    setReviewIds(pointIdsFromData(lastResponse.notification.request.content.data));
+    setReviewOpen(true);
+  }, [lastResponse]);
   const [archivedOpen, setArchivedOpen] = useState(false);
 
   const [category, setCategory] = useState<Category>('daily');
@@ -106,6 +123,17 @@ function Home() {
           <Text style={{ color: settings.awake ? colors.onAccent : colors.accent, fontWeight: '600' }}>
             {settings.awake ? `● ${t.awake}` : `○ ${t.asleep}`}
           </Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.reviewNow}
+          onPress={() => {
+            setReviewIds([]);
+            setReviewOpen(true);
+          }}
+          style={styles.review}
+        >
+          <Text style={{ color: colors.accent }}>{t.reviewNow}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={t.archived} onPress={() => setArchivedOpen(true)} style={styles.archived}>
           <Text style={{ color: colors.accent }}>{t.archived}</Text>
@@ -198,6 +226,7 @@ function Home() {
           await syncReminders();
         }}
       />
+      <ReviewScreen visible={reviewOpen} pointIds={reviewIds} t={t} colors={colors} onClose={() => setReviewOpen(false)} />
       <ArchivedScreen
         visible={archivedOpen}
         t={t}
@@ -233,7 +262,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 8 },
   awake: { borderWidth: 1, borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16 },
-  archived: { marginLeft: 'auto', paddingVertical: 12, paddingHorizontal: 12 },
+  review: { marginLeft: 'auto', paddingVertical: 12, paddingHorizontal: 12 },
+  archived: { paddingVertical: 12, paddingHorizontal: 12 },
   gear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   banner: { marginHorizontal: 16, marginBottom: 8, padding: 12, borderWidth: 1, borderRadius: 12 },
   tabs: { flexDirection: 'row', paddingHorizontal: 16 },
