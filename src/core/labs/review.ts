@@ -2,6 +2,7 @@
 // Pure. The UI and database call these; the rules live here so they can be tested.
 import { planReminders, MAX_PLANNED_NOTIFICATIONS, type PlannedReminder } from '../scheduler.ts';
 import type { Point, ReviewAnswer, ReviewLogEntry, Settings } from '../types';
+import { planAnchors } from './anchors.ts';
 import { planAdaptive } from './adaptivePlan.ts';
 import { applyAnswer, newMemory, type PointMemory } from './memory.ts';
 
@@ -52,7 +53,8 @@ export function planAll(
   const fixed = points.filter((p) => !isAdaptive(p, settings));
   const filled = new Map(memories);
   for (const p of adaptive) if (!filled.has(p.id)) filled.set(p.id, startingMemory(p, settings, now));
-  return [...planReminders(fixed, settings, now, limit), ...planAdaptive(adaptive, filled, settings, now, limit)]
+  const base = settings.anchors.enabled ? planAnchors(fixed, settings, now, limit) : planReminders(fixed, settings, now, limit);
+  return [...base, ...planAdaptive(adaptive, filled, settings, now, limit)]
     .sort((a, b) => a.at.getTime() - b.at.getTime())
     .slice(0, limit);
 }

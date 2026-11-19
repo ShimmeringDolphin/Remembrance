@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { gapParts } from '../core/labs/format';
+import type { PointMemory } from '../core/labs/memory';
 import { buildVoiceScript } from '../core/labs/voice';
 import type { Point } from '../core/types';
 import { missingVoices, playScript, type Playback } from '../speech/voiceReview';
+import { listMemories } from '../db/memory';
 import { listForReview } from '../db/points';
 import type { Strings } from '../i18n/strings';
 import type { calmStudy } from '../theme/calmStudy';
@@ -28,6 +31,7 @@ interface Props {
 export function ReviewScreen({ visible, pointIds, t, colors, voiceEnabled, speechRate, hideText, onAnswer, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const [points, setPoints] = useState<Point[]>([]);
+  const [memories, setMemories] = useState<Map<string, PointMemory>>(new Map());
   const [speaking, setSpeaking] = useState(false);
   const [missing, setMissing] = useState<string[]>([]);
   const playback = useRef<Playback | null>(null);
@@ -66,13 +70,21 @@ export function ReviewScreen({ visible, pointIds, t, colors, voiceEnabled, speec
       return;
     }
     let cancelled = false;
-    void listForReview(pointIds).then((rows) => {
-      if (!cancelled) setPoints(rows);
+    void Promise.all([listForReview(pointIds), listMemories()]).then(([rows, mems]) => {
+      if (cancelled) return;
+      setPoints(rows);
+      setMemories(mems);
     });
     return () => {
       cancelled = true;
     };
   }, [visible, pointIds]);
+
+  const whyLine = (m: PointMemory) => {
+    const g = gapParts(m.intervalMinutes);
+    const gap = g.unit === 'minute' ? t.minutesShort : g.unit === 'hour' ? t.gapHour : t.gapDay;
+    return t.whyLine.replace('{gap}', gap.replace('{n}', String(g.n))).replace('{n}', String(m.streak));
+  };
 
   // An answered card leaves the list, so a point is never answered twice in one visit.
   const answer = async (point: Point, result: 'remembered' | 'again_soon') => {
@@ -107,6 +119,9 @@ export function ReviewScreen({ visible, pointIds, t, colors, voiceEnabled, speec
           renderItem={({ item }) => (
             <View style={[styles.card, { borderColor: colors.mutedText }]}>
               <Text style={[styles.cardText, { color: colors.text }]}>{item.prompt}</Text>
+              {memories.has(item.id) ? (
+                <Text style={[styles.why, { color: colors.mutedText }]}>{whyLine(memories.get(item.id)!)}</Text>
+              ) : null}
               <View style={styles.answers}>
                 <Pressable
                   accessibilityRole="button"
@@ -148,6 +163,7 @@ const styles = StyleSheet.create({
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 16 },
   cardText: { fontSize: 22, lineHeight: 32 },
   listen: { alignSelf: 'flex-start', minHeight: 44, borderWidth: 1, borderRadius: 22, paddingHorizontal: 18, justifyContent: 'center', marginBottom: 12 },
+  why: { marginTop: 8, fontSize: 13 },
   answers: { flexDirection: 'row', gap: 10, marginTop: 14 },
   answer: { flex: 1, minHeight: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   done: { alignItems: 'center', paddingVertical: 14, borderRadius: 12 },

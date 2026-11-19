@@ -130,6 +130,39 @@ export function SettingsScreen({ visible, settings, t, colors, onChange, onOpenS
             />
           </View>
 
+          <Text style={[styles.label, { color: colors.mutedText }]}>{t.anchorsTitle}</Text>
+          <View style={[styles.row, { flexWrap: 'nowrap', justifyContent: 'space-between' }]}>
+            <Text style={[styles.switchLabel, { color: colors.text }]}>{t.anchorsEnable}</Text>
+            <Switch
+              accessibilityLabel={t.anchorsEnable}
+              value={settings.anchors.enabled}
+              onValueChange={(enabled) => onChange({ ...settings, anchors: { ...settings.anchors, enabled } })}
+              trackColor={{ true: colors.accent }}
+            />
+          </View>
+          <Text style={[styles.hint, { color: colors.mutedText }]}>{t.anchorsHint}</Text>
+          {settings.anchors.enabled
+            ? settings.anchors.times.map((time, i) => {
+                const label = t.anchorLabel.replace('{n}', String(i + 1));
+                const move = (delta: number) => {
+                  const times = settings.anchors.times.map((x, j) => (j === i ? shiftTime(x, delta) : x));
+                  onChange({ ...settings, anchors: { ...settings.anchors, times: [...new Set(times)].sort() } });
+                };
+                return (
+                  <View key={`${i}-${time}`} style={styles.stepper}>
+                    <Text style={[styles.stepperLabel, { color: colors.mutedText, width: 80 }]}>{label}</Text>
+                    <Pressable accessibilityRole="button" accessibilityLabel={`${label} -30`} onPress={() => move(-30)} style={styles.stepButton}>
+                      <Text style={{ color: colors.accent, fontSize: 20 }}>−</Text>
+                    </Pressable>
+                    <Text style={[styles.time, { color: colors.text }]}>{time}</Text>
+                    <Pressable accessibilityRole="button" accessibilityLabel={`${label} +30`} onPress={() => move(30)} style={styles.stepButton}>
+                      <Text style={{ color: colors.accent, fontSize: 20 }}>+</Text>
+                    </Pressable>
+                  </View>
+                );
+              })
+            : null}
+
           <Text style={[styles.label, { color: colors.mutedText }]}>{t.lockTitle}</Text>
           <View style={[styles.row, { flexWrap: 'nowrap', justifyContent: 'space-between' }]}>
             <Text style={[styles.switchLabel, { color: colors.text }]}>{t.lockEnable}</Text>

@@ -7,6 +7,8 @@ import { applyAnswer, EASE_MAX, EASE_MIN, MAX_INTERVAL, newMemory, retrievabilit
 import { buildSession, summariseSession } from './queue.ts';
 import { buildVoiceScript } from './voice.ts';
 import { isAdaptive, planAll, reconcile, recordAnswer, LONG_TERM_START_MINUTES } from './review.ts';
+import { planAnchors } from './anchors.ts';
+import { gapParts } from './format.ts';
 import { layoutSky, MAX_STARS } from './sky.ts';
 import type { Point, ReviewLogEntry, Settings } from '../types';
 
@@ -23,6 +25,7 @@ const settings: Settings = {
   notificationStyle: 'grouped',
   privateNotifications: false,
   labs: { adaptiveLongTerm: false },
+  anchors: { enabled: false, times: ['08:00', '12:30', '18:00', '21:00'] },
 };
 
 function point(id: string, o: Partial<Point> = {}): Point {
@@ -265,4 +268,31 @@ test('reconcile records a missed adaptive reminder as dismissed and seeds missin
   const seeded = reconcile([lt], new Map(), labsOn, now);
   assert.equal(seeded.memories[0].pointId, 'l');
   assert.deepEqual(seeded.log, []);
+});
+
+test('gapParts picks a readable unit', () => {
+  assert.deepEqual(gapParts(10), { unit: 'minute', n: 10 });
+  assert.deepEqual(gapParts(0.2), { unit: 'minute', n: 1 });
+  assert.deepEqual(gapParts(180), { unit: 'hour', n: 3 });
+  assert.deepEqual(gapParts(2880), { unit: 'day', n: 2 });
+  assert.deepEqual(gapParts(43200), { unit: 'day', n: 30 });
+});
+
+test('anchors book one grouped reminder per chosen moment, inside active hours only', () => {
+  const on: Settings = { ...settings, anchors: { enabled: true, times: ['06:00', '08:00', '12:30', '22:30'] } };
+  const plan = planAnchors([point('a'), point('b'), point('gone', { status: 'archived' })], on, at(5, 7));
+  const first = plan.slice(0, 3).map((r) => `${r.at.getDate()} ${r.at.getHours()}:${r.at.getMinutes()}`);
+  assert.deepEqual(first, ['5 8:0', '5 12:30', '6 8:0']); // 06:00 and 22:30 are outside 07:00-22:00
+  assert.ok(plan.every((r) => r.style === 'grouped' && r.pointIds.join() === 'a,b'));
+  assert.deepEqual(planAnchors([point('a')], { ...on, awake: false }, at(5, 7)), []);
+  assert.deepEqual(planAnchors([], on, at(5, 7)), []);
+  assert.ok(planAnchors([point('a')], on, at(5, 7), 3).length === 3);
+});
+
+test('planAll uses anchors for ordinary points when enabled and still plans adaptive points separately', () => {
+  const on: Settings = { ...labsOn, anchors: { enabled: true, times: ['08:00', '12:30'] } };
+  const plan = planAll([point('d'), point('l', { category: 'long_term' })], new Map(), on, at(5, 7));
+  const daily = plan.filter((r) => r.pointIds.includes('d'));
+  assert.deepEqual(daily.slice(0, 2).map((r) => r.at.getHours()), [8, 12]);
+  assert.ok(plan.some((r) => r.pointIds.includes('l') && !r.pointIds.includes('d')));
 });

@@ -22,6 +22,7 @@ const settings: Settings = {
   notificationStyle: 'grouped',
   privateNotifications: false,
   labs: { adaptiveLongTerm: false },
+  anchors: { enabled: false, times: ['08:00', '12:30', '18:00', '21:00'] },
 };
 
 function point(id: string, overrides: Partial<Point> = {}): Point {

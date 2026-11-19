@@ -40,6 +40,12 @@ See [src/core/types.ts](../src/core/types.ts). Points have `kind` (`note` now, `
 
 Settings has a Labs switch, off by default. When on, Long-term points keep their own gap (`src/core/labs/memory.ts`): Remembered stretches it, Again soon shrinks it and brings the point back in 10 minutes, a reminder that passes unanswered is recorded as dismissed and leaves the gap alone. Daily points never change. Nothing moves between Daily and Long-term automatically. Adaptive points are booked from their own due time, in 15-minute slots, at most 3 pending notifications per point. Every answer in Review now is logged (point id, time, answer; never text) in the `review_log` table. Memory Sky (Settings, Labs) shows each point as a star that dims as recall falls. See `docs/open-creativity/`.
 
+### Labs: routine moments, app lock, spoken review (opt-in, experimental)
+
+- Routine moments (Settings): four editable times a day replace the repeating grid for ordinary points.
+- App lock: Face ID, fingerprint or passcode with a timeout; reminder text is hidden while on.
+- Spoken review: a Listen button in Review now reads up to 5 non-private points while the app is open.
+
 ## Battery and memory
 
 - No background service, polling, wake locks, location or network. Reminders are OS-fired local notifications, so the app uses no battery while idle.

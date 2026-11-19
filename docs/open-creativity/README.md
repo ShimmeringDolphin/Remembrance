@@ -18,6 +18,8 @@ Today every point repeats on the same fixed grid. Memory does not work like that
 | Insights | `src/core/labs/insights.ts` | Gentle rhythm (rest tokens instead of a streak you can lose), hours when reminders get ignored (suggests quiet hours), per-point advice: reword, gentler, graduate. |
 | Voice review | `voice.ts`, `src/speech/voiceReview.ts` | Settings switch shows a Listen button in Review now. Reads up to 5 points (question, pause, answer for Q&A points), skips private points, warns when a language voice is missing, stops on leaving the screen. Only while the app is open. |
 | App lock | `lock.ts`, `src/ui/LockGate.tsx`, `src/lock/auth.ts` | Face ID, fingerprint or passcode, timeout of immediately, 1 or 5 minutes. Turning it on needs a successful prompt first, so nobody locks themselves out. Cover hides contents in the app switcher. Lock on means reminder text is hidden. |
+| Routine moments | `src/core/labs/anchors.ts`, Settings | Review at 4 chosen times a day (grouped, inside active hours) instead of every hour: 4 notifications a day instead of 16. |
+| "Why now" line | `format.ts`, `ReviewScreen` | Adaptive cards show the next gap and how many were remembered in a row. |
 | Sky layout | `src/core/labs/sky.ts` | Stable star positions on a golden-angle spiral: a new point lands at the edge, old stars never move. |
 | Storage | `src/db/memory.ts`, migration 3 | One `point_memory` table, bound parameters only. |
 | Screen | `src/ui/labs/MemorySky.tsx`, `SkyScreen.tsx` | Static view, at most 60 Views, no timers. Opened from Settings, Labs. |

@@ -19,6 +19,15 @@ Please check meaning, tone and natural wording. Placeholders like {n} and {range
 | adviceGentler | is often ignored. A gentler gap may suit it. | अक्सर अनदेखा हो जाता है। धीमा अंतराल बेहतर हो सकता है। | ઘણીવાર અવગણાય છે. ધીમું અંતર વધુ યોગ્ય હોઈ શકે. | |
 | adviceGraduate | is solid. Move it to Long-term if you like. | पक्का हो गया है। चाहें तो इसे दीर्घकालिक में ले जाएँ। | પાકું થઈ ગયું છે. ઈચ્છો તો તેને લાંબા ગાળામાં લઈ જાઓ. | |
 | adviceQuiet | Reminders around {range} are mostly ignored. Consider quiet hours. | {range} के आसपास के रिमाइंडर अक्सर अनदेखे रहते हैं। शांत समय रखने पर विचार करें। | {range} આસપાસના રિમાઇન્ડર મોટે ભાગે અવગણાય છે. શાંત સમય રાખવા વિચારો. | |
+| anchorsTitle | Routine moments | दिनचर्या के पल | દિનચર્યાની પળો | |
+| anchorsEnable | Review at set times instead of every hour | हर घंटे की जगह तय समय पर दोहराएँ | દર કલાકને બદલે નક્કી કરેલા સમયે ફરી જુઓ | |
+| anchorsHint | A few reminders a day at the times you choose, inside your active hours. Fewer interruptions. | आपके चुने समय पर दिन में कुछ रिमाइंडर, सक्रिय समय के भीतर। कम रुकावट। | તમે પસંદ કરેલા સમયે દિવસમાં થોડા રિમાઇન્ડર, સક્રિય સમયની અંદર. ઓછી ખલેલ. | |
+| anchorLabel | Moment {n} | पल {n} | પળ {n} | |
+| gapHour | {n} h | {n} घंटे | {n} કલાક | |
+| gapDay | {n} days | {n} दिन | {n} દિવસ | |
+| whyLine | Next gap {gap}. Remembered {n} in a row. | अगला अंतराल {gap}। लगातार {n} बार याद रहा। | આગલું અંતર {gap}. સતત {n} વાર યાદ રહ્યું. | |
+| viewSky | Sky | आकाश | આકાશ | |
+| viewList | List | सूची | યાદી | |
 | lockTitle | App lock | ऐप लॉक | એપ લૉક | |
 | lockEnable | Ask for Face ID, fingerprint or passcode | Face ID, फ़िंगरप्रिंट या पासकोड माँगें | Face ID, ફિંગરપ્રિન્ટ અથવા પાસકોડ માંગો | |
 | lockHint | With the lock on, reminder text is hidden on the lock screen. | लॉक चालू होने पर लॉक स्क्रीन पर रिमाइंडर का पाठ छिपा रहता है। | લૉક ચાલુ હોય ત્યારે લૉક સ્ક્રીન પર રિમાઇન્ડરનું લખાણ છુપાયેલું રહે છે. | |

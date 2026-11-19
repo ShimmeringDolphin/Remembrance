@@ -14,6 +14,7 @@ export function defaultSettings(language: Language): Settings {
     notificationStyle: 'grouped',
     privateNotifications: false,
     labs: { adaptiveLongTerm: false },
+    anchors: { enabled: false, times: ['08:00', '12:30', '18:00', '21:00'] },
   };
 }
 
@@ -60,6 +61,13 @@ export function mergeSettings(stored: unknown, language: Language): Settings {
     },
     notificationStyle: s.notificationStyle === 'individual' || s.notificationStyle === 'grouped' ? s.notificationStyle : base.notificationStyle,
     privateNotifications: typeof s.privateNotifications === 'boolean' ? s.privateNotifications : base.privateNotifications,
+    anchors: {
+      enabled: isObject(s.anchors) && typeof s.anchors.enabled === 'boolean' ? s.anchors.enabled : base.anchors.enabled,
+      times:
+        isObject(s.anchors) && Array.isArray(s.anchors.times) && s.anchors.times.length >= 1 && s.anchors.times.length <= 6 && s.anchors.times.every(isTime)
+          ? [...new Set(s.anchors.times as string[])].sort()
+          : base.anchors.times,
+    },
     labs: {
       adaptiveLongTerm:
         isObject(s.labs) && typeof s.labs.adaptiveLongTerm === 'boolean' ? s.labs.adaptiveLongTerm : base.labs.adaptiveLongTerm,

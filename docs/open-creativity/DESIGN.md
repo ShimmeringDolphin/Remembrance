@@ -44,10 +44,10 @@
 
 ## 5. Proposals not built
 
-1. **Routine anchors.** Instead of a clock grid, the user picks 3 to 5 moments (after waking, lunch, commute, bedtime) and reviews cluster there. Fewer, more meaningful notifications. Reuses `per_day` plus slots. Cost: a small settings screen.
+1. ~~Routine anchors~~ **Built** (section 10).
 2. **Lock-screen widget (phase 2).** One point, rotated by the OS. Needs native code through a config plugin, so it waits for the development build.
 3. **Encrypted export.** Passphrase-based, nothing leaves the phone unless the user shares the file. Needs an AES library, which is a dependency decision for the owner.
-4. **"Why now?" line.** Tap a reminder's info to see "Last remembered 3 days ago, next gap 5 days". Builds trust in the algorithm. No new cost.
+4. ~~"Why now?" line~~ **Built** in a simple form: adaptive cards in Review now show the next gap and the run of remembered answers.
 5. **Accessibility pass.** Dynamic type, a 44-point minimum hit area (the sky already uses it), reduce-motion respect, screen-reader summaries of the sky as a plain list, and checked Noto Sans rendering for Hindi and Gujarati.
 6. **Question-and-answer points** work with the voice script (prompt, pause, answer) and with a reveal step in the queue; the data model already reserves `kind`, `prompt`, `answer`.
 
@@ -83,3 +83,7 @@ That was too aggressive: a third of reminders for the slow learner were misses. 
 - **Memory Sky has a List view.** A tab switches between the sky and a plain list ordered weakest first, with recall as text. A star is a picture; the list carries the same information for screen readers and for anyone who prefers reading. Private mode hides point text in both.
 - Stars are 44-point targets with labels naming the point and its recall. Review buttons are at least 44 points tall. Nothing animates, so reduce-motion needs no special case. Text uses default font scaling.
 - **Not checked:** behaviour with the largest system font size, TalkBack and VoiceOver on a real phone, and Devanagari and Gujarati font rendering.
+
+## 10. Routine moments
+
+An alternative to the hourly grid: pick four times (defaults 08:00, 12:30, 18:00, 21:00, editable in 30-minute steps in Settings) and the app books one grouped reminder at each, for all ordinary points. Times outside the active hours or in quiet hours are skipped. At most 14 days ahead and 60 notifications, so the iOS limit holds. Adaptive Long-term points keep their own schedule. Against the default grid that is 4 notifications a day instead of 16, with the trade-off of longer gaps between repeats; whether that suits intense drilling is for the owner to judge. Off by default. Not run on a phone.
