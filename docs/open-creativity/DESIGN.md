@@ -54,3 +54,17 @@
 ## 6. Alternate look
 
 Concept page ships two themes from one token set: the existing Calm Study paper-and-indigo, and a "Night Sky" dark theme (deep ink background, pale periwinkle stars, warm amber for suggestions). It stays inside the Calm Study family; I did not push a louder style because a study aid used all day should be easy on the eyes.
+
+## 7. Tuning by simulation (not real data)
+
+`node scripts/simulate-adaptive.ts` runs simulated users whose hidden memory does **not** use the model's own curve: recall chance is `0.9^(gap / trueStability)`, true stability multiplies by a growth factor after a success and halves after a failure. 30 days, one Long-term point, mean of 20 seeds, compared with a fixed hourly grid (480 reminders per point).
+
+| First setting (ease start 2.0, max 2.8, step 0.08) | reminders | miss rate |
+| --- | --- | --- |
+| slow learner (growth 1.3, stability 2 h) | 55 | 0.33 |
+| typical (growth 2, stability 2 h) | 9 | 0.13 |
+| quick (growth 3, stability 1 day) | 6 | 0.00 |
+
+That was too aggressive: a third of reminders for the slow learner were misses. I tried a middle setting (ease start 1.6, max 2.3, step 0.05) and a cautious one (1.5, 2.0, 0.04). The middle setting gave typical 10 reminders at a 0.06 miss rate and slow learner 47 at 0.27, so it is now the default. The cautious one lowers misses further but never lets gaps stretch past about 19 days. A slow learner still misses about a quarter of reminders, which is the intended behaviour: the gap stays short until the memory holds.
+
+**Limits:** the users are my invention and the numbers say the model behaves sensibly, not that it helps real people. Real tuning needs a few weeks of actual review logs, which the new `review_log` table now collects.

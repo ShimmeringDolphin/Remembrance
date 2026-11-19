@@ -16,8 +16,8 @@ export const FORGET_DECAY = 0.5;
 export const FORGET_FACTOR = Math.pow(0.9, -1 / FORGET_DECAY) - 1;
 
 export const EASE_MIN = 1.3;
-export const EASE_MAX = 2.8;
-export const EASE_START = 2.0;
+export const EASE_MAX = 2.3;
+export const EASE_START = 1.6;
 /** After "Again soon" the point comes back this soon, whatever its normal gap. */
 export const AGAIN_SOON_MINUTES = 10;
 /** Longest gap per category. Daily points are drilled within the day; long-term ones stretch to months. */
@@ -64,7 +64,7 @@ export function applyAnswer(
   const at = (minutes: number) => new Date(now.getTime() + minutes * 60000).toISOString();
   switch (answer) {
     case 'remembered': {
-      const ease = Math.min(EASE_MAX, memory.ease + 0.08);
+      const ease = Math.min(EASE_MAX, memory.ease + 0.05);
       const interval = clamp(Math.round(memory.intervalMinutes * ease), MIN_INTERVAL_MINUTES, max);
       return {
         ...memory,
