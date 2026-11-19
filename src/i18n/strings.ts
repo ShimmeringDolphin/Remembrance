@@ -3,6 +3,7 @@ import type { Language } from '../core/types';
 // Hindi and Gujarati text is a first draft and needs review by a native speaker.
 const strings = {
   en: {
+    languageTitle: 'Language',
     appName: 'YaadOM',
     groupedBody: 'Time to review: {n} points',
     privateBody: 'You have a point to remember',
@@ -37,6 +38,7 @@ const strings = {
     emptyLongTerm: 'No long-term points yet. Move a daily point here when it is learned.',
   },
   hi: {
+    languageTitle: 'भाषा',
     appName: 'YaadOM',
     groupedBody: 'दोहराने का समय: {n} बिंदु',
     privateBody: 'याद रखने के लिए आपके पास एक बिंदु है',
@@ -71,6 +73,7 @@ const strings = {
     emptyLongTerm: 'अभी कोई दीर्घकालिक बिंदु नहीं है। याद हो जाने पर दैनिक बिंदु यहाँ लाएँ।',
   },
   gu: {
+    languageTitle: 'ભાષા',
     appName: 'YaadOM',
     groupedBody: 'સમીક્ષાનો સમય: {n} મુદ્દા',
     privateBody: 'યાદ રાખવા માટે તમારી પાસે એક મુદ્દો છે',
@@ -105,6 +108,9 @@ const strings = {
     emptyLongTerm: 'હજી કોઈ લાંબા ગાળાનો મુદ્દો નથી. યાદ થઈ જાય ત્યારે દૈનિક મુદ્દો અહીં લાવો.',
   },
 } as const;
+
+/** Language names, each written in its own language so they can always be recognised. */
+export const LANGUAGE_NAMES: Record<Language, string> = { en: 'English', hi: 'हिन्दी', gu: 'ગુજરાતી' };
 
 export type Strings = Record<keyof (typeof strings)['en'], string>;
 
