@@ -105,6 +105,25 @@ export async function updatePoint(
   );
 }
 
+/** Archived points of both categories, most recently archived first. */
+export async function listArchivedPoints(): Promise<Point[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<PointRow>(
+    "SELECT * FROM points WHERE status = 'archived' ORDER BY updated_at DESC",
+  );
+  return rows.map(toPoint);
+}
+
+/** Brings an archived point back so it reminds again. */
+export async function restorePoint(id: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    "UPDATE points SET status = 'active', updated_at = ? WHERE id = ? AND status = 'archived'",
+    new Date().toISOString(),
+    id,
+  );
+}
+
 /** Archived points stay in the database but never remind. */
 export async function archivePoint(id: string): Promise<void> {
   const db = await getDb();

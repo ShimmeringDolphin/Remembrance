@@ -35,6 +35,12 @@ const strings = {
     category: 'Category',
     emptyDaily: 'No daily points yet. Add what you are learning now.',
     emptyLongTerm: 'No long-term points yet. Move a daily point here when it is learned.',
+    archived: 'Archived',
+    archivedEmpty: 'No archived points. Archived points stop reminding you and wait here.',
+    restore: 'Restore',
+    reviewNow: 'Review now',
+    reviewEmpty: 'Nothing to review. These points may have been archived.',
+    done: 'Done',
   },
   hi: {
     appName: 'YaadOM',
@@ -69,6 +75,12 @@ const strings = {
     category: 'श्रेणी',
     emptyDaily: 'अभी कोई दैनिक बिंदु नहीं है। जो अभी सीख रहे हैं, वह जोड़ें।',
     emptyLongTerm: 'अभी कोई दीर्घकालिक बिंदु नहीं है। याद हो जाने पर दैनिक बिंदु यहाँ लाएँ।',
+    archived: 'संग्रहित',
+    archivedEmpty: 'कोई संग्रहित बिंदु नहीं। संग्रहित बिंदु याद दिलाना बंद कर देते हैं और यहाँ रहते हैं।',
+    restore: 'वापस लाएँ',
+    reviewNow: 'अभी दोहराएँ',
+    reviewEmpty: 'दोहराने के लिए कुछ नहीं। शायद ये बिंदु संग्रहित कर दिए गए हैं।',
+    done: 'हो गया',
   },
   gu: {
     appName: 'YaadOM',
@@ -103,6 +115,12 @@ const strings = {
     category: 'શ્રેણી',
     emptyDaily: 'હજી કોઈ દૈનિક મુદ્દો નથી. હમણાં જે શીખો છો તે ઉમેરો.',
     emptyLongTerm: 'હજી કોઈ લાંબા ગાળાનો મુદ્દો નથી. યાદ થઈ જાય ત્યારે દૈનિક મુદ્દો અહીં લાવો.',
+    archived: 'આર્કાઇવ',
+    archivedEmpty: 'કોઈ આર્કાઇવ કરેલો મુદ્દો નથી. આર્કાઇવ કરેલા મુદ્દા યાદ અપાવવાનું બંધ કરે છે અને અહીં રહે છે.',
+    restore: 'પાછો લાવો',
+    reviewNow: 'હમણાં સમીક્ષા કરો',
+    reviewEmpty: 'સમીક્ષા માટે કંઈ નથી. કદાચ આ મુદ્દા આર્કાઇવ થઈ ગયા છે.',
+    done: 'થઈ ગયું',
   },
 } as const;
 

@@ -16,6 +16,9 @@ One Expo (React Native) app for iPhone, iPad and Android. Everything is stored o
 
 Also: quiet hours, per-point and global "private" mode (hides the text on the lock screen), and a "Review now" screen.
 
+- Review now opens when a reminder is tapped and shows the points that reminder named, in its order; points archived since are left out. It also opens from a "Review now" button on the main screen, showing the active points of the current tab. First version: it only shows the points; Remembered and Again soon answers and the review log come later.
+- Archive hides a point and stops its reminders without deleting it. An "Archived" screen lists archived points from both tabs, newest first, each with a Restore button that makes it active again and rebooks reminders.
+
 ## Stack
 
 Expo (React Native, TypeScript). expo-notifications, expo-speech, expo-sqlite with SQLCipher, expo-secure-store, expo-local-authentication, EAS Build and Submit. Widgets are native (SwiftUI, Glance) added through a config plugin in phase 2.

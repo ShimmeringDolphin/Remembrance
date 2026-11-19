@@ -1,10 +1,12 @@
+import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, FlatList, Linking, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { pickReviewPoints, pointIdsFromNotificationData } from './src/core/review';
 import { defaultSettings } from './src/core/settingsDefaults';
 import type { Category, Point, Settings } from './src/core/types';
-import { archivePoint, createPoint, listPoints, updatePoint } from './src/db/points';
+import { archivePoint, createPoint, listActivePoints, listPoints, updatePoint } from './src/db/points';
 import { getSettings, saveSettings } from './src/db/settings';
 import { detectLanguage, getStrings } from './src/i18n/strings';
 import {
@@ -15,7 +17,9 @@ import {
   syncReminders,
 } from './src/notifications/reminders';
 import { calmStudy } from './src/theme/calmStudy';
+import { ArchiveScreen } from './src/ui/ArchiveScreen';
 import { PointEditor } from './src/ui/PointEditor';
+import { ReviewScreen } from './src/ui/ReviewScreen';
 import { SettingsScreen } from './src/ui/SettingsScreen';
 
 function Home() {
@@ -31,11 +35,38 @@ function Home() {
   const [points, setPoints] = useState<Point[]>([]);
   const [editing, setEditing] = useState<Point | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewPoints, setReviewPoints] = useState<Point[]>([]);
 
   const reload = useCallback(async () => setPoints(await listPoints(category)), [category]);
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  /** Opens Review now with the points a reminder named, or with this tab's points when `ids` is null. */
+  const openReview = useCallback(
+    async (ids: string[] | null) => {
+      const source = ids === null ? await listPoints(category) : await listActivePoints();
+      setReviewPoints(pickReviewPoints(source, ids));
+      setReviewOpen(true);
+    },
+    [category],
+  );
+
+  // Tapping a reminder opens Review now with the points it was about. Each tap is handled once.
+  const lastResponse = Notifications.useLastNotificationResponse();
+  const handledResponse = useRef<string | null>(null);
+  useEffect(() => {
+    if (!lastResponse || lastResponse.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+    const request = lastResponse.notification.request;
+    const key = `${request.identifier}|${lastResponse.notification.date}`;
+    if (handledResponse.current === key) return;
+    handledResponse.current = key;
+    Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
+    const ids = pointIdsFromNotificationData(request.content.data);
+    if (ids) void openReview(ids);
+  }, [lastResponse, openReview]);
 
   // Startup: load settings, check permission, book reminders.
   useEffect(() => {
@@ -117,6 +148,25 @@ function Home() {
         </View>
       ) : null}
 
+      <View style={styles.actions}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.reviewNow}
+          onPress={() => void openReview(null)}
+          style={[styles.action, { borderColor: colors.accent }]}
+        >
+          <Text style={{ color: colors.accent, fontWeight: '600' }}>{t.reviewNow}</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.archived}
+          onPress={() => setArchiveOpen(true)}
+          style={[styles.action, { borderColor: colors.mutedText }]}
+        >
+          <Text style={{ color: colors.mutedText }}>{t.archived}</Text>
+        </Pressable>
+      </View>
+
       <View style={styles.tabs}>
         {(['daily', 'long_term'] as const).map((c) => (
           <Pressable
@@ -197,6 +247,26 @@ function Home() {
         onChange={(next) => void updateSettings(next)}
         onClose={() => setSettingsOpen(false)}
       />
+      <ArchiveScreen
+        visible={archiveOpen}
+        t={t}
+        colors={colors}
+        onRestored={() => {
+          void reload();
+          void syncReminders();
+        }}
+        onClose={() => setArchiveOpen(false)}
+      />
+      <ReviewScreen
+        visible={reviewOpen}
+        points={reviewPoints}
+        t={t}
+        colors={colors}
+        onClose={() => {
+          setReviewOpen(false);
+          setReviewPoints([]);
+        }}
+      />
       <StatusBar style="auto" />
     </View>
   );
@@ -216,6 +286,8 @@ const styles = StyleSheet.create({
   awake: { borderWidth: 1, borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16 },
   gear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   banner: { marginHorizontal: 16, marginBottom: 8, padding: 12, borderWidth: 1, borderRadius: 12 },
+  actions: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingBottom: 8 },
+  action: { borderWidth: 1, borderRadius: 20, paddingVertical: 8, paddingHorizontal: 14, minHeight: 44, justifyContent: 'center' },
   tabs: { flexDirection: 'row', paddingHorizontal: 16 },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabText: { fontSize: 16, fontWeight: '600' },
