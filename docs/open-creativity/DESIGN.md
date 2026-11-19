@@ -76,3 +76,10 @@ That was too aggressive: a third of reminders for the slow learner were misses. 
 - **Only `background` counts as leaving the app.** The system prompt itself makes the app inactive, so counting that would loop. The cover is also shown while inactive so the app switcher shows no points.
 - **Not verified:** Face ID needs a development build (it does not work in Expo Go). The Android prompt behaviour with AppState is untested. Treat the lock as privacy against casual viewing: points are still unencrypted on disk until SQLCipher.
 - **Voice:** expo-speech does not document background playback and iOS stays silent in silent mode, so speech is only offered inside Review now while the app is open. Voices come from the phone; the screen warns when a Hindi or Gujarati voice is missing.
+
+## 9. Accessibility pass
+
+- **Contrast is now tested.** `contrast.test.ts` computes WCAG ratios for the Calm Study theme. Measured: light text 14.4, muted text 5.9, accent 7.4, text on accent 7.9; dark text 15.2, muted 7.5, accent 6.9, text on accent 6.9. All pass AA (4.5:1), so the "provisional" dark palette is readable; whether it is the right look is still the owner's call.
+- **Memory Sky has a List view.** A tab switches between the sky and a plain list ordered weakest first, with recall as text. A star is a picture; the list carries the same information for screen readers and for anyone who prefers reading. Private mode hides point text in both.
+- Stars are 44-point targets with labels naming the point and its recall. Review buttons are at least 44 points tall. Nothing animates, so reduce-motion needs no special case. Text uses default font scaling.
+- **Not checked:** behaviour with the largest system font size, TalkBack and VoiceOver on a real phone, and Devanagari and Gujarati font rendering.
