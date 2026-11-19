@@ -137,3 +137,27 @@ export async function listForReview(ids?: readonly string[]): Promise<Point[]> {
   );
   return rows.map(toPoint);
 }
+/** Archived points, most recently archived first. */
+export async function listArchived(): Promise<Point[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<PointRow>(
+    "SELECT * FROM points WHERE status = 'archived' ORDER BY updated_at DESC",
+  );
+  return rows.map(toPoint);
+}
+
+/** Brings an archived point back as active. */
+export async function restorePoint(id: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    "UPDATE points SET status = 'active', updated_at = ? WHERE id = ? AND status = 'archived'",
+    new Date().toISOString(),
+    id,
+  );
+}
+
+/** Permanently removes an archived point. Only archived points can be deleted. */
+export async function deleteArchivedPoint(id: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync("DELETE FROM points WHERE id = ? AND status = 'archived'", id);
+}

@@ -19,6 +19,7 @@ import {
 import { calmStudy } from './src/theme/calmStudy';
 import { PointEditor } from './src/ui/PointEditor';
 import { ReviewScreen } from './src/ui/ReviewScreen';
+import { ArchivedScreen } from './src/ui/ArchivedScreen';
 import { SettingsScreen } from './src/ui/SettingsScreen';
 
 function Home() {
@@ -43,6 +44,7 @@ function Home() {
     setReviewIds(pointIdsFromData(lastResponse.notification.request.content.data));
     setReviewOpen(true);
   }, [lastResponse]);
+  const [archivedOpen, setArchivedOpen] = useState(false);
 
   const [category, setCategory] = useState<Category>('daily');
   const [points, setPoints] = useState<Point[]>([]);
@@ -127,6 +129,9 @@ function Home() {
           style={styles.review}
         >
           <Text style={{ color: colors.accent }}>{t.reviewNow}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={t.archived} onPress={() => setArchivedOpen(true)} style={styles.archived}>
+          <Text style={{ color: colors.accent }}>{t.archived}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={t.settings} onPress={() => setSettingsOpen(true)} style={styles.gear}>
           <Text style={{ color: colors.accent, fontSize: 22 }}>⚙</Text>
@@ -217,6 +222,16 @@ function Home() {
         }}
       />
       <ReviewScreen visible={reviewOpen} pointIds={reviewIds} t={t} colors={colors} onClose={() => setReviewOpen(false)} />
+      <ArchivedScreen
+        visible={archivedOpen}
+        t={t}
+        colors={colors}
+        onClose={() => setArchivedOpen(false)}
+        onRestored={() => {
+          void reload();
+          void syncReminders();
+        }}
+      />
       <SettingsScreen
         visible={settingsOpen}
         settings={settings}
@@ -243,6 +258,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 8 },
   awake: { borderWidth: 1, borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16 },
   review: { marginLeft: 'auto', paddingVertical: 12, paddingHorizontal: 12 },
+  archived: { paddingVertical: 12, paddingHorizontal: 12 },
   gear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   banner: { marginHorizontal: 16, marginBottom: 8, padding: 12, borderWidth: 1, borderRadius: 12 },
   tabs: { flexDirection: 'row', paddingHorizontal: 16 },
