@@ -3,6 +3,7 @@ import type { Language } from '../core/types';
 // Hindi and Gujarati text is a first draft and needs review by a native speaker.
 const strings = {
   en: {
+    languageTitle: 'Language',
     appName: 'YaadOM',
     groupedBody: 'Time to review: {n} points',
     privateBody: 'You have a point to remember',
@@ -32,11 +33,18 @@ const strings = {
     save: 'Save',
     cancel: 'Cancel',
     archive: 'Archive',
+    archived: 'Archived',
+    archivedEmpty: 'Nothing archived. Archived points never remind you.',
+    restore: 'Restore',
+    deleteForever: 'Delete forever',
+    deleteTitle: 'Delete this point?',
+    deleteBody: 'It will be removed from this phone and cannot be brought back.',
     category: 'Category',
     emptyDaily: 'No daily points yet. Add what you are learning now.',
     emptyLongTerm: 'No long-term points yet. Move a daily point here when it is learned.',
   },
   hi: {
+    languageTitle: 'भाषा',
     appName: 'YaadOM',
     groupedBody: 'दोहराने का समय: {n} बिंदु',
     privateBody: 'याद रखने के लिए आपके पास एक बिंदु है',
@@ -66,11 +74,18 @@ const strings = {
     save: 'सहेजें',
     cancel: 'रद्द करें',
     archive: 'संग्रहित करें',
+    archived: 'संग्रहीत',
+    archivedEmpty: 'कुछ भी संग्रहीत नहीं है। संग्रहीत बिंदु कभी याद नहीं दिलाते।',
+    restore: 'वापस लाएँ',
+    deleteForever: 'हमेशा के लिए हटाएँ',
+    deleteTitle: 'यह बिंदु हटाएँ?',
+    deleteBody: 'यह इस फ़ोन से हट जाएगा और वापस नहीं आ सकेगा।',
     category: 'श्रेणी',
     emptyDaily: 'अभी कोई दैनिक बिंदु नहीं है। जो अभी सीख रहे हैं, वह जोड़ें।',
     emptyLongTerm: 'अभी कोई दीर्घकालिक बिंदु नहीं है। याद हो जाने पर दैनिक बिंदु यहाँ लाएँ।',
   },
   gu: {
+    languageTitle: 'ભાષા',
     appName: 'YaadOM',
     groupedBody: 'સમીક્ષાનો સમય: {n} મુદ્દા',
     privateBody: 'યાદ રાખવા માટે તમારી પાસે એક મુદ્દો છે',
@@ -100,11 +115,20 @@ const strings = {
     save: 'સાચવો',
     cancel: 'રદ કરો',
     archive: 'આર્કાઇવ કરો',
+    archived: 'આર્કાઇવ',
+    archivedEmpty: 'કંઈ આર્કાઇવ નથી. આર્કાઇવ કરેલા મુદ્દા ક્યારેય યાદ અપાવતા નથી.',
+    restore: 'પાછું લાવો',
+    deleteForever: 'કાયમ માટે કાઢી નાખો',
+    deleteTitle: 'આ મુદ્દો કાઢી નાખવો?',
+    deleteBody: 'તે આ ફોનમાંથી દૂર થશે અને પાછો લાવી શકાશે નહીં.',
     category: 'શ્રેણી',
     emptyDaily: 'હજી કોઈ દૈનિક મુદ્દો નથી. હમણાં જે શીખો છો તે ઉમેરો.',
     emptyLongTerm: 'હજી કોઈ લાંબા ગાળાનો મુદ્દો નથી. યાદ થઈ જાય ત્યારે દૈનિક મુદ્દો અહીં લાવો.',
   },
 } as const;
+
+/** Language names, each written in its own language so they can always be recognised. */
+export const LANGUAGE_NAMES: Record<Language, string> = { en: 'English', hi: 'हिन्दी', gu: 'ગુજરાતી' };
 
 export type Strings = Record<keyof (typeof strings)['en'], string>;
 
