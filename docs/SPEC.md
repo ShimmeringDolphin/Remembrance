@@ -49,7 +49,7 @@ See [src/core/types.ts](../src/core/types.ts). Points have `kind` (`note` now, `
 
 ## Screens
 
-Welcome and permission flow, Reminder card, Today (review now), Points list (Daily and Long-term tabs), Add or edit point, Settings. If notification permission is refused, Today shows a banner linking to system settings.
+Welcome and permission flow, Reminder card, Today (review now: a "Review now" button on Home shows the newest active points, and tapping a reminder shows that reminder's points; the Remembered and Again soon buttons are not built yet), Points list (Daily and Long-term tabs), Add or edit point, Settings. If notification permission is refused, Today shows a banner linking to system settings.
 
 ## Languages
 

@@ -114,3 +114,26 @@ export async function archivePoint(id: string): Promise<void> {
     id,
   );
 }
+
+/** Most points one Review now screen loads, so memory stays small. */
+export const MAX_REVIEW_POINTS = 50;
+
+/** Active points for Review now. With ids, only those (a tapped reminder); otherwise the newest ones. */
+export async function listForReview(ids?: readonly string[]): Promise<Point[]> {
+  const db = await getDb();
+  if (ids && ids.length > 0) {
+    const wanted = ids.slice(0, MAX_REVIEW_POINTS);
+    // Only "?" marks are built here; the ids themselves are bound, never put into the SQL text.
+    const marks = wanted.map(() => '?').join(', ');
+    const rows = await db.getAllAsync<PointRow>(
+      `SELECT * FROM points WHERE status = 'active' AND id IN (${marks}) ORDER BY created_at DESC`,
+      ...wanted,
+    );
+    return rows.map(toPoint);
+  }
+  const rows = await db.getAllAsync<PointRow>(
+    "SELECT * FROM points WHERE status = 'active' ORDER BY created_at DESC LIMIT ?",
+    MAX_REVIEW_POINTS,
+  );
+  return rows.map(toPoint);
+}
