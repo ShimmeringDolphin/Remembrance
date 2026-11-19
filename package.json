@@ -21,7 +21,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "node --test src/core/*.test.ts"
+    "test": "node --test src/core/*.test.ts src/core/labs/*.test.ts"
   },
   "private": true
 }
