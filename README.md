@@ -4,7 +4,7 @@
 
 A study aid for iPhone, iPad and Android that repeats your own short "points of remembrance" many times through the day, so what you want to learn stays in mind. It is not a to-do reminder: repetition is the whole point.
 
-Status: early scaffold. The repository holds the spec, the data-model types and a blank Expo (TypeScript) app with the Calm Study theme. No features are built yet.
+Status: early development. You can add, edit, archive and list points (Daily and Long-term), stored on the phone. Reminders, settings, spoken delivery and the app lock are not built yet. Points are not yet encrypted (see docs/SPEC.md).
 
 ## Run it
 

@@ -56,7 +56,7 @@ English, Hindi, Gujarati. Screen text lives in language files so more can be add
 
 ## Security and privacy
 
-No account, no server, no analytics. Encrypted database with the key in Keychain or Keystore. Optional app lock (Face ID, Touch ID, fingerprint or passcode) with a timeout. Private notification mode. Encrypted password-protected export and import. Device cloud backups excluded by default. Sync, if wanted later, would be end-to-end encrypted.
+No account, no server, no analytics. Encrypted database with the key in Keychain or Keystore. SQLCipher is not available in Expo Go, so it needs a development build; until then (current state) points are stored unencrypted. Optional app lock (Face ID, Touch ID, fingerprint or passcode) with a timeout. Private notification mode. Encrypted password-protected export and import. Device cloud backups excluded by default. Sync, if wanted later, would be end-to-end encrypted.
 
 ## Phases
 
