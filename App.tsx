@@ -40,7 +40,12 @@ function Home() {
   // Startup: load settings, check permission, book reminders.
   useEffect(() => {
     void (async () => {
-      await initNotifications();
+      // Settings must load even if notification setup fails, or the app would save defaults over them.
+      try {
+        await initNotifications();
+      } catch (e) {
+        console.warn('Notification setup failed', e);
+      }
       setSettings(await getSettings());
       setPermission(await getPermissionState());
       await syncReminders();

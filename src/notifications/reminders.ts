@@ -21,10 +21,16 @@ export async function initNotifications(): Promise<void> {
     }),
   });
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-      name: 'Reminders',
-      importance: Notifications.AndroidImportance.DEFAULT,
-    });
+    // Expo Go on Android can reject this with a native NullPointerException. The channel is not
+    // essential (Android falls back to a default channel), so a failure must not stop startup.
+    try {
+      await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+        name: 'Reminders',
+        importance: Notifications.AndroidImportance.DEFAULT,
+      });
+    } catch (e) {
+      console.warn('Could not create the Android notification channel', e);
+    }
   }
 }
 
