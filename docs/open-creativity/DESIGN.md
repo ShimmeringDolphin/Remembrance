@@ -1,0 +1,55 @@
+# open-creativity: design rationale, research and audit
+
+## 1. Research that shaped the plan
+
+- **Forgetting curve.** Modern spaced-repetition schedulers (FSRS and its relatives) model recall as a power function of time since review, scaled by a per-item "stability", defined as the time for recall to fall from 100% to 90%. I use that shape: `R(t) = (1 + F*t/S)^-0.5` with `F = 19/81`, so `R(S) = 0.9`. This is a simplified, explainable cousin, not FSRS: it has no trained parameters and no difficulty model. Sources: [Expertium's FSRS write-up](https://expertium.github.io/Algorithm.html) (states the power curve and the 90% definition; its formula images were not readable, so the exact constants are my own derivation from the 90% anchor, checked by a unit test).
+- **Expanding versus equal gaps.** A [meta-analysis in Educational Psychology Review](https://link.springer.com/10.1007/s10648-020-09572-8) found no meaningful difference between expanding and equal-interval retrieval practice (g = 0.034), and that the number of practice tests explained much of the inconsistency. **What this changed:** I stopped selling "expanding intervals" as the benefit. The honest benefit is responding to each point's own forgetting, and sending fewer notifications for points that are solid.
+- **Local authentication.** Expo's [LocalAuthentication docs for SDK 58](https://docs.expo.dev/versions/v58.0.0/sdk/local-authentication/): Face ID does not work in Expo Go (needs a development build), iOS needs `NSFaceIDUsageDescription`, Android adds `USE_BIOMETRIC` automatically. So app lock can be built and unit-tested as policy now, and only verified later.
+- Existing project facts from `docs/SPEC.md`: iOS caps pending notifications at 64, iOS cannot speak from a closed app, Android exact alarms are off the table.
+
+## 2. Plan and audit
+
+**First plan:** a full FSRS port, streak counters with badges, an adaptive planner replacing the current one, voice review, encrypted export, app lock, a lock-screen widget.
+
+**Audit as a sceptic, and what it changed:**
+
+| Concern | Change |
+| --- | --- |
+| A trained FSRS needs a review history we do not have and a parameter fit that costs CPU and is hard to explain to a user. | Use a small hand-set model (gap, ease, streak, lapses). Explainable in a sentence. |
+| The evidence for expanding gaps is weak. | Pitch adaptivity as "responds to your forgetting, quieter for solid points". Daily points cap at 12 hours so they keep drilling. |
+| Streaks create guilt and anxiety, against a calm study tone. | "Rhythm" with rest tokens. A miss spends a token first. Dismissing is never counted as a miss. |
+| Ignoring a notification is not forgetting. | `dismissed` leaves the gap alone; three in a row only produces a "gentler frequency?" suggestion. |
+| The current planner books a fixed grid. Long gaps (days) break that grid, because it restarts every day. | A separate planner books from each point's `nextDueAt`, plus at most 2 follow-ups in case the user ignores the reminder. Rebooking still happens only on the allowed triggers. |
+| Every adaptive time is unique, so grouped mode would stop merging points. | Round to 15-minute slots. |
+| iOS 64-notification limit. | Same cap of 60 applied to the adaptive output. |
+| Auto-moving points between Daily and Long-term. | Not done. Suggestion only, matching the owner's rule. |
+| New dependencies (crypto, widgets, local-auth) need approval and device builds. | Only pure logic and policy built. Libraries are proposals. |
+| Migration number may collide with the in-flight review-log work. | Migration 3 is isolated to one new table. If another migration lands first, renumber on rebase. |
+| Privacy of insights. | Everything is computed on the phone from the review log. The voice script and the sky both honour private mode. No network, no logging of point text. |
+
+## 3. Power, memory and privacy cost
+
+- **New timers, listeners, background tasks: none.** The planner runs only on the already-allowed rebooking triggers. It is O(points x slots scanned), at most about 290 slot checks per point (3 days of 15-minute slots) and 3 reminders per point.
+- **Notifications:** an adaptive point books at most 3 pending notifications instead of a daily grid. In the concept, 9 example points go from 15 to 9 in the next 24 hours. That is one example, not a measurement on a phone.
+- **Memory:** one small row per point. The sky draws at most 60 Views and has no animation loop.
+- **Storage:** one new table, parameter-bound SQL. Points remain unencrypted until a SQLCipher development build exists.
+
+## 4. Known gaps in the prototype
+
+- An unanswered reminder is not yet recorded as `dismissed`. It needs a reconcile step on app open: any booked reminder whose time passed with no answer becomes `dismissed`. This needs the review log from the in-flight work.
+- The chain assumes the gap stays constant across follow-ups.
+- The constants are untuned. They want a week of real use before anyone trusts them.
+- `MemorySky.tsx` and `memory.ts` (db) are type-checked but not wired into the app or run on a device.
+
+## 5. Proposals not built
+
+1. **Routine anchors.** Instead of a clock grid, the user picks 3 to 5 moments (after waking, lunch, commute, bedtime) and reviews cluster there. Fewer, more meaningful notifications. Reuses `per_day` plus slots. Cost: a small settings screen.
+2. **Lock-screen widget (phase 2).** One point, rotated by the OS. Needs native code through a config plugin, so it waits for the development build.
+3. **Encrypted export.** Passphrase-based, nothing leaves the phone unless the user shares the file. Needs an AES library, which is a dependency decision for the owner.
+4. **"Why now?" line.** Tap a reminder's info to see "Last remembered 3 days ago, next gap 5 days". Builds trust in the algorithm. No new cost.
+5. **Accessibility pass.** Dynamic type, a 44-point minimum hit area (the sky already uses it), reduce-motion respect, screen-reader summaries of the sky as a plain list, and checked Noto Sans rendering for Hindi and Gujarati.
+6. **Question-and-answer points** work with the voice script (prompt, pause, answer) and with a reveal step in the queue; the data model already reserves `kind`, `prompt`, `answer`.
+
+## 6. Alternate look
+
+Concept page ships two themes from one token set: the existing Calm Study paper-and-indigo, and a "Night Sky" dark theme (deep ink background, pale periwinkle stars, warm amber for suggestions). It stays inside the Calm Study family; I did not push a louder style because a study aid used all day should be easy on the eyes.

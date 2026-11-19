@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 /** Opens the database once and runs migrations. */
@@ -57,6 +57,23 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
       );
     `);
     version = 2;
+  }
+
+  // Experimental (open-creativity): adaptive spacing state, one row per point.
+  if (version === 2) {
+    await db.execAsync(`
+      CREATE TABLE point_memory (
+        point_id TEXT PRIMARY KEY NOT NULL REFERENCES points (id) ON DELETE CASCADE,
+        interval_minutes INTEGER NOT NULL,
+        ease REAL NOT NULL,
+        streak INTEGER NOT NULL DEFAULT 0,
+        lapses INTEGER NOT NULL DEFAULT 0,
+        ignored INTEGER NOT NULL DEFAULT 0,
+        last_reviewed_at TEXT,
+        next_due_at TEXT NOT NULL
+      );
+    `);
+    version = 3;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

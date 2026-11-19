@@ -6,6 +6,7 @@ import { effectivePrivate, initialLockState, isLocked, onAuthenticated, onBackgr
 import { applyAnswer, EASE_MAX, EASE_MIN, MAX_INTERVAL, newMemory, retrievability, AGAIN_SOON_MINUTES } from './memory.ts';
 import { buildSession, summariseSession } from './queue.ts';
 import { buildVoiceScript } from './voice.ts';
+import { layoutSky, MAX_STARS } from './sky.ts';
 import type { Point, ReviewLogEntry, Settings } from '../types';
 
 const settings: Settings = {
@@ -193,4 +194,17 @@ test('app lock: locks after the timeout, not before, and implies private notific
   assert.equal(effectivePrivate({ ...settings, appLock: lock }), true);
   assert.equal(effectivePrivate({ ...settings, appLock: lock }, true), false);
   assert.equal(effectivePrivate(settings), false);
+});
+
+test('sky layout is deterministic, in bounds, evenly spaced and stable when points are added', () => {
+  const pts = Array.from({ length: 30 }, (_, i) => point(`p${String(i).padStart(2, '0')}`, { createdAt: `2026-01-01T00:00:${String(i).padStart(2, '0')}.000Z` }));
+  const a = layoutSky(pts);
+  assert.deepEqual(layoutSky(pts), a);
+  for (const s of a) assert.ok(s.x >= 0 && s.x <= 1 && s.y >= 0 && s.y <= 1);
+  let nearest = Infinity;
+  for (let i = 0; i < a.length; i++) for (let j = i + 1; j < a.length; j++) nearest = Math.min(nearest, Math.hypot(a[i].x - a[j].x, a[i].y - a[j].y));
+  assert.ok(nearest > 0.04, `stars too close: ${nearest}`);
+  const more = layoutSky([...pts, point('zzz', { createdAt: '2026-02-01T00:00:00.000Z' })]);
+  assert.deepEqual(more.slice(0, 30), a);
+  assert.equal(layoutSky(Array.from({ length: 200 }, (_, i) => point(`x${i}`))).length, MAX_STARS);
 });
