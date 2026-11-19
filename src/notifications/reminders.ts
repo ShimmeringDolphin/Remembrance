@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { buildContent } from '../core/reminderContent';
+import { effectivePrivate } from '../core/labs/lock';
 import { planAll, reconcile } from '../core/labs/review';
 import { listMemories, saveMemory } from '../db/memory';
 import { listActivePoints } from '../db/points';
@@ -96,7 +97,7 @@ async function syncOnce(): Promise<void> {
   const text = { title: t.appName, groupedBody: t.groupedBody, privateBody: t.privateBody };
 
   for (const reminder of plan) {
-    const content = buildContent(reminder, byId, text, settings.privateNotifications);
+    const content = buildContent(reminder, byId, text, effectivePrivate(settings));
     await Notifications.scheduleNotificationAsync({
       content: { title: content.title, body: content.body, data: content.data },
       trigger: {

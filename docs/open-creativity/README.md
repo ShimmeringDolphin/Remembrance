@@ -16,8 +16,8 @@ Today every point repeats on the same fixed grid. Memory does not work like that
 | Adaptive planner | `src/core/labs/adaptivePlan.ts` | Books each point from its own due time into shared 15-minute slots so grouped mode still merges points. Output is the same `PlannedReminder[]` the current notification code consumes. |
 | Review queue | `src/core/labs/queue.ts` | A session is the 7 weakest points, with a finish line and a tone-only summary (the UI supplies translated text). |
 | Insights | `src/core/labs/insights.ts` | Gentle rhythm (rest tokens instead of a streak you can lose), hours when reminders get ignored (suggests quiet hours), per-point advice: reword, gentler, graduate. |
-| Voice script | `src/core/labs/voice.ts` | Builds a hands-free spoken review: question, pause, answer. Skips private points entirely. Capped at 5 points. |
-| App-lock policy | `src/core/labs/lock.ts` | Pure timeout rules and "lock on means notification text hidden". |
+| Voice review | `voice.ts`, `src/speech/voiceReview.ts` | Settings switch shows a Listen button in Review now. Reads up to 5 points (question, pause, answer for Q&A points), skips private points, warns when a language voice is missing, stops on leaving the screen. Only while the app is open. |
+| App lock | `lock.ts`, `src/ui/LockGate.tsx`, `src/lock/auth.ts` | Face ID, fingerprint or passcode, timeout of immediately, 1 or 5 minutes. Turning it on needs a successful prompt first, so nobody locks themselves out. Cover hides contents in the app switcher. Lock on means reminder text is hidden. |
 | Sky layout | `src/core/labs/sky.ts` | Stable star positions on a golden-angle spiral: a new point lands at the edge, old stars never move. |
 | Storage | `src/db/memory.ts`, migration 3 | One `point_memory` table, bound parameters only. |
 | Screen | `src/ui/labs/MemorySky.tsx`, `SkyScreen.tsx` | Static view, at most 60 Views, no timers. Opened from Settings, Labs. |

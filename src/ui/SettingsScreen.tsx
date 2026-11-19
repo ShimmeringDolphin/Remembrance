@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { authenticate, canUseLock } from '../lock/auth';
 import { shiftTime } from '../core/time';
 import type { ActiveMode, Language, NotificationStyle, Settings } from '../core/types';
 import { LANGUAGE_NAMES, type Strings } from '../i18n/strings';
@@ -16,10 +18,13 @@ interface Props {
   colors: Colors;
   onChange: (next: Settings) => void;
   onOpenSky: () => void;
+  /** Called after the lock was turned on and the user authenticated. */
+  onLockEnabled: () => void;
   onClose: () => void;
 }
 
-export function SettingsScreen({ visible, settings, t, colors, onChange, onOpenSky, onClose }: Props) {
+export function SettingsScreen({ visible, settings, t, colors, onChange, onOpenSky, onLockEnabled, onClose }: Props) {
+  const [lockUnavailable, setLockUnavailable] = useState(false);
   const insets = useSafeAreaInsets();
   const everyMinutes = settings.defaultFrequency.mode === 'interval' ? settings.defaultFrequency.everyMinutes : 60;
 
@@ -57,6 +62,23 @@ export function SettingsScreen({ visible, settings, t, colors, onChange, onOpenS
       </Pressable>
     </View>
   );
+
+  const toggleLock = async (enabled: boolean) => {
+    if (!enabled) {
+      setLockUnavailable(false);
+      onChange({ ...settings, appLock: { ...settings.appLock, enabled: false } });
+      return;
+    }
+    // Prove it works before turning it on, so a user can never lock themselves out.
+    if (!(await canUseLock())) {
+      setLockUnavailable(true);
+      return;
+    }
+    if (!(await authenticate(t.unlockPrompt))) return;
+    setLockUnavailable(false);
+    onChange({ ...settings, appLock: { ...settings.appLock, enabled: true } });
+    onLockEnabled();
+  };
 
   const setMode = (activeMode: ActiveMode) => onChange({ ...settings, activeMode });
   const setStyle = (notificationStyle: NotificationStyle) => onChange({ ...settings, notificationStyle });
@@ -107,6 +129,45 @@ export function SettingsScreen({ visible, settings, t, colors, onChange, onOpenS
               trackColor={{ true: colors.accent }}
             />
           </View>
+
+          <Text style={[styles.label, { color: colors.mutedText }]}>{t.lockTitle}</Text>
+          <View style={[styles.row, { flexWrap: 'nowrap', justifyContent: 'space-between' }]}>
+            <Text style={[styles.switchLabel, { color: colors.text }]}>{t.lockEnable}</Text>
+            <Switch
+              accessibilityLabel={t.lockEnable}
+              value={settings.appLock.enabled}
+              onValueChange={(v) => void toggleLock(v)}
+              trackColor={{ true: colors.accent }}
+            />
+          </View>
+          <Text style={[styles.hint, { color: colors.mutedText }]}>{lockUnavailable ? t.lockUnavailable : t.lockHint}</Text>
+          {settings.appLock.enabled ? (
+            <>
+              <Text style={[styles.label, { color: colors.mutedText }]}>{t.lockTimeoutTitle}</Text>
+              <View style={styles.row}>
+                {[0, 60, 300].map((sec) =>
+                  chip(
+                    sec === 0 ? t.lockImmediately : t.lockAfterMin.replace('{n}', String(sec / 60)),
+                    settings.appLock.timeoutSeconds === sec,
+                    () => onChange({ ...settings, appLock: { ...settings.appLock, timeoutSeconds: sec } }),
+                    `lt${sec}`,
+                  ),
+                )}
+              </View>
+            </>
+          ) : null}
+
+          <Text style={[styles.label, { color: colors.mutedText }]}>{t.voiceTitle}</Text>
+          <View style={[styles.row, { flexWrap: 'nowrap', justifyContent: 'space-between' }]}>
+            <Text style={[styles.switchLabel, { color: colors.text }]}>{t.voiceEnable}</Text>
+            <Switch
+              accessibilityLabel={t.voiceEnable}
+              value={settings.delivery.voice}
+              onValueChange={(voice) => onChange({ ...settings, delivery: { ...settings.delivery, voice } })}
+              trackColor={{ true: colors.accent }}
+            />
+          </View>
+          <Text style={[styles.hint, { color: colors.mutedText }]}>{t.voiceHint}</Text>
 
           <Text style={[styles.label, { color: colors.mutedText }]}>{t.labsTitle}</Text>
           <View style={[styles.row, { flexWrap: 'nowrap', justifyContent: 'space-between' }]}>

@@ -47,8 +47,17 @@ export function mergeSettings(stored: unknown, language: Language): Settings {
     quietHours: Array.isArray(s.quietHours) ? s.quietHours.filter(isRange) : base.quietHours,
     appLanguage: s.appLanguage === 'en' || s.appLanguage === 'hi' || s.appLanguage === 'gu' ? s.appLanguage : base.appLanguage,
     speechRate: typeof s.speechRate === 'number' && s.speechRate > 0 ? s.speechRate : base.speechRate,
-    delivery: base.delivery,
-    appLock: base.appLock,
+    delivery: {
+      ...base.delivery,
+      voice: isObject(s.delivery) && typeof s.delivery.voice === 'boolean' ? s.delivery.voice : base.delivery.voice,
+    },
+    appLock: {
+      enabled: isObject(s.appLock) && typeof s.appLock.enabled === 'boolean' ? s.appLock.enabled : base.appLock.enabled,
+      timeoutSeconds:
+        isObject(s.appLock) && typeof s.appLock.timeoutSeconds === 'number' && s.appLock.timeoutSeconds >= 0 && s.appLock.timeoutSeconds <= 3600
+          ? s.appLock.timeoutSeconds
+          : base.appLock.timeoutSeconds,
+    },
     notificationStyle: s.notificationStyle === 'individual' || s.notificationStyle === 'grouped' ? s.notificationStyle : base.notificationStyle,
     privateNotifications: typeof s.privateNotifications === 'boolean' ? s.privateNotifications : base.privateNotifications,
     labs: {

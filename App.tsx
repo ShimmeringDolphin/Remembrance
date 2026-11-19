@@ -24,6 +24,7 @@ import { PointEditor } from './src/ui/PointEditor';
 import { ReviewScreen } from './src/ui/ReviewScreen';
 import { ArchivedScreen } from './src/ui/ArchivedScreen';
 import { SettingsScreen } from './src/ui/SettingsScreen';
+import { LockGate } from './src/ui/LockGate';
 import { SkyScreen } from './src/ui/labs/SkyScreen';
 
 function Home() {
@@ -40,6 +41,7 @@ function Home() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewIds, setReviewIds] = useState<string[]>([]);
   const [skyOpen, setSkyOpen] = useState(false);
+  const [unlockSignal, setUnlockSignal] = useState(0);
 
   // Tapping a reminder opens Review now with that reminder's points. Each tap is handled once.
   const lastResponse = Notifications.useLastNotificationResponse();
@@ -125,6 +127,7 @@ function Home() {
   };
 
   return (
+    <LockGate lock={settings.appLock} settingsLoaded={settingsLoaded} unlockSignal={unlockSignal} t={t} colors={colors}>
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top + 12 }]}>
       <View style={styles.header}>
         <Pressable
@@ -240,7 +243,7 @@ function Home() {
           await syncReminders();
         }}
       />
-      <ReviewScreen visible={reviewOpen} pointIds={reviewIds} t={t} colors={colors} onAnswer={answerPoint} onClose={() => setReviewOpen(false)} />
+      <ReviewScreen visible={reviewOpen} pointIds={reviewIds} t={t} colors={colors} onAnswer={answerPoint} voiceEnabled={settings.delivery.voice} speechRate={settings.speechRate} hideText={settings.privateNotifications} onClose={() => setReviewOpen(false)} />
       <SkyScreen visible={skyOpen} hideText={settings.privateNotifications} t={t} colors={colors} onClose={() => setSkyOpen(false)} />
       <ArchivedScreen
         visible={archivedOpen}
@@ -258,6 +261,7 @@ function Home() {
         t={t}
         colors={colors}
         onChange={(next) => void updateSettings(next)}
+        onLockEnabled={() => setUnlockSignal((n) => n + 1)}
         onOpenSky={() => {
           setSettingsOpen(false);
           setSkyOpen(true);
@@ -266,6 +270,7 @@ function Home() {
       />
       <StatusBar style="auto" />
     </View>
+    </LockGate>
   );
 }
 

@@ -33,6 +33,15 @@ test('labs switch defaults off and only accepts a boolean', () => {
   assert.equal(mergeSettings({ labs: 5 }, 'en').labs.adaptiveLongTerm, false);
 });
 
+test('app lock and voice settings are kept when valid and ignored when not', () => {
+  const s = mergeSettings({ appLock: { enabled: true, timeoutSeconds: 300 }, delivery: { voice: true } }, 'en');
+  assert.deepEqual(s.appLock, { enabled: true, timeoutSeconds: 300 });
+  assert.equal(s.delivery.voice, true);
+  const junk = mergeSettings({ appLock: { enabled: 'x', timeoutSeconds: -1 }, delivery: { voice: 3 } }, 'en');
+  assert.deepEqual(junk.appLock, defaultSettings('en').appLock);
+  assert.equal(junk.delivery.voice, false);
+});
+
 test('shiftTime wraps around midnight', () => {
   assert.equal(shiftTime('23:30', 60), '00:30');
   assert.equal(shiftTime('00:15', -30), '23:45');
