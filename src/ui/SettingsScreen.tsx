@@ -1,8 +1,8 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { shiftTime } from '../core/time';
-import type { ActiveMode, NotificationStyle, Settings } from '../core/types';
-import type { Strings } from '../i18n/strings';
+import type { ActiveMode, Language, NotificationStyle, Settings } from '../core/types';
+import { LANGUAGE_NAMES, type Strings } from '../i18n/strings';
 import type { calmStudy } from '../theme/calmStudy';
 
 type Colors = (typeof calmStudy)['light'] | (typeof calmStudy)['dark'];
@@ -65,6 +65,13 @@ export function SettingsScreen({ visible, settings, t, colors, onChange, onClose
       <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
         <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
           <Text style={[styles.heading, { color: colors.text }]}>{t.settings}</Text>
+
+          <Text style={[styles.label, { color: colors.mutedText }]}>{t.languageTitle}</Text>
+          <View style={styles.row}>
+            {(Object.keys(LANGUAGE_NAMES) as Language[]).map((code) =>
+              chip(LANGUAGE_NAMES[code], settings.appLanguage === code, () => onChange({ ...settings, appLanguage: code }), `l-${code}`),
+            )}
+          </View>
 
           <Text style={[styles.label, { color: colors.mutedText }]}>{t.frequencyTitle}</Text>
           <View style={styles.row}>
