@@ -40,7 +40,11 @@ function Home() {
   // Startup: load settings, check permission, book reminders.
   useEffect(() => {
     void (async () => {
-      await initNotifications();
+      try {
+        await initNotifications();
+      } catch (error) {
+        console.warn('Could not set up notifications:', error);
+      }
       setSettings(await getSettings());
       setPermission(await getPermissionState());
       await syncReminders();
