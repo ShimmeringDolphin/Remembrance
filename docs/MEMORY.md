@@ -8,7 +8,7 @@ The project's running list of what is not done yet, what is postponed, and which
 | --- | --- | --- |
 | Development build: permanent Android package name (and iOS bundle ID) | Needed for the most reliable notification testing (Expo Go has bugs and its own limits), and later for encrypting points with SQLCipher. The name is permanent once published. | Waiting for the owner. Never pick it without them. |
 | Expo account | Needed to make a development build with EAS. | Waiting for the owner. |
-| Grouped reminders and private mode | Grouped reminders show only "Time to review: N points". The private switch only affects the one-notification-per-point style. Should grouped reminders show point text when private mode is off? | Waiting for the owner. |
+| Grouped reminders and private mode | Decided 2026-11-20 (docs/PRODUCT.md, principle 2): grouped reminders show the point text unless private mode is on. Built on `open-creativity-v2`. | Decided. |
 | Exact-alarm timing on Android | Approximate alarms can be delayed a lot when the phone is idle. Exact alarms cost battery, Google Play limits who may use them, and they go against the battery rule in CLAUDE.md. | Decide after the on-charger test below. Needs the development build. |
 | App name YaadOM | Store and trademark availability not verified (play.google.com could not be searched). | Open. The name can still change before release. |
 | Remove `node_modules` from git history | About 20k files were committed by mistake in PR #4 and untracked in #7. History still holds them. A rewrite changes shared history. | Only with explicit owner approval. |

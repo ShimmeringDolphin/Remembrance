@@ -32,6 +32,7 @@ export interface Point {
   createdAt: string;
   updatedAt: string;
   lastShownAt: string | null;
+  /** Approximate: reminders including this point whose time has passed (counted on rebooking). */
   timesShown: number;
   timesRemembered: number;
 }

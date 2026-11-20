@@ -32,15 +32,39 @@ test('shiftTime wraps around midnight', () => {
   assert.equal(shiftTime('07:00', 30), '07:30');
 });
 
-const text = { title: 'YaadOM', groupedBody: 'Time to review: {n} points', privateBody: 'You have a point to remember' };
+const text = { title: 'YaadOM', more: '+{n} more', privateBody: 'A point to keep in mind', privateGroupedBody: '{n} points to keep in mind' };
 const point = { id: 'a', prompt: 'Kepler', private: false } as Point;
-const map = new Map([['a', point], ['p', { ...point, id: 'p', prompt: 'secret', private: true } as Point]]);
+const others = ['b', 'c', 'd', 'e'].map((id) => ({ ...point, id, prompt: `text ${id}` }) as Point);
+const map = new Map<string, Point>([['a', point], ['p', { ...point, id: 'p', prompt: 'secret', private: true } as Point], ...others.map((o) => [o.id, o] as [string, Point])]);
 const at = new Date(2026, 0, 5, 9);
+const hourLater = new Date(2026, 0, 5, 10, 1);
 
-test('grouped content shows only a count', () => {
+test('grouped content shows the points themselves, never the private ones', () => {
   const c = buildContent({ at, style: 'grouped', pointIds: ['a', 'p'] }, map, text, false);
-  assert.equal(c.body, 'Time to review: 2 points');
+  assert.ok(c.body.includes('Kepler'));
   assert.ok(!c.body.includes('secret'));
+  assert.ok(c.body.includes('+1 more'));
+});
+
+test('grouped content rotates which point leads, hour by hour', () => {
+  const ids = ['a', 'b', 'c'];
+  const first = buildContent({ at, style: 'grouped', pointIds: ids }, map, text, false).body.split('\n')[0];
+  const next = buildContent({ at: hourLater, style: 'grouped', pointIds: ids }, map, text, false).body.split('\n')[0];
+  assert.notEqual(first, next);
+  const leads = new Set([0, 1, 2].map((h) => buildContent({ at: new Date(2026, 0, 5, 9 + h), style: 'grouped', pointIds: ids }, map, text, false).body.split('\n')[0]));
+  assert.equal(leads.size, 3, 'each point should lead once in three hours');
+});
+
+test('grouped content shows at most four points and counts the rest', () => {
+  const c = buildContent({ at, style: 'grouped', pointIds: ['a', 'b', 'c', 'd', 'e'] }, map, text, false);
+  const lines = c.body.split('\n');
+  assert.equal(lines.length, 5);
+  assert.equal(lines.at(-1), '+1 more');
+});
+
+test('grouped content in private mode, or with only private points, shows only a count', () => {
+  assert.equal(buildContent({ at, style: 'grouped', pointIds: ['a', 'p'] }, map, text, true).body, '2 points to keep in mind');
+  assert.equal(buildContent({ at, style: 'grouped', pointIds: ['p'] }, map, text, false).body, text.privateBody);
 });
 
 test('individual content shows the point text', () => {

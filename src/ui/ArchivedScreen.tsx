@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Point } from '../core/types';
+import { MAX_POINTS_PER_CATEGORY } from '../core/limits';
 import { deleteArchivedPoint, listArchived, restorePoint } from '../db/points';
 import type { Strings } from '../i18n/strings';
 import type { calmStudy } from '../theme/calmStudy';
@@ -20,14 +21,21 @@ interface Props {
 export function ArchivedScreen({ visible, t, colors, onClose, onRestored }: Props) {
   const insets = useSafeAreaInsets();
   const [points, setPoints] = useState<Point[]>([]);
+  const [fullMessage, setFullMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => setPoints(await listArchived()), []);
   useEffect(() => {
     if (visible) void load();
+    else setFullMessage(null);
   }, [visible, load]);
 
-  const restore = async (id: string) => {
-    await restorePoint(id);
+  const restore = async (point: Point) => {
+    if (!(await restorePoint(point.id))) {
+      const text = point.category === 'daily' ? t.limitDaily : t.limitLongTerm;
+      setFullMessage(text.replace('{n}', String(MAX_POINTS_PER_CATEGORY)));
+      return;
+    }
+    setFullMessage(null);
     await load();
     onRestored();
   };
@@ -56,6 +64,7 @@ export function ArchivedScreen({ visible, t, colors, onClose, onRestored }: Prop
             <Text style={{ color: colors.accent, fontWeight: '600' }}>{t.close}</Text>
           </Pressable>
         </View>
+        {fullMessage ? <Text style={[styles.empty, { color: colors.text, marginTop: 0, marginBottom: 12 }]}>{fullMessage}</Text> : null}
         <FlatList
           data={points}
           keyExtractor={(p) => p.id}
@@ -65,7 +74,7 @@ export function ArchivedScreen({ visible, t, colors, onClose, onRestored }: Prop
             <View style={[styles.card, { borderColor: colors.mutedText }]}>
               <Text style={[styles.cardText, { color: colors.text }]}>{item.prompt}</Text>
               <View style={styles.actions}>
-                <Pressable accessibilityRole="button" accessibilityLabel={t.restore} onPress={() => void restore(item.id)} style={styles.action}>
+                <Pressable accessibilityRole="button" accessibilityLabel={t.restore} onPress={() => void restore(item)} style={styles.action}>
                   <Text style={{ color: colors.accent, fontWeight: '600' }}>{t.restore}</Text>
                 </Pressable>
                 <Pressable accessibilityRole="button" accessibilityLabel={t.deleteForever} onPress={() => confirmDelete(item.id)} style={styles.action}>
