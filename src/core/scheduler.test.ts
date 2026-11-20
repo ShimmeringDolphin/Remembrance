@@ -4,6 +4,7 @@ import {
   intervalMinutes,
   MAX_PLANNED_NOTIFICATIONS,
   MIN_INTERVAL_MINUTES,
+  GROUPED_JITTER_MINUTES,
   parseTime,
   planReminders,
 } from './scheduler.ts';
@@ -50,6 +51,9 @@ function point(id: string, overrides: Partial<Point> = {}): Point {
 
 // Local-time dates so the tests pass in any time zone.
 const at = (day: number, h: number, m = 0) => new Date(2026, 0, day, h, m);
+/** Grouped reminders are nudged a couple of minutes; compare them to their 15-minute slot. */
+const rounded = (d: Date) => new Date(Math.round(d.getTime() / 900000) * 900000);
+const slot = (d: Date) => hhmm(rounded(d));
 const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
 test('parseTime accepts HH:mm and rejects bad input', () => {
@@ -61,7 +65,7 @@ test('parseTime accepts HH:mm and rejects bad input', () => {
 
 test('hourly default runs 07:00 to 21:00 and stops before the 22:00 end', () => {
   const plan = planReminders([point('a')], settings, at(5, 0), 100);
-  const day = plan.filter((r) => r.at.getDate() === 5).map((r) => hhmm(r.at));
+  const day = plan.filter((r) => r.at.getDate() === 5).map((r) => slot(r.at));
   assert.equal(day.length, 15);
   assert.equal(day[0], '07:00');
   assert.equal(day.at(-1), '21:00');
@@ -69,13 +73,13 @@ test('hourly default runs 07:00 to 21:00 and stops before the 22:00 end', () => 
 
 test('only reminders after now are planned', () => {
   const plan = planReminders([point('a')], settings, at(5, 12, 30), 3);
-  assert.deepEqual(plan.map((r) => hhmm(r.at)), ['13:00', '14:00', '15:00']);
+  assert.deepEqual(plan.map((r) => slot(r.at)), ['13:00', '14:00', '15:00']);
 });
 
 test('after the last slot of the day, planning continues the next morning', () => {
   const plan = planReminders([point('a')], settings, at(5, 21, 30), 2);
   assert.equal(plan[0].at.getDate(), 6);
-  assert.equal(hhmm(plan[0].at), '07:00');
+  assert.equal(slot(plan[0].at), '07:00');
 });
 
 test('asleep plans nothing', () => {
@@ -91,7 +95,7 @@ test('quiet hours drop reminders instead of moving them', () => {
   const s = { ...settings, quietHours: [{ start: '12:00', end: '14:00' }] };
   const day = planReminders([point('a')], s, at(5, 0), 100)
     .filter((r) => r.at.getDate() === 5)
-    .map((r) => hhmm(r.at));
+    .map((r) => slot(r.at));
   assert.ok(!day.includes('12:00') && !day.includes('13:00'));
   assert.ok(day.includes('11:00') && day.includes('14:00'));
 });
@@ -99,14 +103,14 @@ test('quiet hours drop reminders instead of moving them', () => {
 test('active hours may cross midnight', () => {
   const s = { ...settings, activeHours: { start: '22:00', end: '02:00' } };
   const plan = planReminders([point('a')], s, at(5, 0), 4);
-  assert.deepEqual(plan.map((r) => `${r.at.getDate()} ${hhmm(r.at)}`), ['5 22:00', '5 23:00', '6 00:00', '6 01:00']);
+  assert.deepEqual(plan.map((r) => `${rounded(r.at).getDate()} ${slot(r.at)}`), ['5 22:00', '5 23:00', '6 00:00', '6 01:00']);
 });
 
 test('button-only mode ignores active hours but still respects quiet hours', () => {
   const s: Settings = { ...settings, activeMode: 'button_only', quietHours: [{ start: '23:00', end: '06:00' }] };
   const day = planReminders([point('a')], s, at(5, 0), 100)
     .filter((r) => r.at.getDate() === 5)
-    .map((r) => hhmm(r.at));
+    .map((r) => slot(r.at));
   assert.equal(day[0], '06:00');
   assert.equal(day.at(-1), '22:00');
 });
@@ -126,7 +130,7 @@ test('grouped points sharing a time become one reminder', () => {
 test('points with different intervals group only where times coincide', () => {
   const half = point('half', { frequency: { mode: 'interval', everyMinutes: 30 } });
   const plan = planReminders([point('hour'), half], settings, at(5, 6), 3);
-  assert.deepEqual(plan.map((r) => [hhmm(r.at), r.pointIds.length]), [['07:00', 2], ['07:30', 1], ['08:00', 2]]);
+  assert.deepEqual(plan.map((r) => [slot(r.at), r.pointIds.length]), [['07:00', 2], ['07:30', 1], ['08:00', 2]]);
 });
 
 test('individual style sends one reminder per point', () => {
@@ -180,9 +184,22 @@ test('times per day spreads reminders over the active minutes', () => {
 test('default frequency comes from settings', () => {
   const s: Settings = { ...settings, defaultFrequency: { mode: 'interval', everyMinutes: 120 } };
   const plan = planReminders([point('a')], s, at(5, 6), 3);
-  assert.deepEqual(plan.map((r) => hhmm(r.at)), ['07:00', '09:00', '11:00']);
+  assert.deepEqual(plan.map((r) => slot(r.at)), ['07:00', '09:00', '11:00']);
 });
 
 test('no points plans nothing', () => {
   assert.deepEqual(planReminders([], settings, at(5, 0)), []);
+});
+
+test('grouped reminders are nudged off the exact minute but stay together and inside active hours', () => {
+  const plan = planReminders([point('a'), point('b')], settings, at(5, 0), 100);
+  const minutes = plan.map((r) => r.at.getMinutes());
+  assert.ok(minutes.some((m) => m !== 0), 'every grouped reminder landed exactly on the hour');
+  for (const r of plan) {
+    assert.deepEqual([...r.pointIds].sort(), ['a', 'b']);
+    const off = Math.min(r.at.getMinutes(), 60 - r.at.getMinutes());
+    assert.ok(off <= GROUPED_JITTER_MINUTES, `nudged too far: ${hhmm(r.at)}`);
+    const m = r.at.getHours() * 60 + r.at.getMinutes();
+    assert.ok(m >= 7 * 60 && m < 22 * 60, `outside active hours: ${hhmm(r.at)}`);
+  }
 });

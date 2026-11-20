@@ -10,6 +10,11 @@ export const MAX_PLANNED_NOTIFICATIONS = 60;
 export const MAX_DAYS_AHEAD = 14;
 /** Reminder times are nudged by up to this many minutes so they do not all land on the hour. */
 export const JITTER_MINUTES = 3;
+/**
+ * Grouped reminders move by up to this many minutes, the same for every point in the slot so they
+ * still arrive as one notification. Small enough that the 15-minute minimum gap still holds.
+ */
+export const GROUPED_JITTER_MINUTES = 2;
 
 const DAY = 1440;
 
@@ -138,6 +143,10 @@ export function planReminders(
         let minute = base;
         if (jitterRange > 0 && style === 'individual') {
           const j = (hash(`${point.id}|${dayKey}|${k}`) % (2 * jitterRange + 1)) - jitterRange;
+          if (win.isActive(((base + j) % DAY + DAY) % DAY)) minute = base + j;
+        } else if (style === 'grouped') {
+          // Keyed by day and base minute only, so every point sharing this slot moves together.
+          const j = (hash(`grouped|${dayKey}|${base}`) % (2 * GROUPED_JITTER_MINUTES + 1)) - GROUPED_JITTER_MINUTES;
           if (win.isActive(((base + j) % DAY + DAY) % DAY)) minute = base + j;
         }
         if (!win.isActive(minute % DAY)) continue;

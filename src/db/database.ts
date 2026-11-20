@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 /** Opens the database once and runs migrations. */
@@ -57,6 +57,18 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
       );
     `);
     version = 2;
+  }
+
+  if (version === 2) {
+    // The reminders booked last time (times and point ids only, never text), so the next rebooking
+    // can count how often each point appeared.
+    await db.execAsync(`
+      CREATE TABLE booked_reminders (
+        id INTEGER PRIMARY KEY NOT NULL CHECK (id = 1),
+        json TEXT NOT NULL
+      );
+    `);
+    version = 3;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

@@ -2,7 +2,9 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { buildContent } from '../core/reminderContent';
 import { planReminders } from '../core/scheduler';
-import { listActivePoints } from '../db/points';
+import { type BookedReminder, countAppearances } from '../core/exposure';
+import { getBooked, saveBooked } from '../db/booked';
+import { addAppearances, listActivePoints } from '../db/points';
 import { getSettings } from '../db/settings';
 import { getStrings } from '../i18n/strings';
 
@@ -74,14 +76,29 @@ export async function syncReminders(): Promise<void> {
 
 async function syncOnce(): Promise<void> {
   const settings = await getSettings();
+  const now = new Date();
+  const permission = await getPermissionState();
+  // Before rebooking, count the reminders whose time has passed since last time. Without
+  // permission they were not shown, so they are not counted.
+  const previous = await getBooked();
+  if (permission === 'granted') {
+    const { counts, lastAt } = countAppearances(previous, now);
+    await addAppearances(counts, lastAt);
+  }
+  // Forget the passed ones at once, so a failure below can never count them twice.
+  await saveBooked(previous.filter((b) => Date.parse(b.at) > now.getTime()));
   await Notifications.cancelAllScheduledNotificationsAsync();
-  if (!settings.awake || (await getPermissionState()) !== 'granted') return;
+  if (!settings.awake || permission !== 'granted') {
+    await saveBooked([]);
+    return;
+  }
 
   const points = await listActivePoints();
-  const plan = planReminders(points, settings, new Date());
+  const plan = planReminders(points, settings, now);
+  const booked: BookedReminder[] = [];
   const byId = new Map(points.map((p) => [p.id, p]));
   const t = getStrings(settings.appLanguage);
-  const text = { title: t.appName, groupedBody: t.groupedBody, privateBody: t.privateBody };
+  const text = { title: t.appName, more: t.more, privateBody: t.privateBody, privateGroupedBody: t.privateGroupedBody };
 
   for (const reminder of plan) {
     const content = buildContent(reminder, byId, text, settings.privateNotifications);
@@ -93,5 +110,7 @@ async function syncOnce(): Promise<void> {
         channelId: CHANNEL_ID,
       },
     });
+    booked.push({ at: reminder.at.toISOString(), pointIds: reminder.pointIds });
   }
+  await saveBooked(booked);
 }
