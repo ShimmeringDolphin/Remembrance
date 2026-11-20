@@ -70,4 +70,8 @@ export interface Settings {
   /** Default is `grouped`. */
   notificationStyle: NotificationStyle;
   privateNotifications: boolean;
+  /** Opt-in experiments. Off by default. */
+  labs: { adaptiveLongTerm: boolean };
+  /** Experimental: review at a few fixed moments a day instead of the repeating grid. */
+  anchors: { enabled: boolean; times: string[] };
 }

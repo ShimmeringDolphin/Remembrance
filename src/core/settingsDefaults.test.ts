@@ -26,6 +26,28 @@ test('mergeSettings falls back to defaults for junk', () => {
   }
 });
 
+test('labs switch defaults off and only accepts a boolean', () => {
+  assert.equal(defaultSettings('en').labs.adaptiveLongTerm, false);
+  assert.equal(mergeSettings({ labs: { adaptiveLongTerm: true } }, 'en').labs.adaptiveLongTerm, true);
+  assert.equal(mergeSettings({ labs: { adaptiveLongTerm: 'yes' } }, 'en').labs.adaptiveLongTerm, false);
+  assert.equal(mergeSettings({ labs: 5 }, 'en').labs.adaptiveLongTerm, false);
+});
+
+test('app lock and voice settings are kept when valid and ignored when not', () => {
+  const s = mergeSettings({ appLock: { enabled: true, timeoutSeconds: 300 }, delivery: { voice: true } }, 'en');
+  assert.deepEqual(s.appLock, { enabled: true, timeoutSeconds: 300 });
+  assert.equal(s.delivery.voice, true);
+  const junk = mergeSettings({ appLock: { enabled: 'x', timeoutSeconds: -1 }, delivery: { voice: 3 } }, 'en');
+  assert.deepEqual(junk.appLock, defaultSettings('en').appLock);
+  assert.equal(junk.delivery.voice, false);
+});
+
+test('anchor times are validated, sorted and de-duplicated', () => {
+  assert.deepEqual(mergeSettings({ anchors: { enabled: true, times: ['18:00', '08:00', '08:00'] } }, 'en').anchors, { enabled: true, times: ['08:00', '18:00'] });
+  assert.deepEqual(mergeSettings({ anchors: { enabled: true, times: ['99:00'] } }, 'en').anchors.times, defaultSettings('en').anchors.times);
+  assert.deepEqual(mergeSettings({ anchors: { enabled: true, times: [] } }, 'en').anchors.times, defaultSettings('en').anchors.times);
+});
+
 test('shiftTime wraps around midnight', () => {
   assert.equal(shiftTime('23:30', 60), '00:30');
   assert.equal(shiftTime('00:15', -30), '23:45');

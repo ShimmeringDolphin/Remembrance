@@ -13,6 +13,8 @@ export function defaultSettings(language: Language): Settings {
     appLock: { enabled: false, timeoutSeconds: 60 },
     notificationStyle: 'grouped',
     privateNotifications: false,
+    labs: { adaptiveLongTerm: false },
+    anchors: { enabled: false, times: ['08:00', '12:30', '18:00', '21:00'] },
   };
 }
 
@@ -46,9 +48,29 @@ export function mergeSettings(stored: unknown, language: Language): Settings {
     quietHours: Array.isArray(s.quietHours) ? s.quietHours.filter(isRange) : base.quietHours,
     appLanguage: s.appLanguage === 'en' || s.appLanguage === 'hi' || s.appLanguage === 'gu' ? s.appLanguage : base.appLanguage,
     speechRate: typeof s.speechRate === 'number' && s.speechRate > 0 ? s.speechRate : base.speechRate,
-    delivery: base.delivery,
-    appLock: base.appLock,
+    delivery: {
+      ...base.delivery,
+      voice: isObject(s.delivery) && typeof s.delivery.voice === 'boolean' ? s.delivery.voice : base.delivery.voice,
+    },
+    appLock: {
+      enabled: isObject(s.appLock) && typeof s.appLock.enabled === 'boolean' ? s.appLock.enabled : base.appLock.enabled,
+      timeoutSeconds:
+        isObject(s.appLock) && typeof s.appLock.timeoutSeconds === 'number' && s.appLock.timeoutSeconds >= 0 && s.appLock.timeoutSeconds <= 3600
+          ? s.appLock.timeoutSeconds
+          : base.appLock.timeoutSeconds,
+    },
     notificationStyle: s.notificationStyle === 'individual' || s.notificationStyle === 'grouped' ? s.notificationStyle : base.notificationStyle,
     privateNotifications: typeof s.privateNotifications === 'boolean' ? s.privateNotifications : base.privateNotifications,
+    anchors: {
+      enabled: isObject(s.anchors) && typeof s.anchors.enabled === 'boolean' ? s.anchors.enabled : base.anchors.enabled,
+      times:
+        isObject(s.anchors) && Array.isArray(s.anchors.times) && s.anchors.times.length >= 1 && s.anchors.times.length <= 6 && s.anchors.times.every(isTime)
+          ? [...new Set(s.anchors.times as string[])].sort()
+          : base.anchors.times,
+    },
+    labs: {
+      adaptiveLongTerm:
+        isObject(s.labs) && typeof s.labs.adaptiveLongTerm === 'boolean' ? s.labs.adaptiveLongTerm : base.labs.adaptiveLongTerm,
+    },
   };
 }

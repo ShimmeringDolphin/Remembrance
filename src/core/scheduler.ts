@@ -60,6 +60,11 @@ function buildWindow(settings: Settings): Window {
   };
 }
 
+/** True when reminders may fall at minute-of-day `m` (0 to 1439) under these settings. Ignores Awake/Sleep. */
+export function isActiveMinute(settings: Settings, m: number): boolean {
+  return buildWindow(settings).isActive(m);
+}
+
 /** Whole minutes between reminders for a point, never below the minimum. */
 export function intervalMinutes(
   frequency: Frequency,

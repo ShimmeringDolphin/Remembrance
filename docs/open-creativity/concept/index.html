@@ -1,0 +1,640 @@
+<title>Memory Sky</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600&display=swap">
+<style>
+/* Layout: one calm column. A night-sky panel is the hero; review card, rhythm and cost sit below it. */
+:root {
+  --bg: #FAF7F0; --fg: #1F2433; --muted: #5B6070; --accent: #3B4A9C; --on-accent: #FFFFFF;
+  --panel: #FFFFFF; --line: #DDD8CB; --sky: #E4E3F3; --star: #3B4A9C; --warm: #B5651D;
+  --display: 'Fraunces', Georgia, serif; --body: 'Hanken Grotesk', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #14161F; --fg: #ECEAF4; --muted: #A3A7B8; --accent: #8E9BEA; --on-accent: #14161F;
+  --panel: #1C1F2C; --line: #2E3245; --sky: #0C0E1A; --star: #C9D0FF; --warm: #E8B36A; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #14161F; --fg: #ECEAF4; --muted: #A3A7B8; --accent: #8E9BEA; --on-accent: #14161F;
+  --panel: #1C1F2C; --line: #2E3245; --sky: #0C0E1A; --star: #C9D0FF; --warm: #E8B36A; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.5;
+  padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+h1, h2 { font-family: var(--display); font-weight: 600; text-wrap: balance; margin: 0; }
+h1 { font-size: 2.1rem; line-height: 1.1; } h2 { font-size: 1.25rem; }
+p { margin: 0; } .muted { color: var(--muted); } .small { font-size: 0.85rem; }
+.label { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+header > div { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); padding: 10px 14px; min-height: 44px; }
+button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.sky { background: var(--sky); border-radius: 18px; padding: 8px; position: relative; }
+.sky svg { display: block; width: 100%; height: auto; }
+.star { cursor: pointer; } .star:focus-visible { outline: none; }
+.star:focus-visible .ring { stroke: var(--accent); stroke-width: 2; }
+.timebar { display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 4px; }
+.timebar input { width: 100%; accent-color: var(--accent); min-height: 32px; }
+.timebar .row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.prompt { font-family: var(--display); font-size: 1.35rem; line-height: 1.3; text-wrap: balance; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; } .actions button { flex: 1 1 140px; }
+.stats { display: flex; gap: 8px 20px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.stats b { font-weight: 600; }
+.meter { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; } .meter i { display: block; height: 100%; background: var(--accent); }
+.week { display: flex; gap: 8px; } .week span { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line); }
+.week span.on { background: var(--accent); border-color: var(--accent); }
+.week span.today { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--muted); }
+.compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.compare > div { border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.big { font-family: var(--display); font-size: 2.4rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.advice { display: flex; flex-direction: column; gap: 6px; padding: 0; margin: 0; list-style: none; }
+.advice li { border-left: 3px solid var(--warm); padding-left: 10px; }
+.note { border: 1px dashed var(--line); border-radius: 12px; padding: 12px 14px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <span class="label">Concept · open-creativity branch</span>
+      <h1>Memory Sky</h1>
+      <p class="muted">Every point you keep is a star. It glows while you remember it and fades as you forget it, along a real forgetting curve. Reviewing it brightens it again.</p>
+    </div>
+    <button id="theme" type="button" aria-label="Switch between light and dark">Theme</button>
+  </header>
+
+  <section aria-label="Your points as a sky">
+    <div class="sky">
+      <svg id="svg" viewBox="0 0 400 280" role="group" aria-label="Sky of points. Brighter means better remembered."></svg>
+      <div class="timebar">
+        <div class="row"><span class="label">Skip ahead</span><span id="clock" class="small" aria-live="polite"></span></div>
+        <input id="slider" type="range" min="0" max="72" step="1" value="0" aria-label="Skip ahead in hours">
+      </div>
+    </div>
+    <p class="small muted" style="margin-top:8px">All points here are examples. Drag the slider to see what a day or two without reviewing does. Tap a star to pick it.</p>
+  </section>
+
+  <section class="card" aria-live="polite">
+    <span class="label">Review now · weakest first</span>
+    <p class="prompt" id="prompt"></p>
+    <div class="meter" aria-hidden="true"><i id="meter"></i></div>
+    <div class="stats small muted" id="stats"></div>
+    <div class="actions">
+      <button class="primary" id="ok" type="button">Remembered</button>
+      <button id="again" type="button">Again soon</button>
+      <button id="weak" type="button">Pick the weakest</button>
+    </div>
+    <p class="small" id="result"></p>
+  </section>
+
+  <section class="card">
+    <h2>A gentle rhythm</h2>
+    <div class="week" id="week" aria-label="Last seven days"></div>
+    <p class="small muted" id="rhythm"></p>
+    <p class="small muted">A missed day spends a rest token before it touches your run. Dismissing a reminder never counts against you.</p>
+  </section>
+
+  <section class="card">
+    <h2>What it costs your phone</h2>
+    <p class="small muted">Notifications booked for the next 24 hours with these nine example points, 7 AM to 10 PM, grouped style. Both numbers come from the real planner code.</p>
+    <div class="compare">
+      <div><span class="label">Fixed hourly grid</span><span class="big" id="fixed">0</span><span class="small muted">same for every point, all day</span></div>
+      <div><span class="label">Adaptive</span><span class="big" id="adaptive">0</span><span class="small muted">follows each point's own gap</span></div>
+    </div>
+  </section>
+
+  <section class="card" id="adviceCard">
+    <h2>Suggestions, never automatic</h2>
+    <ul class="advice" id="advice"></ul>
+  </section>
+
+  <p class="small muted note">Prototype. Runs the same TypeScript as the unit tests (adaptive memory, planner, review queue, rhythm), nothing is stored and nothing is sent anywhere. Not run on a phone.</p>
+</div>
+
+<script>
+const Core = (() => {
+const M = {};
+(() => {
+/** Shortest allowed gap between reminders for one point (proposal in the spec). */
+const MIN_INTERVAL_MINUTES = 15;
+/** iOS keeps at most 64 pending local notifications; stay a little under it. */
+const MAX_PLANNED_NOTIFICATIONS = 60;
+/** How many days ahead to look when the limit is not reached sooner. */
+const MAX_DAYS_AHEAD = 14;
+/** Reminder times are nudged by up to this many minutes so they do not all land on the hour. */
+const JITTER_MINUTES = 3;
+const DAY = 1440;
+function parseTime(value) {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(value);
+    if (!m)
+        throw new Error(`Invalid time "${value}", expected HH:mm`);
+    const h = Number(m[1]);
+    const min = Number(m[2]);
+    if (h > 23 || min > 59)
+        throw new Error(`Invalid time "${value}"`);
+    return h * 60 + min;
+}
+/** True when minute-of-day `m` is inside [start, end). A range with start > end crosses midnight. */
+function inRange(m, range) {
+    const start = parseTime(range.start);
+    const end = parseTime(range.end);
+    if (start === end)
+        return false;
+    return start < end ? m >= start && m < end : m >= start || m < end;
+}
+function buildWindow(settings) {
+    const inQuiet = (m) => settings.quietHours.some((q) => inRange(m, q));
+    if (settings.activeMode === 'button_only') {
+        return { anchor: 0, span: DAY, isActive: (m) => !inQuiet(m) };
+    }
+    const start = parseTime(settings.activeHours.start);
+    const end = parseTime(settings.activeHours.end);
+    const span = start === end ? 0 : (end - start + DAY) % DAY;
+    return {
+        anchor: start,
+        span,
+        isActive: (m) => inRange(m, settings.activeHours) && !inQuiet(m),
+    };
+}
+/** True when reminders may fall at minute-of-day `m` (0 to 1439) under these settings. Ignores Awake/Sleep. */
+function isActiveMinute(settings, m) {
+    return buildWindow(settings).isActive(m);
+}
+/** Whole minutes between reminders for a point, never below the minimum. */
+function intervalMinutes(frequency, settings, activeMinutesPerDay) {
+    const f = frequency.mode === 'default' ? settings.defaultFrequency : frequency;
+    let minutes;
+    if (f.mode === 'interval') {
+        minutes = f.everyMinutes;
+    }
+    else if (f.mode === 'per_day') {
+        minutes = f.timesPerDay >= 1 ? Math.floor(activeMinutesPerDay / f.timesPerDay) : NaN;
+    }
+    else {
+        minutes = NaN;
+    }
+    if (!Number.isFinite(minutes))
+        minutes = 60;
+    return Math.max(MIN_INTERVAL_MINUTES, Math.floor(minutes));
+}
+/** Small stable hash so jitter and staggering are the same on every run. */
+function hash(text) {
+    let h = 2166136261;
+    for (let i = 0; i < text.length; i++) {
+        h ^= text.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+}
+/**
+ * Plans the next reminders after `now`, soonest first, at most `limit`.
+ *
+ * - Nothing is planned while asleep, or when there are no active minutes.
+ * - Each day, a point is reminded every `interval` minutes starting at the first active minute.
+ * - Reminders that fall in quiet hours are dropped, not moved.
+ * - Grouped points that share a time become one reminder; individual points are staggered
+ *   so they do not all fire together.
+ */
+function planReminders(points, settings, now, limit = MAX_PLANNED_NOTIFICATIONS) {
+    if (!settings.awake || limit <= 0)
+        return [];
+    const win = buildWindow(settings);
+    if (win.span === 0)
+        return [];
+    let activeMinutesPerDay = 0;
+    for (let m = 0; m < DAY; m++)
+        if (win.isActive(m))
+            activeMinutesPerDay++;
+    if (activeMinutesPerDay === 0)
+        return [];
+    const candidates = points.filter((p) => p.status === 'active');
+    if (candidates.length === 0)
+        return [];
+    const result = [];
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    for (let day = 0; day < MAX_DAYS_AHEAD && result.length < limit; day++) {
+        const y = startOfToday.getFullYear();
+        const mo = startOfToday.getMonth();
+        const d = startOfToday.getDate() + day;
+        const dayKey = `${y}-${mo}-${d}`;
+        const groupedByTime = new Map();
+        const dayReminders = [];
+        for (const point of candidates) {
+            const style = point.notificationStyle ?? settings.notificationStyle;
+            const interval = intervalMinutes(point.frequency, settings, activeMinutesPerDay);
+            // Individual points start at a stable offset inside the interval so they spread out.
+            const offset = style === 'individual' ? hash(point.id) % interval : 0;
+            for (let k = 0; win.anchor + offset + k * interval < win.anchor + win.span; k++) {
+                const base = win.anchor + offset + k * interval;
+                const jitterRange = Math.min(JITTER_MINUTES, Math.floor(interval / 6));
+                let minute = base;
+                if (jitterRange > 0 && style === 'individual') {
+                    const j = (hash(`${point.id}|${dayKey}|${k}`) % (2 * jitterRange + 1)) - jitterRange;
+                    if (win.isActive(((base + j) % DAY + DAY) % DAY))
+                        minute = base + j;
+                }
+                if (!win.isActive(minute % DAY))
+                    continue;
+                const at = new Date(y, mo, d, 0, minute);
+                if (at.getTime() <= now.getTime())
+                    continue;
+                if (style === 'grouped') {
+                    const ids = groupedByTime.get(at.getTime());
+                    if (ids)
+                        ids.push(point.id);
+                    else
+                        groupedByTime.set(at.getTime(), [point.id]);
+                }
+                else {
+                    dayReminders.push({ at, style: 'individual', pointIds: [point.id] });
+                }
+            }
+        }
+        for (const [time, ids] of groupedByTime) {
+            dayReminders.push({ at: new Date(time), style: 'grouped', pointIds: ids });
+        }
+        dayReminders.sort((a, b) => a.at.getTime() - b.at.getTime());
+        result.push(...dayReminders);
+    }
+    return result.slice(0, limit);
+}
+
+Object.assign(M, { MIN_INTERVAL_MINUTES, MAX_PLANNED_NOTIFICATIONS, MAX_DAYS_AHEAD, JITTER_MINUTES, parseTime, isActiveMinute, intervalMinutes, planReminders });
+})();
+(() => {
+const { MIN_INTERVAL_MINUTES } = M;
+
+const FORGET_DECAY = 0.5;
+/** F such that (1 + F)^-D = 0.9. With D = 0.5 this is 19/81. */
+const FORGET_FACTOR = Math.pow(0.9, -1 / FORGET_DECAY) - 1;
+const EASE_MIN = 1.3;
+const EASE_MAX = 2.8;
+const EASE_START = 2.0;
+/** After "Again soon" the point comes back this soon, whatever its normal gap. */
+const AGAIN_SOON_MINUTES = 10;
+/** Longest gap per category. Daily points are drilled within the day; long-term ones stretch to months. */
+const MAX_INTERVAL = { daily: 12 * 60, long_term: 60 * 1440 };
+function newMemory(pointId, now, startMinutes = 60) {
+    const interval = Math.max(MIN_INTERVAL_MINUTES, Math.round(startMinutes));
+    return {
+        pointId,
+        intervalMinutes: interval,
+        ease: EASE_START,
+        streak: 0,
+        lapses: 0,
+        ignored: 0,
+        lastReviewedAt: null,
+        nextDueAt: new Date(now.getTime() + interval * 60000).toISOString(),
+    };
+}
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+/** Returns the new memory after an answer. Never mutates the input. */
+function applyAnswer(memory, answer, category, now) {
+    const max = MAX_INTERVAL[category];
+    const at = (minutes) => new Date(now.getTime() + minutes * 60000).toISOString();
+    switch (answer) {
+        case 'remembered': {
+            const ease = Math.min(EASE_MAX, memory.ease + 0.08);
+            const interval = clamp(Math.round(memory.intervalMinutes * ease), MIN_INTERVAL_MINUTES, max);
+            return {
+                ...memory,
+                ease,
+                intervalMinutes: interval,
+                streak: memory.streak + 1,
+                ignored: 0,
+                lastReviewedAt: now.toISOString(),
+                nextDueAt: at(interval),
+            };
+        }
+        case 'again_soon': {
+            const ease = Math.max(EASE_MIN, memory.ease - 0.2);
+            const interval = clamp(Math.round(memory.intervalMinutes * 0.4), MIN_INTERVAL_MINUTES, max);
+            return {
+                ...memory,
+                ease,
+                intervalMinutes: interval,
+                streak: 0,
+                lapses: memory.lapses + 1,
+                ignored: 0,
+                lastReviewedAt: now.toISOString(),
+                nextDueAt: at(AGAIN_SOON_MINUTES),
+            };
+        }
+        case 'dismissed':
+            return { ...memory, ignored: memory.ignored + 1, nextDueAt: at(memory.intervalMinutes) };
+    }
+}
+/** Chance (0 to 1) the user could still recall the point at `now`. 1 right after review, 0.9 one gap later. */
+function retrievability(memory, now) {
+    if (!memory.lastReviewedAt)
+        return 0.6; // never reviewed: unknown, treated as middling
+    const t = Math.max(0, (now.getTime() - Date.parse(memory.lastReviewedAt)) / 60000);
+    return Math.pow(1 + (FORGET_FACTOR * t) / memory.intervalMinutes, -FORGET_DECAY);
+}
+
+Object.assign(M, { FORGET_DECAY, FORGET_FACTOR, EASE_MIN, EASE_MAX, EASE_START, AGAIN_SOON_MINUTES, MAX_INTERVAL, newMemory, applyAnswer, retrievability });
+})();
+(() => {
+const { isActiveMinute, MAX_PLANNED_NOTIFICATIONS } = M;
+// Experimental: plans reminders for adaptive points from each point's own due time.
+// One pending chain per point instead of a fixed daily grid, so a point that is stretching to
+// 3 days books 1 notification, not 16 a day. Reminders are snapped to shared slots so grouped
+// mode can still merge points into one notification.
+
+/** Reminder times round up to this grid, so points due close together share one notification. */
+const SLOT_MINUTES = 15;
+/** If the user ignores a reminder, the same point is booked again at its gap, at most this many times. */
+const MAX_FOLLOW_UPS = 2;
+const DAY = 1440;
+/** First slot at or after `from` that is inside the active window, or null if none within 3 days. */
+function snapToActiveSlot(from, settings) {
+    const slotMs = SLOT_MINUTES * 60000;
+    let t = Math.ceil(from.getTime() / slotMs) * slotMs;
+    for (let i = 0; i < (3 * DAY) / SLOT_MINUTES; i++, t += slotMs) {
+        const d = new Date(t);
+        if (isActiveMinute(settings, d.getHours() * 60 + d.getMinutes()))
+            return d;
+    }
+    return null;
+}
+function planAdaptive(points, memories, settings, now, limit = MAX_PLANNED_NOTIFICATIONS) {
+    if (!settings.awake || limit <= 0)
+        return [];
+    const grouped = new Map();
+    const individual = [];
+    for (const point of points) {
+        const mem = memories.get(point.id);
+        if (point.status !== 'active' || !mem)
+            continue;
+        const style = point.notificationStyle ?? settings.notificationStyle;
+        let due = Math.max(Date.parse(mem.nextDueAt), now.getTime() + 60000);
+        for (let n = 0; n <= MAX_FOLLOW_UPS; n++) {
+            const slot = snapToActiveSlot(new Date(due), settings);
+            if (!slot)
+                break;
+            if (style === 'grouped') {
+                const ids = grouped.get(slot.getTime());
+                if (ids)
+                    ids.push(point.id);
+                else
+                    grouped.set(slot.getTime(), [point.id]);
+            }
+            else {
+                individual.push({ at: slot, style: 'individual', pointIds: [point.id] });
+            }
+            due = slot.getTime() + mem.intervalMinutes * 60000;
+        }
+    }
+    const out = [...individual];
+    for (const [time, ids] of grouped)
+        out.push({ at: new Date(time), style: 'grouped', pointIds: ids });
+    out.sort((a, b) => a.at.getTime() - b.at.getTime());
+    return out.slice(0, limit);
+}
+
+Object.assign(M, { SLOT_MINUTES, MAX_FOLLOW_UPS, snapToActiveSlot, planAdaptive });
+})();
+(() => {
+const { retrievability } = M;
+
+const SESSION_SIZE = 7;
+/** Weakest first (lowest chance of recall). Ties keep the older point first. */
+function buildSession(points, memories, now, options = {}) {
+    const size = options.size ?? SESSION_SIZE;
+    const only = options.onlyIds ? new Set(options.onlyIds) : null;
+    const scored = points
+        .filter((p) => p.status === 'active' && (!only || only.has(p.id)))
+        .map((p) => {
+        const mem = memories.get(p.id);
+        return { p, r: mem ? retrievability(mem, now) : 0.6 };
+    });
+    scored.sort((a, b) => a.r - b.r || a.p.createdAt.localeCompare(b.p.createdAt) || a.p.id.localeCompare(b.p.id));
+    return scored.slice(0, Math.max(0, size)).map((s) => s.p);
+}
+function summariseSession(answers) {
+    const remembered = answers.filter((a) => a === 'remembered').length;
+    const again = answers.length - remembered;
+    return {
+        total: answers.length,
+        remembered,
+        again,
+        tone: answers.length === 0 ? 'none' : again === 0 ? 'all_remembered' : 'mixed',
+    };
+}
+
+Object.assign(M, { SESSION_SIZE, buildSession, summariseSession });
+})();
+(() => {
+const dayKey = (d) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const MAX_REST_TOKENS = 2;
+/** An "answered" review is remembered or again_soon; a dismissed reminder is not practice. */
+function rhythm(log, now) {
+    const days = new Set();
+    let first = null;
+    for (const e of log) {
+        if (e.answer === 'dismissed')
+            continue;
+        const d = new Date(e.shownAt);
+        days.add(dayKey(d));
+        if (!first || d < first)
+            first = d;
+    }
+    const today = startOfDay(now);
+    const week = [];
+    for (let i = 6; i >= 0; i--) {
+        week.push(days.has(dayKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() - i))));
+    }
+    if (!first)
+        return { run: 0, restTokens: 1, week };
+    let run = 0;
+    let tokens = 1;
+    let active = 0;
+    // Walk every day from the first review up to yesterday; today is still open so it never breaks the run.
+    for (let d = startOfDay(first); d < today; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) {
+        if (days.has(dayKey(d))) {
+            run++;
+            active++;
+            if (active % 7 === 0)
+                tokens = Math.min(MAX_REST_TOKENS, tokens + 1);
+        }
+        else if (tokens > 0) {
+            tokens--;
+        }
+        else {
+            run = 0;
+        }
+    }
+    if (days.has(dayKey(today)))
+        run++;
+    return { run, restTokens: tokens, week };
+}
+function hourlyEngagement(log) {
+    const buckets = Array.from({ length: 24 }, () => ({ shown: 0, answered: 0 }));
+    for (const e of log) {
+        const b = buckets[new Date(e.shownAt).getHours()];
+        b.shown++;
+        if (e.answer !== 'dismissed')
+            b.answered++;
+    }
+    return buckets;
+}
+/**
+ * Hours where reminders were mostly ignored, merged into ranges, as a suggestion for quiet hours.
+ * Needs at least `minShown` reminders in an hour before judging it.
+ */
+function suggestQuietHours(buckets, minShown = 8, maxRate = 0.2) {
+    const quiet = buckets.map((b) => b.shown >= minShown && b.answered / b.shown <= maxRate);
+    const pad = (h) => `${String(h % 24).padStart(2, '0')}:00`;
+    const ranges = [];
+    let h = 0;
+    while (h < 24) {
+        if (!quiet[h]) {
+            h++;
+            continue;
+        }
+        let end = h;
+        while (end < 24 && quiet[end])
+            end++;
+        ranges.push({ start: pad(h), end: pad(end) });
+        h = end;
+    }
+    return ranges;
+}
+/** Suggestions only. Nothing here changes a point. */
+function adviseOnPoints(points, memories) {
+    const out = [];
+    for (const p of points) {
+        const m = memories.get(p.id);
+        if (!m || p.status !== 'active')
+            continue;
+        if (m.lapses >= 4 && m.streak < 2)
+            out.push({ pointId: p.id, kind: 'reword' });
+        else if (m.ignored >= 3)
+            out.push({ pointId: p.id, kind: 'gentler' });
+        else if (p.category === 'daily' && m.streak >= 8)
+            out.push({ pointId: p.id, kind: 'graduate' });
+    }
+    return out;
+}
+
+Object.assign(M, { dayKey, rhythm, hourlyEngagement, suggestQuietHours, adviseOnPoints });
+})();
+
+return M;
+})();
+const root = document.documentElement;
+try { const t = localStorage.getItem('ms-theme'); if (t) root.dataset.theme = t; } catch (e) {}
+document.getElementById('theme').onclick = () => {
+  const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  root.dataset.theme = dark ? 'light' : 'dark';
+  try { localStorage.setItem('ms-theme', root.dataset.theme); } catch (e) {}
+};
+
+const settings = { defaultFrequency: { mode: 'interval', everyMinutes: 60 }, activeHours: { start: '07:00', end: '22:00' },
+  activeMode: 'hours', awake: true, quietHours: [], appLanguage: 'en', speechRate: 1,
+  delivery: { notification: true, widget: false, voice: false }, appLock: { enabled: false, timeoutSeconds: 60 },
+  notificationStyle: 'grouped', privateNotifications: false };
+
+const base = new Date(); base.setHours(9, 0, 0, 0);
+const H = 3600000;
+const P = (id, prompt, category, x, y, gapMin, agoMin, streak, lapses) => ({
+  point: { id, kind: 'note', prompt, answer: null, detail: null, language: 'en', category, tags: [], status: 'active', frequency: { mode: 'default' },
+    nextDueAt: base.toISOString(), speak: false, private: false, notificationStyle: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
+    lastShownAt: null, timesShown: 0, timesRemembered: 0 },
+  x, y,
+  mem: { pointId: id, intervalMinutes: gapMin, ease: 2.0, streak, lapses, ignored: 0, lastReviewedAt: new Date(base.getTime() - agoMin * 60000).toISOString(),
+    nextDueAt: new Date(base.getTime() + (gapMin - agoMin) * 60000).toISOString() },
+});
+const items = [
+  P('a', 'I choose calm over reaction.', 'daily', 70, 70, 60, 30, 3, 0),
+  P('b', 'Drink water before tea.', 'daily', 190, 45, 120, 150, 9, 0),
+  P('c', 'Light reactions happen in the thylakoid membranes.', 'long_term', 320, 80, 2880, 2000, 4, 1),
+  P('d', 'ખૂબ આભાર means thank you very much.', 'long_term', 130, 150, 1440, 1700, 2, 1),
+  P('e', 'Check my posture.', 'daily', 250, 165, 60, 55, 1, 5),
+  P('f', 'Mitochondria make most of the cell\'s ATP.', 'long_term', 55, 225, 4320, 1200, 6, 0),
+  P('g', 'Breathe out longer than you breathe in.', 'daily', 345, 215, 180, 40, 2, 0),
+  P('h', 'Call Dadi on Sunday.', 'long_term', 200, 235, 10080, 5000, 7, 0),
+  P('i', 'Do the one thing that matters first.', 'daily', 285, 120, 90, 200, 0, 2),
+];
+const byId = new Map(items.map((i) => [i.point.id, i]));
+const mems = new Map(items.map((i) => [i.point.id, i.mem]));
+let offsetH = 0;
+let selected = 'e';
+const simNow = () => new Date(base.getTime() + offsetH * H);
+const $ = (id) => document.getElementById(id);
+
+function fmt(min) {
+  if (min < 90) return Math.round(min) + ' min';
+  if (min < 2880) return (Math.round(min / 6) / 10) + ' h';
+  return Math.round(min / 1440) + ' days';
+}
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent) { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; }
+
+function drawSky() {
+  const svg = $('svg'); svg.textContent = '';
+  const now = simNow();
+  // fixed background specks so the sky reads as a sky
+  for (let i = 0; i < 40; i++) el('circle', { cx: (i * 97) % 400, cy: (i * 53) % 280, r: 0.8, fill: 'var(--star)', opacity: 0.18 }, svg);
+  for (const it of items) {
+    const r = Core.retrievability(mems.get(it.point.id), now);
+    const g = el('g', { class: 'star', tabindex: 0, role: 'button', 'aria-label': it.point.prompt + ', ' + Math.round(r * 100) + ' percent remembered' }, svg);
+    el('circle', { class: 'ring', cx: it.x, cy: it.y, r: 22, fill: 'none', stroke: it.point.id === selected ? 'var(--accent)' : 'none', 'stroke-width': 2 }, g);
+    el('circle', { cx: it.x, cy: it.y, r: 8 + 20 * r, fill: 'var(--star)', opacity: (0.05 + 0.3 * r).toFixed(3) }, g);
+    el('circle', { cx: it.x, cy: it.y, r: it.point.category === 'long_term' ? 5 : 3.6, fill: 'var(--star)', opacity: (0.3 + 0.7 * r).toFixed(3) }, g);
+    if (it.point.category === 'long_term') el('circle', { cx: it.x, cy: it.y, r: 9, fill: 'none', stroke: 'var(--star)', 'stroke-width': 0.8, opacity: (0.3 + 0.5 * r).toFixed(3) }, g);
+    g.onclick = () => { selected = it.point.id; render(); };
+    g.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); g.onclick(); } };
+  }
+}
+
+function drawReview() {
+  const it = byId.get(selected), m = mems.get(selected), now = simNow();
+  const r = Core.retrievability(m, now);
+  $('prompt').textContent = it.point.prompt;
+  $('meter').style.width = Math.round(r * 100) + '%';
+  $('stats').innerHTML = '<span>Recall <b>' + Math.round(r * 100) + '%</b></span><span>Gap <b>' + fmt(m.intervalMinutes) + '</b></span><span>In a row <b>' + m.streak +
+    '</b></span><span>Forgotten <b>' + m.lapses + '</b></span><span>' + (it.point.category === 'daily' ? 'Daily' : 'Long-term') + '</span>';
+}
+
+function drawCost() {
+  const now = simNow(), end = now.getTime() + 24 * H, pts = items.map((i) => i.point);
+  const within = (plan) => plan.filter((p) => p.at.getTime() <= end).length;
+  $('fixed').textContent = within(Core.planReminders(pts, settings, now, 200));
+  $('adaptive').textContent = within(Core.planAdaptive(pts, mems, settings, now, 200));
+}
+
+function drawRhythm() {
+  const today = new Date(base); const log = [];
+  for (const d of [1, 2, 4, 5, 6, 7, 8, 9]) log.push({ pointId: 'a', shownAt: new Date(today.getFullYear(), today.getMonth(), today.getDate() - d, 12).toISOString(), answer: 'remembered' });
+  const r = Core.rhythm(log, today);
+  $('week').innerHTML = r.week.map((on, i) => '<span class="' + (on ? 'on ' : '') + (i === 6 ? 'today' : '') + '"></span>').join('');
+  $('rhythm').textContent = 'Run of ' + r.run + ' days with ' + r.restTokens + ' rest token' + (r.restTokens === 1 ? '' : 's') + ' left. (Example history with one missed day.)';
+}
+
+function drawAdvice() {
+  const list = Core.adviseOnPoints(items.map((i) => i.point), mems);
+  const text = { reword: 'keeps slipping. Try rewording it or splitting it into two points.', gentler: 'is often ignored. A gentler frequency may suit it.', graduate: 'is solid. Move it to Long-term if you like.' };
+  $('advice').innerHTML = list.length ? list.map((a) => '<li><b>' + byId.get(a.pointId).point.prompt.replace(/</g, '&lt;') + '</b> ' + text[a.kind] + '</li>').join('') : '<li class="muted">Nothing to suggest right now.</li>';
+}
+
+function answer(kind) {
+  const it = byId.get(selected), now = simNow();
+  const before = mems.get(selected);
+  const next = Core.applyAnswer(before, kind, it.point.category, now);
+  mems.set(selected, next);
+  const when = (Date.parse(next.nextDueAt) - now.getTime()) / 60000;
+  $('result').textContent = kind === 'remembered'
+    ? 'Gap stretches from ' + fmt(before.intervalMinutes) + ' to ' + fmt(next.intervalMinutes) + '. Next reminder in about ' + fmt(when) + '.'
+    : 'Back in ' + fmt(when) + '. The normal gap shrinks to ' + fmt(next.intervalMinutes) + '.';
+  render();
+}
+function render() {
+  drawSky(); drawReview(); drawCost(); drawAdvice();
+  const n = simNow();
+  $('clock').textContent = offsetH === 0 ? 'Now' : '+' + offsetH + ' h · ' + n.toLocaleString([], { weekday: 'short', hour: 'numeric' });
+}
+$('slider').oninput = (e) => { offsetH = Number(e.target.value); render(); };
+$('ok').onclick = () => answer('remembered');
+$('again').onclick = () => answer('again_soon');
+$('weak').onclick = () => { const s = Core.buildSession(items.map((i) => i.point), mems, simNow(), { size: 1 }); if (s[0]) { selected = s[0].id; $('result').textContent = ''; render(); } };
+drawRhythm(); render();
+</script>

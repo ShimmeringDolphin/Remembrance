@@ -4,7 +4,9 @@
   "main": "index.ts",
   "dependencies": {
     "expo": "~58.0.26",
+    "expo-local-authentication": "~58.0.3",
     "expo-notifications": "~58.1.9",
+    "expo-speech": "~58.0.4",
     "expo-sqlite": "~58.0.18",
     "expo-status-bar": "~58.0.5",
     "react": "19.3.0",
@@ -21,7 +23,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "node --test src/core/*.test.ts"
+    "test": "node --test src/core/*.test.ts src/core/labs/*.test.ts"
   },
   "private": true
 }

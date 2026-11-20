@@ -29,6 +29,12 @@
           "defaultChannel": "reminders",
           "enableRemoteNotifications": false
         }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow YaadOM to use Face ID to unlock the app."
+        }
       ]
     ]
   }
