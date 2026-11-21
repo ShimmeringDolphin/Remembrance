@@ -24,17 +24,18 @@ export interface Point {
   lastAppearedAt: string | null;
 }
 
-/** How often reminders come. Minutes between them: often 30, regular 60, gentle 120. */
-export type Pace = 'often' | 'regular' | 'gentle';
 
 export interface Settings {
   /** Reminders run from `from` up to, not including, `to` ("HH:mm"). May cross midnight. */
   from: string;
   to: string;
-  pace: Pace;
-  /** Pause button: nothing is booked while paused. */
-  paused: boolean;
+  /** Minutes between reminders: one of EVERY_CHOICES (15 to 180). */
+  every: number;
+  /** Awake/Asleep button: nothing is booked while asleep. */
+  asleep: boolean;
   /** Lock screen shows only a count, never text. */
   privateMode: boolean;
   language: Language;
+  /** Read each point aloud in a moment (the phone's own voice). */
+  readAloud: boolean;
 }

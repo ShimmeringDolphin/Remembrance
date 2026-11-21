@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import { layoutSky, totalAppearances } from '../core/sky';
 import type { Point } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
-import type { Theme } from '../theme/calmStudy';
+import { tint, type Theme } from '../theme/calmStudy';
 import { Button } from './parts';
 
 export function SkyScreen(props: { t: Strings; theme: Theme; points: Point[]; onBack: () => void }) {
@@ -36,7 +36,7 @@ export function SkyScreen(props: { t: Strings; theme: Theme; points: Point[]; on
               hitSlop={8}
               style={[
                 styles.star,
-                { width: d, height: d, borderRadius: d / 2, left: s.x * side - d / 2, top: s.y * side - d / 2, backgroundColor: theme.star, opacity: picked === s.pointId ? 1 : 0.85 },
+                { width: d, height: d, borderRadius: d / 2, left: s.x * side - d / 2, top: s.y * side - d / 2, backgroundColor: theme.star, borderWidth: 3, borderColor: p ? tint(theme, p.category) : theme.star, opacity: picked === s.pointId ? 1 : 0.85 },
               ]}
             />
           );

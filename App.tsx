@@ -1,18 +1,23 @@
 // YaadOM: write a short point once; it comes back to you through the day. See docs/PRODUCT.md.
+import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Linking, Platform, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
+import type { Booked } from './src/core/appearances';
+import { freshIds, idsFromData, listenQueue, momentPoints, parseShown } from './src/core/moment';
 import { mergeSettings } from './src/core/settings';
 import { skyUnlocked } from './src/core/sky';
 import type { Category, Point, Settings } from './src/core/types';
 import * as data from './src/data/db';
 import { deviceLanguage, strings } from './src/i18n/strings';
 import { openBatterySettings } from './src/notify/phoneSettings';
+import { speak, stopSpeaking } from './src/notify/voice';
 import { askPermission, initNotifications, noteSettings, permission, syncReminders, type Permission } from './src/notify/reminders';
 import { themeFor } from './src/theme/calmStudy';
 import { HelpScreen } from './src/ui/HelpScreen';
+import { MomentScreen } from './src/ui/MomentScreen';
 import { Home } from './src/ui/Home';
 import { PermissionSheet } from './src/ui/PermissionSheet';
 import { PointSheet, type PointActions } from './src/ui/PointSheet';
@@ -21,6 +26,11 @@ import { SkyScreen } from './src/ui/SkyScreen';
 import { Welcome } from './src/ui/Welcome';
 
 type Screen = 'home' | 'settings' | 'sky' | 'help';
+
+/** Test builds (Expo Go, or an APK built with EXPO_PUBLIC_TESTING=1) open the sky early. */
+const TESTING = __DEV__ || process.env.EXPO_PUBLIC_TESTING === '1';
+/** Pause between points while listening. */
+const LISTEN_GAP_MS = 1200;
 
 function readSettings(json: string | null): Settings {
   try {
@@ -43,6 +53,12 @@ export default function App() {
   const [askNow, setAskNow] = useState(false);
   const [remindersPassed, setRemindersPassed] = useState(0);
   const [tipSeen, setTipSeen] = useState(true);
+  const [lastShown, setLastShown] = useState<Booked | null>(null);
+  const [momentIds, setMomentIds] = useState<string[] | null>(null);
+  const [listening, setListening] = useState(false);
+  const listenRun = useRef(0);
+  const handled = useRef(new Set<string>());
+  const response = Notifications.useLastNotificationResponse();
   const settingsRef = useRef(settings);
   const t = strings(settings.language);
 
@@ -55,6 +71,7 @@ export default function App() {
     try {
       setPoints(await data.listPoints());
       setRemindersPassed(Number(await data.getValue('remindersPassed')) || 0);
+      setLastShown(parseShown(await data.getValue('lastShown')));
     } catch {
       // Keep what is on screen.
     }
@@ -80,22 +97,66 @@ export default function App() {
     })();
   }, [rebook]);
 
+  // Tapping a reminder opens its points as a moment, once per notification.
+  useEffect(() => {
+    if (!response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+    const key = response.notification.request.identifier;
+    if (handled.current.has(key)) return;
+    handled.current.add(key);
+    const ids = idsFromData(response.notification.request.content.data);
+    if (ids.length > 0) setMomentIds(ids);
+    try {
+      Notifications.clearLastNotificationResponse();
+    } catch {
+      // Older native code: the identifier guard above still prevents reopening.
+    }
+  }, [response]);
+
+  const stopListening = useCallback(() => {
+    listenRun.current++;
+    setListening(false);
+    stopSpeaking();
+  }, []);
+
+  const listen = () => {
+    if (listening) return stopListening();
+    const queue = listenQueue(points);
+    const run = ++listenRun.current;
+    setListening(true);
+    const step = (i: number) => {
+      if (listenRun.current !== run) return;
+      if (i >= queue.length) return stopListening();
+      speak(queue[i].text, settingsRef.current.language, () => {
+        if (listenRun.current === run) setTimeout(() => step(i + 1), LISTEN_GAP_MS);
+      });
+    };
+    step(0);
+  };
+
   // Coming back to the app: the user may have changed notification permission or let reminders pass.
   useEffect(() => {
     const sub = AppState.addEventListener('change', async (state) => {
-      if (state !== 'active') return;
+      if (state !== 'active') {
+        // Release the voice when the app leaves the screen.
+        stopListening();
+        return;
+      }
       setPerm(await permission());
       await rebook();
     });
     return () => sub.remove();
-  }, [rebook]);
+  }, [rebook, stopListening]);
 
   const changeSettings = async (s: Settings) => {
+    const prev = settingsRef.current;
     settingsRef.current = s;
     noteSettings(s);
     setSettings(s);
+    const before = prev;
     await data.setValue('settings', JSON.stringify(s));
-    await rebook(s);
+    // Turning the voice on or off changes no reminder, so skip the rebook.
+    const sameReminders = (['from', 'to', 'every', 'asleep', 'privateMode', 'language'] as const).every((k) => before[k] === s[k]);
+    if (!sameReminders) await rebook(s);
   };
 
   const add = async (text: string, category: Category): Promise<boolean> => {
@@ -163,11 +224,26 @@ export default function App() {
   if (!ready) return <SafeAreaProvider><SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} /></SafeAreaProvider>;
 
   const showWelcome = !welcomed && points.length === 0;
+  const moment = momentIds ? momentPoints(momentIds, points) : [];
+  const inMoment = moment.length > 0;
+  const fresh = freshIds(lastShown, new Date());
   return (
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: screen === 'sky' ? theme.sky : theme.background }}>
         <StatusBar style={screen === 'sky' ? 'light' : 'auto'} />
-        {showWelcome ? (
+        {inMoment ? (
+          <MomentScreen
+            key={momentIds!.join('|')}
+            t={t}
+            theme={theme}
+            language={settings.language}
+            moment={moment}
+            allPoints={points}
+            readAloud={settings.readAloud}
+            onReadAloud={(on) => changeSettings({ ...settings, readAloud: on })}
+            onClose={() => setMomentIds(null)}
+          />
+        ) : showWelcome ? (
           <Welcome t={t} theme={theme} onKeep={keepFirst} />
         ) : screen === 'settings' ? (
           <SettingsScreen t={t} theme={theme} settings={settings} onChange={changeSettings} onBack={() => setScreen('home')} />
@@ -180,8 +256,13 @@ export default function App() {
             t={t}
             theme={theme}
             points={points}
-            paused={settings.paused}
-            skyOpen={skyUnlocked(points, remindersPassed, __DEV__)}
+            asleep={settings.asleep}
+            fresh={fresh}
+            listening={listening}
+            onListen={listen}
+            onAsleep={(asleep) => changeSettings({ ...settings, asleep })}
+            onLatestMoment={() => lastShown && setMomentIds(lastShown.pointIds)}
+            skyOpen={skyUnlocked(points, remindersPassed, TESTING)}
             batteryTip={Platform.OS === 'android' && perm === 'granted' && !tipSeen}
             onBatteryTip={answerBatteryTip}
             onHelp={() => setScreen('help')}
@@ -190,7 +271,6 @@ export default function App() {
             onOpen={setOpenId}
             onSettings={() => setScreen('settings')}
             onSky={() => setScreen('sky')}
-            onResume={() => changeSettings({ ...settings, paused: false })}
             onTurnOn={turnOn}
           />
         )}

@@ -2,12 +2,13 @@
 //
 // Each reminder shows a small handful of points, taking turns, so every notification can be read
 // at a glance and every point gets its fair share. Long-term points join every third reminder.
-import { PACE_MINUTES } from './settings.ts';
 import { parseTime, windowLength } from './time.ts';
 import type { Point, Settings } from './types';
 
 /** iOS keeps at most 64 pending notifications; stay a little under. */
 export const MAX_BOOKED = 60;
+/** Android has no such limit, but allows at most 500 alarms per app; 120 keeps rebooking quick. */
+export const MAX_BOOKED_ANDROID = 120;
 export const DAYS_AHEAD = 14;
 /** Reminders move by up to this many minutes so they do not feel like a clock. */
 export const JITTER_MINUTES = 2;
@@ -30,12 +31,12 @@ function hash(text: string): number {
   return h >>> 0;
 }
 
-/** Reminder times after `now`, soonest first: every pace step inside the from-to window. Nothing while paused. */
+/** Reminder times after `now`, soonest first: every `every` minutes inside the from-to window. Nothing while asleep. */
 export function planTimes(settings: Settings, now: Date, limit: number = MAX_BOOKED): Date[] {
-  if (settings.paused || limit <= 0) return [];
+  if (settings.asleep || limit <= 0) return [];
   const length = windowLength(settings.from, settings.to);
   if (length === 0) return [];
-  const step = PACE_MINUTES[settings.pace];
+  const step = Math.max(15, settings.every);
   const start = parseTime(settings.from);
   const out: Date[] = [];
   // Start yesterday: a window that crosses midnight may still be running this morning.
@@ -72,7 +73,7 @@ export function fillTimes(times: readonly Date[], points: readonly Point[], sett
   const daily = live.filter((p) => p.category === 'daily');
   const longTerm = live.filter((p) => p.category === 'long_term');
   if (live.length === 0) return [];
-  const stepMs = PACE_MINUTES[settings.pace] * 60000;
+  const stepMs = Math.max(15, settings.every) * 60000;
   return times.map((at) => {
     const n = Math.round(at.getTime() / stepMs);
     const ids: string[] = [];

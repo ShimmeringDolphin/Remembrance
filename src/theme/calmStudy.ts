@@ -1,4 +1,7 @@
 // Calm Study: warm paper by day, deep ink by night. Every colour the app uses comes from here.
+// Daily points are marigold and Long-term points are peacock, everywhere they appear.
+import type { Category } from '../core/types';
+
 export interface Theme {
   background: string;
   surface: string;
@@ -11,34 +14,59 @@ export interface Theme {
   scrim: string;
   sky: string;
   star: string;
+  skyText: string;
+  daily: string;
+  dailySoft: string;
+  longTerm: string;
+  longTermSoft: string;
+  /** Text on a moment card (cards keep a light ground in both themes). */
+  cardText: string;
 }
 
 export const light: Theme = {
-  background: '#FAF7F0',
+  background: '#F7F5EF',
   surface: '#FFFFFF',
-  text: '#23262F',
-  muted: '#646A78',
-  line: '#E4DFD3',
+  text: '#1F2230',
+  muted: '#5E6372',
+  line: '#E2DED3',
   accent: '#3B4A9C',
   onAccent: '#FFFFFF',
   soft: '#ECEEF8',
   scrim: 'rgba(20, 22, 30, 0.45)',
-  sky: '#141A3A',
+  sky: '#121733',
   star: '#F6E7B0',
+  skyText: '#D9DCF0',
+  daily: '#B86F00',
+  dailySoft: '#FCEFD6',
+  longTerm: '#1E6B74',
+  longTermSoft: '#DCEFF0',
+  cardText: '#1F2230',
 };
 
 export const dark: Theme = {
   background: '#14161D',
-  surface: '#1E212B',
+  surface: '#1D2029',
   text: '#ECEAE4',
   muted: '#A4A9B6',
-  line: '#2F3340',
+  line: '#2C303C',
   accent: '#9AA8F0',
   onAccent: '#14161D',
   soft: '#262B3D',
   scrim: 'rgba(0, 0, 0, 0.6)',
   sky: '#0B0F24',
   star: '#F6E7B0',
+  skyText: '#D9DCF0',
+  daily: '#F0A73A',
+  dailySoft: '#3A2C14',
+  longTerm: '#4FB3BD',
+  longTermSoft: '#123235',
+  cardText: '#ECEAE4',
 };
 
 export const themeFor = (scheme: string | null | undefined): Theme => (scheme === 'dark' ? dark : light);
+
+export const tint = (theme: Theme, c: Category) => (c === 'daily' ? theme.daily : theme.longTerm);
+export const tintSoft = (theme: Theme, c: Category) => (c === 'daily' ? theme.dailySoft : theme.longTermSoft);
+
+/** Android notification accent colour for a reminder. */
+export const categoryColour = (c: Category) => (c === 'daily' ? light.daily : light.longTerm);

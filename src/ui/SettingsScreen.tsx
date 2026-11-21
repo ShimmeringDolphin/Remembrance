@@ -1,11 +1,13 @@
-// Tiny on purpose: when, how often, pause, privacy, language.
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+// Settings: when, how often, privacy, voice and language. Each in its own card, with a plain summary.
+import type { ReactNode } from 'react';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
-import { shiftTime } from '../core/time';
-import type { Language, Pace, Settings } from '../core/types';
-import type { Strings } from '../i18n/strings';
+import { EVERY_CHOICES, remindersPerDay } from '../core/settings';
+import { shiftTime, windowLength } from '../core/time';
+import type { Language, Settings } from '../core/types';
+import { fill, type Strings } from '../i18n/strings';
 import type { Theme } from '../theme/calmStudy';
-import { Button, Card, Choice } from './parts';
+import { Button, Choice } from './parts';
 
 const STEP = 30;
 
@@ -17,16 +19,55 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
     const next = shiftTime(s[key], delta);
     if (next !== s[key === 'from' ? 'to' : 'from']) set({ [key]: next });
   };
-  const time = (label: string, key: 'from' | 'to') => (
-    <View style={styles.timeRow}>
-      <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
-      <Button label={`${t.earlier} (${label})`} theme={theme} kind="plain" onPress={() => shift(key, -STEP)} />
-      <Text accessibilityLabel={`${label} ${s[key]}`} style={[styles.time, { color: theme.text }]}>{s[key]}</Text>
-      <Button label={`${t.later} (${label})`} theme={theme} kind="plain" onPress={() => shift(key, STEP)} />
+  const everyLabel = (n: number) => (n < 60 ? fill(t.minutes, { n }) : fill(t.hours, { n: n % 60 === 0 ? n / 60 : (n / 60).toFixed(1) }));
+  const perDay = remindersPerDay(s, windowLength(s.from, s.to));
+  const langs: [Language, string][] = [['en', t.langEn], ['hi', t.langHi], ['gu', t.langGu]];
+
+  const section = (title: string, children: ReactNode) => (
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.line }]}>
+      <Text accessibilityRole="header" style={[styles.section, { color: theme.muted }]}>{title.toUpperCase()}</Text>
+      {children}
     </View>
   );
-  const paces: [Pace, string][] = [['often', t.paceOften], ['regular', t.paceRegular], ['gentle', t.paceGentle]];
-  const langs: [Language, string][] = [['en', t.langEn], ['hi', t.langHi], ['gu', t.langGu]];
+
+  const round = (label: string, text: string, onPress: () => void) => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={6}
+      style={({ pressed }) => [styles.round, { borderColor: theme.accent, backgroundColor: pressed ? theme.soft : 'transparent' }]}
+    >
+      <Text style={[styles.roundText, { color: theme.accent }]}>{text}</Text>
+    </Pressable>
+  );
+
+  const stepper = (label: string, key: 'from' | 'to') => (
+    <View style={styles.stepper}>
+      <Text style={[styles.stepLabel, { color: theme.muted }]}>{label}</Text>
+      {round(fill(t.earlierBy, { label }), '−', () => shift(key, -STEP))}
+      <Text accessibilityLabel={`${label} ${s[key]}`} style={[styles.time, { color: theme.text }]}>{s[key]}</Text>
+      {round(fill(t.laterBy, { label }), '+', () => shift(key, STEP))}
+    </View>
+  );
+
+  const toggle = (label: string, hint: string, value: boolean, onValue: (v: boolean) => void) => (
+    <View style={styles.switchRow}>
+      <View style={styles.flex}>
+        <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
+        <Text style={[styles.hint, { color: theme.muted }]}>{hint}</Text>
+      </View>
+      <Switch
+        accessibilityLabel={label}
+        accessibilityHint={hint}
+        value={value}
+        onValueChange={onValue}
+        trackColor={{ false: theme.line, true: theme.accent }}
+        thumbColor={theme.surface}
+        ios_backgroundColor={theme.line}
+      />
+    </View>
+  );
 
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
@@ -34,36 +75,40 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
         <Button label={t.back} theme={theme} kind="quiet" onPress={props.onBack} />
         <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>{t.settings}</Text>
       </View>
-      <Card theme={theme}>
-        {time(t.from, 'from')}
-        {time(t.until, 'to')}
-      </Card>
-      <Card theme={theme}>
-        <Text style={[styles.label, { color: theme.text }]}>{t.pace}</Text>
-        <View style={styles.choices} accessibilityRole="radiogroup" accessibilityLabel={t.pace}>
-          {paces.map(([p, label]) => <Choice key={p} label={label} selected={s.pace === p} theme={theme} onPress={() => set({ pace: p })} />)}
-        </View>
-      </Card>
-      <Card theme={theme}>
-        <View style={styles.switchRow}>
-          <Text style={[styles.label, { color: theme.text }]}>{t.pause}</Text>
-          <Switch accessibilityLabel={t.pause} value={s.paused} onValueChange={(v) => set({ paused: v })} />
-        </View>
-        <View style={styles.switchRow}>
-          <View style={styles.flex}>
-            <Text style={[styles.label, { color: theme.text }]}>{t.privateMode}</Text>
-            <Text style={[styles.hint, { color: theme.muted }]}>{t.privateModeHint}</Text>
+
+      {section(
+        t.sectionWhen,
+        <>
+          <Text style={[styles.big, { color: theme.text }]}>{s.from} – {s.to}</Text>
+          {stepper(t.from, 'from')}
+          {stepper(t.until, 'to')}
+        </>,
+      )}
+
+      {section(
+        t.pace,
+        <>
+          <View style={styles.choices} accessibilityRole="radiogroup" accessibilityLabel={t.pace}>
+            {EVERY_CHOICES.map((n) => (
+              <Choice key={n} label={everyLabel(n)} selected={s.every === n} theme={theme} onPress={() => set({ every: n })} />
+            ))}
           </View>
-          <Switch accessibilityLabel={t.privateMode} value={s.privateMode} onValueChange={(v) => set({ privateMode: v })} />
-        </View>
-      </Card>
-      <Card theme={theme}>
-        <Text style={[styles.label, { color: theme.text }]}>{t.language}</Text>
+          <Text style={[styles.hint, { color: theme.muted }]}>{fill(t.perDay, { n: perDay, from: s.from, to: s.to })}</Text>
+          {s.every <= 30 && <Text style={[styles.hint, { color: theme.muted }]}>{t.openDaily}</Text>}
+        </>,
+      )}
+
+      {section(t.sectionPrivacy, toggle(t.privateMode, t.privateModeHint, s.privateMode, (v) => set({ privateMode: v })))}
+      {section(t.sectionVoice, toggle(t.readAloudSetting, t.readAloudHint, s.readAloud, (v) => set({ readAloud: v })))}
+
+      {section(
+        t.language,
         <View style={styles.choices} accessibilityRole="radiogroup" accessibilityLabel={t.language}>
           {langs.map(([l, label]) => <Choice key={l} label={label} selected={s.language === l} theme={theme} onPress={() => set({ language: l })} />)}
-        </View>
-      </Card>
-      <Text style={[styles.hint, { color: theme.muted }]}>{t.storedNote}</Text>
+        </View>,
+      )}
+
+      <Text style={[styles.hint, { color: theme.muted, textAlign: 'center' }]}>{t.storedNote}</Text>
     </ScrollView>
   );
 }
@@ -71,12 +116,18 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
 const styles = StyleSheet.create({
   wrap: { padding: 16, gap: 14, paddingBottom: 48 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontSize: 22, fontWeight: '700' },
-  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  title: { fontSize: 24, fontWeight: '700' },
+  card: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 12 },
+  section: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2 },
+  big: { fontSize: 28, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  stepLabel: { fontSize: 15, minWidth: 56 },
+  round: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  roundText: { fontSize: 22, fontWeight: '600', lineHeight: 26 },
   time: { fontSize: 20, fontWeight: '600', minWidth: 64, textAlign: 'center', fontVariant: ['tabular-nums'] },
-  label: { fontSize: 16, fontWeight: '600', minWidth: 56 },
+  label: { fontSize: 16, fontWeight: '600' },
   hint: { fontSize: 14, lineHeight: 20 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 48 },
-  flex: { flex: 1 },
+  flex: { flex: 1, gap: 2 },
 });

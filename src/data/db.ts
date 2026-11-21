@@ -163,7 +163,13 @@ export async function setValue(key: string, value: string): Promise<void> {
  * Adds the appearances of reminders that have passed, then stores the reminders still to come,
  * in one transaction so a count is never added twice.
  */
-export async function recordAppearances(counts: Map<string, number>, lastAt: Map<string, string>, passed: number, future: Booked[]): Promise<void> {
+export async function recordAppearances(
+  counts: Map<string, number>,
+  lastAt: Map<string, string>,
+  passed: number,
+  latest: Booked | null,
+  future: Booked[],
+): Promise<void> {
   const d = await db();
   await d.withExclusiveTransactionAsync(async (tx) => {
     for (const [id, n] of counts) {
@@ -178,6 +184,13 @@ export async function recordAppearances(counts: Map<string, number>, lastAt: Map
       'INSERT INTO kv (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
       'booked', JSON.stringify(future),
     );
+    if (latest) {
+      // The most recent reminder that has passed: its points glow on Home and open as a moment.
+      await tx.runAsync(
+        'INSERT INTO kv (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+        'lastShown', JSON.stringify(latest),
+      );
+    }
     if (passed > 0) {
       // Reminders whose time has passed, in total. Used only to open the sky early while testing.
       await tx.runAsync(

@@ -4,10 +4,11 @@ import { test } from 'node:test';
 import { countAppearances, parseBooked } from './appearances.ts';
 import { buildContent } from './content.ts';
 import { canAdd, cleanText, MAX_PER_CATEGORY, MAX_TEXT_LENGTH } from './limits.ts';
-import { DAYS_AHEAD, fillTimes, HANDFUL, JITTER_MINUTES, LONG_TERM_EVERY, MAX_BOOKED, planSlots, planTimes } from './planner.ts';
-import { defaultSettings, mergeSettings } from './settings.ts';
+import { DAYS_AHEAD, fillTimes, HANDFUL, JITTER_MINUTES, LONG_TERM_EVERY, MAX_BOOKED, MAX_BOOKED_ANDROID, planSlots, planTimes } from './planner.ts';
+import { defaultSettings, EVERY_CHOICES, mergeSettings } from './settings.ts';
 import { FULL_STAR, layoutSky, skyUnlocked, starSize, totalAppearances } from './sky.ts';
 import { formatTime, parseTime, shiftTime, windowLength } from './time.ts';
+import { freshIds, listenQueue, momentPoints, starGrowth } from './moment.ts';
 import type { Point, Settings } from './types.ts';
 
 const settings: Settings = defaultSettings('en');
@@ -35,13 +36,18 @@ test('times parse, format, shift across midnight and measure windows', () => {
   assert.equal(windowLength('08:00', '08:00'), 0);
 });
 
-test('defaults are hourly 07:00 to 22:00, not paused, not private', () => {
-  assert.deepEqual(defaultSettings('hi'), { from: '07:00', to: '22:00', pace: 'regular', paused: false, privateMode: false, language: 'hi' });
+test('defaults are hourly 07:00 to 22:00, awake, not private, not read aloud', () => {
+  assert.deepEqual(defaultSettings('hi'), { from: '07:00', to: '22:00', every: 60, asleep: false, privateMode: false, language: 'hi', readAloud: false });
 });
 
 test('stored settings keep valid values and fall back on junk', () => {
   assert.equal(mergeSettings({ from: '06:30', pace: 'often', privateMode: true }, 'en').from, '06:30');
-  for (const junk of [null, 3, 'x', [], { from: '99:00', pace: 'fast', paused: 'yes', language: 'fr' }]) {
+  // Older settings: a named pace and a pause flag carry over.
+  const old = mergeSettings({ pace: 'often', paused: true }, 'en');
+  assert.equal(old.every, 30);
+  assert.equal(old.asleep, true);
+  assert.equal(mergeSettings({ every: 45 }, 'en').every, 45);
+  for (const junk of [null, 3, 'x', [], { from: '99:00', pace: 'fast', every: 7, paused: 'yes', asleep: 1, readAloud: 'y', language: 'fr' }]) {
     assert.deepEqual(mergeSettings(junk, 'gu'), defaultSettings('gu'));
   }
 });
@@ -64,9 +70,10 @@ test('times are nudged a little, deterministically, and stay in order', () => {
   for (let i = 1; i < a.length; i++) assert.ok(a[i] > a[i - 1]);
 });
 
-test('paces give 30, 60 and 120 minutes between reminders, roughly', () => {
-  for (const [pace, gap] of [['often', 30], ['regular', 60], ['gentle', 120]] as const) {
-    const t = planTimes({ ...settings, pace }, at(5, 6), 4);
+test('every choice from 15 to 180 minutes sets the gap between reminders, roughly', () => {
+  for (const gap of EVERY_CHOICES) {
+    const pace = gap;
+    const t = planTimes({ ...settings, every: gap, to: '23:59' }, at(5, 6), 4);
     const g = (t[2].getTime() - t[1].getTime()) / 60000;
     assert.ok(Math.abs(g - gap) <= 2 * JITTER_MINUTES, `${pace}: ${g}`);
   }
@@ -87,11 +94,12 @@ test('a window crossing midnight still runs after midnight', () => {
   for (const d of planTimes(s, at(5, 12), 40)) assert.ok(mins(d) >= 22 * 60 || mins(d) < 2 * 60, `outside: ${d}`);
 });
 
-test('paused or an empty window books nothing; the iOS cap and the horizon hold', () => {
-  assert.deepEqual(planTimes({ ...settings, paused: true }, at(5, 0)), []);
+test('asleep or an empty window books nothing; the iOS cap and the horizon hold', () => {
+  assert.deepEqual(planTimes({ ...settings, asleep: true }, at(5, 0)), []);
   assert.deepEqual(planTimes({ ...settings, from: '08:00', to: '08:00' }, at(5, 0)), []);
-  assert.equal(planTimes({ ...settings, pace: 'often' }, at(5, 0)).length, MAX_BOOKED);
-  const far = planTimes({ ...settings, pace: 'gentle', from: '12:00', to: '13:00' }, at(5, 0), 1000);
+  assert.equal(planTimes({ ...settings, every: 30 }, at(5, 0)).length, MAX_BOOKED);
+  assert.equal(planTimes({ ...settings, every: 15 }, at(5, 0), MAX_BOOKED_ANDROID).length, MAX_BOOKED_ANDROID);
+  const far = planTimes({ ...settings, every: 120, from: '12:00', to: '13:00' }, at(5, 0), 1000);
   assert.ok(far.length <= DAYS_AHEAD);
 });
 
@@ -200,4 +208,35 @@ test('the sky opens at 30 appearances, or after 3 reminders only while testing',
   assert.equal(skyUnlocked(few, 2, true), false);
   assert.equal(skyUnlocked(few, 3, true), true);
   assert.equal(skyUnlocked([point('b', { appearances: 30 })], 0, false), true);
+});
+
+test('a moment glows on Home for 90 minutes after its reminder, then stops', () => {
+  const now = new Date('2026-01-05T12:00:00Z');
+  const latest = { at: '2026-01-05T11:00:00Z', pointIds: ['a', 'b'] };
+  assert.deepEqual([...freshIds(latest, now)], ['a', 'b']);
+  assert.equal(freshIds(latest, new Date('2026-01-05T12:31:00Z')).size, 0);
+  assert.equal(freshIds({ at: '2026-01-05T13:00:00Z', pointIds: ['a'] }, now).size, 0);
+  assert.equal(freshIds(null, now).size, 0);
+  const r = countAppearances([{ at: '2026-01-05T10:00:00Z', pointIds: ['x'] }, latest, { at: '2026-01-05T13:00:00Z', pointIds: ['y'] }], now);
+  assert.deepEqual(r.latest, latest);
+});
+
+test('a moment keeps reminder order, skips put-away and missing points; stars only grow', () => {
+  const pts = [point('a'), point('b', { archived: true }), point('c', { appearances: 4 })];
+  assert.deepEqual(momentPoints(['c', 'b', 'zz', 'a', 'c'], pts).map((p) => p.id), ['c', 'a']);
+  const g = starGrowth(pts[2]);
+  assert.ok(g.to > g.from);
+  assert.equal(starGrowth(point('new')).from, starGrowth(point('new')).to);
+});
+
+test('listening never speaks private or put-away points', () => {
+  const pts = [point('b'), point('a', { private: true }), point('c', { archived: true })];
+  assert.deepEqual(listenQueue(pts).map((p) => p.id), ['b']);
+});
+
+test('a reminder with a Long-term point is coloured as Long-term', () => {
+  const byId = new Map([point('d'), point('l', { category: 'long_term' })].map((p) => [p.id, p]));
+  const text = { title: 'T', privateOne: '1', privateMany: '{n}', privateExtra: '+{n}' };
+  assert.equal(buildContent(['d'], byId, false, text).category, 'daily');
+  assert.equal(buildContent(['d', 'l'], byId, false, text).category, 'long_term');
 });
