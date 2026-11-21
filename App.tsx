@@ -209,6 +209,7 @@ export default function App() {
     edit: (id, text) => void act(() => data.editPoint(id, text))(),
     move: async (id, to) => (await act(() => data.movePoint(id, to))()) as boolean,
     setPrivate: (id, v) => void act(() => data.setPrivate(id, v))(),
+    setPace: (id, pace) => void act(() => data.setPace(id, pace))(),
     putAway: (id) => {
       setOpenId(null);
       void act(() => data.putAway(id))();
