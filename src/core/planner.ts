@@ -62,6 +62,25 @@ export function planTimes(settings: Settings, now: Date, limit: number = MAX_BOO
   return out.slice(0, limit);
 }
 
+/**
+ * The reminder's place in the turn order: day number times reminders a day, plus its step that day.
+ * Counted on the local clock from the start of the window, so every time zone (IST is UTC+5:30)
+ * gets consecutive turns, and jitter of up to 2 minutes never changes the count.
+ */
+function turnCounter(settings: Settings): (at: Date) => number {
+  const allDay = settings.mode === 'button';
+  const step = Math.max(15, settings.every);
+  const start = allDay ? 0 : parseTime(settings.from);
+  const length = allDay ? DAY_MINUTES : windowLength(settings.from, settings.to) || DAY_MINUTES;
+  const perDay = Math.ceil(length / step);
+  return (at) => {
+    const local = Math.round(at.getTime() / 60000) - at.getTimezoneOffset();
+    const offset = (((local - start) % DAY_MINUTES) + DAY_MINUTES) % DAY_MINUTES;
+    const day = Math.round((local - start - offset) / DAY_MINUTES);
+    return day * perDay + Math.round(offset / step);
+  };
+}
+
 const byAge = (a: Point, b: Point) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id);
 
 function take<T>(list: readonly T[], start: number, count: number): T[] {
@@ -77,7 +96,7 @@ function take<T>(list: readonly T[], start: number, count: number): T[] {
 export function fillTimes(times: readonly Date[], points: readonly Point[], settings: Settings): Slot[] {
   const all = points.filter((p) => !p.archived).sort(byAge);
   if (all.length === 0) return [];
-  const stepMs = Math.max(15, settings.every) * 60000;
+  const turn = turnCounter(settings);
   const out: Slot[] = [];
   for (const at of times) {
     // A Daily point never comes back at or after its expiry.
@@ -85,7 +104,7 @@ export function fillTimes(times: readonly Date[], points: readonly Point[], sett
     const daily = live.filter((p) => p.category === 'daily');
     const longTerm = live.filter((p) => p.category === 'long_term');
     if (live.length === 0) continue;
-    const n = Math.round(at.getTime() / stepMs);
+    const n = turn(at);
     const ids: string[] = [];
     if (daily.length === 0) {
       ids.push(...take(longTerm, n * HANDFUL, HANDFUL).map((p) => p.id));

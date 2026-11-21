@@ -298,3 +298,25 @@ test('button mode reminds all day while Awake; Asleep always wins', () => {
   assert.deepEqual(planTimes({ ...settings, mode: 'button', asleep: true }, at(5, 0)), []);
   assert.deepEqual(planTimes({ ...settings, mode: 'hours', asleep: true }, at(5, 0)), []);
 });
+
+test('turns stay fair in half-hour and quarter-hour time zones, and with a :30 start', () => {
+  const saved = process.env.TZ;
+  try {
+    for (const tz of ['Asia/Kolkata', 'Asia/Kathmandu', 'UTC']) {
+      process.env.TZ = tz;
+      for (const from of ['07:00', '07:30']) {
+        const s = { ...settings, from };
+        const pts = Array.from({ length: 7 }, (_, i) => point(`f${i}`));
+        const seen = new Map<string, number>();
+        for (const slot of fillTimes(planTimes(s, new Date(2026, 0, 5, 0, 0), 60), pts, s)) {
+          for (const id of slot.pointIds) seen.set(id, (seen.get(id) ?? 0) + 1);
+        }
+        const counts = [...seen.values()];
+        assert.ok(Math.max(...counts) - Math.min(...counts) <= 2, `${tz} ${from}: ${counts}`);
+      }
+    }
+  } finally {
+    if (saved === undefined) delete process.env.TZ;
+    else process.env.TZ = saved;
+  }
+});

@@ -21,7 +21,7 @@ npm test
 npx expo export --platform android --output-dir /tmp/yaadom-export
 ```
 
-Pure logic gets unit tests (node:test). Fix a bug with a test that fails first.
+Pure logic gets unit tests (node:test). Fix a bug with a test that fails first. The owner is in India (UTC+5:30): also run `TZ=Asia/Kolkata npm test`, since time logic can pass in UTC and fail there.
 
 ## Rules
 
