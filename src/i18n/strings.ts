@@ -4,7 +4,7 @@
 import type { Language } from '../core/types';
 
 const en = {
-  appName: 'YaadOM',
+  appName: 'YaadOM-Sky',
   welcomeTitle: 'What would you like to keep in mind?',
   welcomeBody: 'Write one short line. YaadOM brings it back to you through the day, a few at a time. Nothing to tick off.',
   example1: 'Mitochondria make energy for the cell',
@@ -98,7 +98,7 @@ export type StringKey = keyof typeof en;
 export type Strings = Record<StringKey, string>;
 
 const hi: Strings = {
-  appName: 'YaadOM',
+  appName: 'YaadOM-Sky',
   welcomeTitle: 'आप क्या याद रखना चाहेंगे?',
   welcomeBody: 'एक छोटी पंक्ति लिखिए। YaadOM उसे दिन भर में, कुछ-कुछ करके, आपके सामने लाता रहेगा। कुछ भी टिक करने की ज़रूरत नहीं।',
   example1: 'माइटोकॉन्ड्रिया कोशिका के लिए ऊर्जा बनाते हैं',
@@ -189,7 +189,7 @@ const hi: Strings = {
 };
 
 const gu: Strings = {
-  appName: 'YaadOM',
+  appName: 'YaadOM-Sky',
   welcomeTitle: 'તમે શું યાદ રાખવા માંગો છો?',
   welcomeBody: 'એક નાની લીટી લખો. YaadOM તેને દિવસ દરમિયાન, થોડું થોડું કરીને, તમારી સામે લાવતું રહેશે. કશું ટિક કરવાની જરૂર નથી.',
   example1: 'માઇટોકોન્ડ્રિયા કોષ માટે ઊર્જા બનાવે છે',
