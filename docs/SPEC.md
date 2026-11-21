@@ -30,6 +30,8 @@ See [src/core/types.ts](../src/core/types.ts). Points have `kind` (`note` now, `
 ## Scheduling
 
 - Points repeat through active hours (everything outside quiet hours).
+- Quiet hours are set in Settings: up to 3 daily time ranges, each with From and To in 30-minute steps (a range may cross midnight), added with "Add quiet hours" and removed one by one. They apply in both Fixed hours and Awake-button-only modes. They are separate from Sleep, which switches all reminders off until Awake is pressed.
+- Daily point cards show "Last day" as text for now; a clock or watch icon may replace it later.
 - A frequency is "every N minutes or hours" or "N times a day". Each point uses the default from Settings unless it has its own. Presets (Intense, Regular, Light) fill in the numbers.
 - Daily points use the frequency all day. Long-term points use the same kind of frequency with a gentler default. The user moves a point between categories; it never happens automatically.
 - A daily point repeats on the day it is entered and is then archived. When adding or editing it the user can choose to repeat it for 1 to 6 days, counting the day of entry (stored as `repeatUntil`, its last local day). Choosing more than 6 asks whether to save it as a long-term point instead; long-term points have no last day. No reminders are booked after a point's last day, and points past it are archived the next time the app opens (nothing runs in the background). Restoring such a point gives it today as its new last day. Daily points created before this rule existed have no last day until their repeat days are changed. The Archived screen shows each point's date of entry.

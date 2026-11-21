@@ -52,6 +52,10 @@ const strings = {
     addedOn: 'Added {date}',
     lastDay: 'Last day {date}',
     lastDayToday: 'Last day: today',
+    quietHours: 'Quiet hours',
+    quietHint: 'No reminders during these times, every day. Up to 3.',
+    addQuiet: 'Add quiet hours',
+    remove: 'Remove',
   },
   hi: {
     appName: 'YaadOM',
@@ -103,6 +107,10 @@ const strings = {
     addedOn: '{date} को जोड़ा',
     lastDay: 'अंतिम दिन {date}',
     lastDayToday: 'अंतिम दिन: आज',
+    quietHours: 'शांत समय',
+    quietHint: 'इन समयों में हर दिन कोई रिमाइंडर नहीं। अधिकतम 3।',
+    addQuiet: 'शांत समय जोड़ें',
+    remove: 'हटाएँ',
   },
   gu: {
     appName: 'YaadOM',
@@ -154,6 +162,10 @@ const strings = {
     addedOn: '{date} એ ઉમેર્યો',
     lastDay: 'છેલ્લો દિવસ {date}',
     lastDayToday: 'છેલ્લો દિવસ: આજે',
+    quietHours: 'શાંત સમય',
+    quietHint: 'આ સમય દરમિયાન દરરોજ કોઈ રિમાઇન્ડર નહીં. વધુમાં વધુ 3.',
+    addQuiet: 'શાંત સમય ઉમેરો',
+    remove: 'દૂર કરો',
   },
 } as const;
 

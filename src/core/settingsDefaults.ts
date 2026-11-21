@@ -1,3 +1,4 @@
+import { MAX_QUIET_HOURS } from './quietHours.ts';
 import type { Frequency, Language, Settings, TimeRange } from './types';
 
 export function defaultSettings(language: Language): Settings {
@@ -43,7 +44,7 @@ export function mergeSettings(stored: unknown, language: Language): Settings {
     activeHours: isRange(s.activeHours) ? s.activeHours : base.activeHours,
     activeMode: s.activeMode === 'button_only' || s.activeMode === 'hours' ? s.activeMode : base.activeMode,
     awake: typeof s.awake === 'boolean' ? s.awake : base.awake,
-    quietHours: Array.isArray(s.quietHours) ? s.quietHours.filter(isRange) : base.quietHours,
+    quietHours: Array.isArray(s.quietHours) ? s.quietHours.filter(isRange).slice(0, MAX_QUIET_HOURS) : base.quietHours,
     appLanguage: s.appLanguage === 'en' || s.appLanguage === 'hi' || s.appLanguage === 'gu' ? s.appLanguage : base.appLanguage,
     speechRate: typeof s.speechRate === 'number' && s.speechRate > 0 ? s.speechRate : base.speechRate,
     delivery: base.delivery,

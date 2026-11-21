@@ -1,5 +1,6 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { addQuietRange, MAX_QUIET_HOURS, removeQuietRange, updateQuietRange } from '../core/quietHours';
 import { shiftTime } from '../core/time';
 import type { ActiveMode, NotificationStyle, Settings } from '../core/types';
 import type { Strings } from '../i18n/strings';
@@ -34,13 +35,14 @@ export function SettingsScreen({ visible, settings, t, colors, onChange, onClose
     </Pressable>
   );
 
-  const stepper = (label: string, value: string, field: 'start' | 'end') => (
-    <View style={styles.stepper}>
+  /** A time with − and + buttons that move it by 30 minutes. */
+  const stepper = (label: string, value: string, onValue: (next: string) => void, key: string) => (
+    <View style={styles.stepper} key={key}>
       <Text style={[styles.stepperLabel, { color: colors.mutedText }]}>{label}</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label} -30`}
-        onPress={() => onChange({ ...settings, activeHours: { ...settings.activeHours, [field]: shiftTime(value, -30) } })}
+        onPress={() => onValue(shiftTime(value, -30))}
         style={styles.stepButton}
       >
         <Text style={{ color: colors.accent, fontSize: 20 }}>−</Text>
@@ -49,13 +51,21 @@ export function SettingsScreen({ visible, settings, t, colors, onChange, onClose
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label} +30`}
-        onPress={() => onChange({ ...settings, activeHours: { ...settings.activeHours, [field]: shiftTime(value, 30) } })}
+        onPress={() => onValue(shiftTime(value, 30))}
         style={styles.stepButton}
       >
         <Text style={{ color: colors.accent, fontSize: 20 }}>+</Text>
       </Pressable>
     </View>
   );
+
+  const setActive = (field: 'start' | 'end') => (next: string) =>
+    onChange({ ...settings, activeHours: { ...settings.activeHours, [field]: next } });
+  const setQuiet = (index: number, field: 'start' | 'end') => (next: string) =>
+    onChange({
+      ...settings,
+      quietHours: updateQuietRange(settings.quietHours, index, { ...settings.quietHours[index], [field]: next }),
+    });
 
   const setMode = (activeMode: ActiveMode) => onChange({ ...settings, activeMode });
   const setStyle = (notificationStyle: NotificationStyle) => onChange({ ...settings, notificationStyle });
@@ -80,9 +90,36 @@ export function SettingsScreen({ visible, settings, t, colors, onChange, onClose
           </View>
           {settings.activeMode === 'hours' ? (
             <View style={styles.hours}>
-              {stepper(t.from, settings.activeHours.start, 'start')}
-              {stepper(t.to, settings.activeHours.end, 'end')}
+              {stepper(t.from, settings.activeHours.start, setActive('start'), 'a1')}
+              {stepper(t.to, settings.activeHours.end, setActive('end'), 'a2')}
             </View>
+          ) : null}
+
+          <Text style={[styles.label, { color: colors.mutedText }]}>{t.quietHours}</Text>
+          <Text style={[styles.hint, { color: colors.mutedText }]}>{t.quietHint}</Text>
+          {settings.quietHours.map((range, i) => (
+            <View key={`q${i}`} style={[styles.quiet, { borderColor: colors.mutedText }]}>
+              {stepper(t.from, range.start, setQuiet(i, 'start'), `q${i}s`)}
+              {stepper(t.to, range.end, setQuiet(i, 'end'), `q${i}e`)}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${t.remove} ${range.start}–${range.end}`}
+                onPress={() => onChange({ ...settings, quietHours: removeQuietRange(settings.quietHours, i) })}
+                style={styles.remove}
+              >
+                <Text style={{ color: colors.mutedText }}>{t.remove}</Text>
+              </Pressable>
+            </View>
+          ))}
+          {settings.quietHours.length < MAX_QUIET_HOURS ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.addQuiet}
+              onPress={() => onChange({ ...settings, quietHours: addQuietRange(settings.quietHours) })}
+              style={[styles.chip, styles.addQuiet, { borderColor: colors.accent }]}
+            >
+              <Text style={{ color: colors.accent }}>{`+ ${t.addQuiet}`}</Text>
+            </Pressable>
           ) : null}
 
           <Text style={[styles.label, { color: colors.mutedText }]}>{t.styleTitle}</Text>
@@ -119,6 +156,10 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' },
   chip: { borderWidth: 1, borderRadius: 20, paddingVertical: 8, paddingHorizontal: 14 },
   hours: { marginTop: 12, gap: 8 },
+  hint: { fontSize: 13, marginBottom: 8 },
+  quiet: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 8, marginBottom: 10, gap: 4 },
+  remove: { alignSelf: 'flex-end', minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
+  addQuiet: { alignSelf: 'flex-start' },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepperLabel: { width: 56 },
   stepButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
