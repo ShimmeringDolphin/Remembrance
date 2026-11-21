@@ -54,6 +54,8 @@ export default function App() {
   const [tipSeen, setTipSeen] = useState(true);
   const [lastShown, setLastShown] = useState<Booked | null>(null);
   const [momentIds, setMomentIds] = useState<string[] | null>(null);
+  // The latest reminder the user has already gone through; its button hides until the next one.
+  const [seenShown, setSeenShown] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
   const listenRun = useRef(0);
   const handled = useRef(new Set<string>());
@@ -61,7 +63,8 @@ export default function App() {
   const settingsRef = useRef(settings);
   const t = strings(settings.language);
 
-  const rebook = useCallback(async (s: Settings = settingsRef.current) => {
+  /** Books the reminders again and returns the latest reminder that has come. */
+  const rebook = useCallback(async (s: Settings = settingsRef.current): Promise<Booked | null> => {
     try {
       await syncReminders(s);
     } catch {
@@ -70,9 +73,12 @@ export default function App() {
     try {
       setPoints(await data.listPoints());
       setRemindersPassed(Number(await data.getValue('remindersPassed')) || 0);
-      setLastShown(parseShown(await data.getValue('lastShown')));
+      const latest = parseShown(await data.getValue('lastShown'));
+      setLastShown(latest);
+      return latest;
     } catch {
       // Keep what is on screen.
+      return null;
     }
   }, []);
 
@@ -86,8 +92,9 @@ export default function App() {
         setWelcomed((await data.getValue('welcomed')) === '1');
         setAsked((await data.getValue('askedPermission')) === '1');
         setTipSeen((await data.getValue('batteryTipSeen')) === '1');
+        setSeenShown(await data.getValue('seenShown'));
         setPoints(await data.listPoints());
-        await initNotifications(strings(s.language).appName);
+        await initNotifications(strings(s.language).appName, strings(s.language).soundChannel);
         setPerm(await permission());
       } finally {
         setReady(true);
@@ -110,6 +117,22 @@ export default function App() {
       // Older native code: the identifier guard above still prevents reopening.
     }
   }, [response]);
+
+  // A reminder that arrives while the app is open: count it and move "latest" on to it.
+  // One event listener, no polling; it fires only when a notification is shown.
+  useEffect(() => {
+    const sub = Notifications.addNotificationReceivedListener(() => void rebook());
+    return () => sub.remove();
+  }, [rebook]);
+
+  const openLatest = async () => {
+    // Rebook first, so the button never opens an older reminder than the newest one that came.
+    const latest = (await rebook()) ?? lastShown;
+    if (!latest) return;
+    setMomentIds(latest.pointIds);
+    setSeenShown(latest.at);
+    await data.setValue('seenShown', latest.at);
+  };
 
   const stopListening = useCallback(() => {
     listenRun.current++;
@@ -153,9 +176,8 @@ export default function App() {
     setSettings(s);
     const before = prev;
     await data.setValue('settings', JSON.stringify(s));
-    // Turning the voice on or off changes no reminder, so skip the rebook.
-    const sameReminders = (['from', 'to', 'every', 'asleep', 'privateMode', 'language'] as const).every((k) => before[k] === s[k]);
-    if (!sameReminders) await rebook(s);
+    // Turning read aloud on or off changes no reminder, so skip the rebook; anything else rebooks.
+    if (JSON.stringify({ ...before, readAloud: s.readAloud }) !== JSON.stringify(s)) await rebook(s);
   };
 
   const add = async (text: string, category: Category, days: number = DEFAULT_DAILY_DAYS): Promise<boolean> => {
@@ -276,7 +298,8 @@ export default function App() {
             listening={listening}
             onListen={listen}
             onAsleep={(asleep) => changeSettings({ ...settings, asleep })}
-            onLatestMoment={() => lastShown && setMomentIds(lastShown.pointIds)}
+            onLatestMoment={openLatest}
+            latestNew={!!lastShown && lastShown.at !== seenShown}
             skyOpen={skyUnlocked(points, remindersPassed, TESTING)}
             batteryTip={Platform.OS === 'android' && perm === 'granted' && !tipSeen}
             onBatteryTip={answerBatteryTip}

@@ -56,4 +56,6 @@ export interface Settings {
   language: Language;
   /** Read each point aloud in a moment (the phone's own voice). */
   readAloud: boolean;
+  /** A soft chime with each reminder. Off by default: reminders are silent. */
+  sound: boolean;
 }

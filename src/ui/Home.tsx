@@ -30,6 +30,8 @@ interface Props {
   onTurnOn: () => void;
   onBatteryTip: (open: boolean) => void;
   onLatestMoment: () => void;
+  /** The latest reminder has not been gone through yet. */
+  latestNew: boolean;
   onListen: () => void;
 }
 
@@ -178,7 +180,7 @@ export function Home(props: Props) {
         <Button label={t.keep} theme={{ ...theme, accent: tint(theme, category) }} disabled={!clean} onPress={add} />
       </Card>
 
-      {props.fresh.size > 0 && (
+      {props.fresh.size > 0 && props.latestNew && (
         <Button label={t.latestMoment} theme={theme} kind="plain" onPress={props.onLatestMoment} />
       )}
       {props.skyOpen && (

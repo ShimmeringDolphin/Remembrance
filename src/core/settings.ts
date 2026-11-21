@@ -9,7 +9,7 @@ export const DEFAULT_EVERY = 60;
 const OLD_PACE: Record<string, number> = { often: 30, regular: 60, gentle: 120 };
 
 export function defaultSettings(language: Language): Settings {
-  return { from: '07:00', to: '22:00', every: DEFAULT_EVERY, asleep: false, mode: 'hours', quiet: [], privateMode: false, language, readAloud: false };
+  return { from: '07:00', to: '22:00', every: DEFAULT_EVERY, asleep: false, mode: 'hours', quiet: [], privateMode: false, language, readAloud: false, sound: false };
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -32,6 +32,7 @@ export function mergeSettings(stored: unknown, language: Language): Settings {
     privateMode: typeof s.privateMode === 'boolean' ? s.privateMode : base.privateMode,
     language: s.language === 'en' || s.language === 'hi' || s.language === 'gu' ? s.language : base.language,
     readAloud: typeof s.readAloud === 'boolean' ? s.readAloud : base.readAloud,
+    sound: typeof s.sound === 'boolean' ? s.sound : base.sound,
   };
 }
 

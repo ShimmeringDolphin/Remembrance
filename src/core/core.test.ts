@@ -39,8 +39,10 @@ test('times parse, format, shift across midnight and measure windows', () => {
   assert.equal(windowLength('08:00', '08:00'), 0);
 });
 
-test('defaults are hourly 07:00 to 22:00, awake, not private, not read aloud', () => {
-  assert.deepEqual(defaultSettings('hi'), { from: '07:00', to: '22:00', every: 60, asleep: false, mode: 'hours', quiet: [], privateMode: false, language: 'hi', readAloud: false });
+test('defaults are hourly 07:00 to 22:00, awake, not private, not read aloud, silent', () => {
+  assert.deepEqual(defaultSettings('hi'), { from: '07:00', to: '22:00', every: 60, asleep: false, mode: 'hours', quiet: [], privateMode: false, language: 'hi', readAloud: false, sound: false });
+  assert.equal(mergeSettings({ sound: true }, 'en').sound, true);
+  assert.equal(mergeSettings({ sound: 'yes' }, 'en').sound, false);
 });
 
 test('stored settings keep valid values and fall back on junk', () => {
