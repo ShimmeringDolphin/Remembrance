@@ -83,7 +83,7 @@ export const noteSettings = (s: Settings) => {
 async function rebook(settings: Settings): Promise<void> {
   const now = new Date();
   const booked = parseBooked(await getValue('booked'));
-  const { counts, lastAt } = countAppearances(booked, now);
+  const { counts, lastAt, passed } = countAppearances(booked, now);
 
   await Notifications.cancelAllScheduledNotificationsAsync();
 
@@ -106,5 +106,5 @@ async function rebook(settings: Settings): Promise<void> {
       }
     }
   }
-  await recordAppearances(counts, lastAt, future);
+  await recordAppearances(counts, lastAt, passed, future);
 }

@@ -6,19 +6,24 @@ export interface Booked {
   pointIds: string[];
 }
 
-export function countAppearances(booked: readonly Booked[], now: Date): { counts: Map<string, number>; lastAt: Map<string, string> } {
+export function countAppearances(
+  booked: readonly Booked[],
+  now: Date,
+): { counts: Map<string, number>; lastAt: Map<string, string>; passed: number } {
   const counts = new Map<string, number>();
   const lastAt = new Map<string, string>();
+  let passed = 0;
   for (const b of booked) {
     const t = Date.parse(b.at);
     if (!Number.isFinite(t) || t > now.getTime()) continue;
+    passed++;
     for (const id of new Set(b.pointIds)) {
       counts.set(id, (counts.get(id) ?? 0) + 1);
       const prev = lastAt.get(id);
       if (!prev || Date.parse(prev) < t) lastAt.set(id, b.at);
     }
   }
-  return { counts, lastAt };
+  return { counts, lastAt, passed };
 }
 
 /** A damaged record reads as empty. */

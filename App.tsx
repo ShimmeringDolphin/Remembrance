@@ -1,15 +1,18 @@
 // YaadOM: write a short point once; it comes back to you through the day. See docs/PRODUCT.md.
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Linking, useColorScheme } from 'react-native';
+import { AppState, Linking, Platform, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { mergeSettings } from './src/core/settings';
+import { skyUnlocked } from './src/core/sky';
 import type { Category, Point, Settings } from './src/core/types';
 import * as data from './src/data/db';
 import { deviceLanguage, strings } from './src/i18n/strings';
+import { openBatterySettings } from './src/notify/phoneSettings';
 import { askPermission, initNotifications, noteSettings, permission, syncReminders, type Permission } from './src/notify/reminders';
 import { themeFor } from './src/theme/calmStudy';
+import { HelpScreen } from './src/ui/HelpScreen';
 import { Home } from './src/ui/Home';
 import { PermissionSheet } from './src/ui/PermissionSheet';
 import { PointSheet, type PointActions } from './src/ui/PointSheet';
@@ -17,7 +20,7 @@ import { SettingsScreen } from './src/ui/SettingsScreen';
 import { SkyScreen } from './src/ui/SkyScreen';
 import { Welcome } from './src/ui/Welcome';
 
-type Screen = 'home' | 'settings' | 'sky';
+type Screen = 'home' | 'settings' | 'sky' | 'help';
 
 function readSettings(json: string | null): Settings {
   try {
@@ -38,6 +41,8 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('home');
   const [openId, setOpenId] = useState<string | null>(null);
   const [askNow, setAskNow] = useState(false);
+  const [remindersPassed, setRemindersPassed] = useState(0);
+  const [tipSeen, setTipSeen] = useState(true);
   const settingsRef = useRef(settings);
   const t = strings(settings.language);
 
@@ -49,6 +54,7 @@ export default function App() {
     }
     try {
       setPoints(await data.listPoints());
+      setRemindersPassed(Number(await data.getValue('remindersPassed')) || 0);
     } catch {
       // Keep what is on screen.
     }
@@ -63,6 +69,7 @@ export default function App() {
         setSettings(s);
         setWelcomed((await data.getValue('welcomed')) === '1');
         setAsked((await data.getValue('askedPermission')) === '1');
+        setTipSeen((await data.getValue('batteryTipSeen')) === '1');
         setPoints(await data.listPoints());
         await initNotifications(strings(s.language).appName);
         setPerm(await permission());
@@ -123,6 +130,12 @@ export default function App() {
     await rebook();
   };
 
+  const answerBatteryTip = async (open: boolean) => {
+    setTipSeen(true);
+    await data.setValue('batteryTipSeen', '1');
+    if (open) await openBatterySettings();
+  };
+
   const act = (fn: () => Promise<unknown>) => async () => {
     const r = await fn();
     await rebook();
@@ -158,6 +171,8 @@ export default function App() {
           <Welcome t={t} theme={theme} onKeep={keepFirst} />
         ) : screen === 'settings' ? (
           <SettingsScreen t={t} theme={theme} settings={settings} onChange={changeSettings} onBack={() => setScreen('home')} />
+        ) : screen === 'help' ? (
+          <HelpScreen t={t} theme={theme} onBack={() => setScreen('home')} />
         ) : screen === 'sky' ? (
           <SkyScreen t={t} theme={theme} points={points} onBack={() => setScreen('home')} />
         ) : (
@@ -166,6 +181,10 @@ export default function App() {
             theme={theme}
             points={points}
             paused={settings.paused}
+            skyOpen={skyUnlocked(points, remindersPassed, __DEV__)}
+            batteryTip={Platform.OS === 'android' && perm === 'granted' && !tipSeen}
+            onBatteryTip={answerBatteryTip}
+            onHelp={() => setScreen('help')}
             permission={asked || perm !== 'undetermined' ? perm : 'granted'}
             onAdd={add}
             onOpen={setOpenId}

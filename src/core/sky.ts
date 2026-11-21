@@ -2,6 +2,8 @@
 import type { Point } from './types';
 
 export const SKY_UNLOCK = 30;
+/** Development builds (Expo Go testing) open the sky after this many reminders instead. */
+export const TEST_SKY_UNLOCK_REMINDERS = 3;
 export const FULL_STAR = 200;
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 const MAX_STARS = 30;
@@ -32,3 +34,7 @@ export function layoutSky(points: readonly Point[]): Star[] {
 
 export const totalAppearances = (points: readonly Point[]): number =>
   points.reduce((s, p) => s + (p.archived ? 0 : p.appearances), 0);
+
+/** The sky opens at 30 appearances; while testing, after 3 reminders have passed. */
+export const skyUnlocked = (points: readonly Point[], remindersPassed: number, testing: boolean): boolean =>
+  totalAppearances(points) >= SKY_UNLOCK || (testing && remindersPassed >= TEST_SKY_UNLOCK_REMINDERS);
