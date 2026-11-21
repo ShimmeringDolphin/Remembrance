@@ -1,0 +1,26 @@
+{
+  "name": "yaadom",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "expo": "~58.0.26",
+    "expo-notifications": "~58.1.9",
+    "expo-sqlite": "~58.0.18",
+    "expo-status-bar": "~58.0.5",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-safe-area-context": "~5.11.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/react": "~19.3.0",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "test": "node --test src/core/*.test.ts src/i18n/*.test.ts"
+  },
+  "private": true
+}
