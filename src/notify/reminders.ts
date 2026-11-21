@@ -5,10 +5,11 @@ import { Platform } from 'react-native';
 
 import { countAppearances, parseBooked, type Booked } from '../core/appearances';
 import { buildContent } from '../core/content';
-import { planSlots } from '../core/planner';
+import { MAX_BOOKED, MAX_BOOKED_ANDROID, planSlots } from '../core/planner';
 import type { Point, Settings } from '../core/types';
 import { getValue, listPoints, recordAppearances } from '../data/db';
 import { strings } from '../i18n/strings';
+import { categoryColour } from '../theme/calmStudy';
 
 const CHANNEL = 'points';
 
@@ -83,7 +84,7 @@ export const noteSettings = (s: Settings) => {
 async function rebook(settings: Settings): Promise<void> {
   const now = new Date();
   const booked = parseBooked(await getValue('booked'));
-  const { counts, lastAt, passed } = countAppearances(booked, now);
+  const { counts, lastAt, passed, latest } = countAppearances(booked, now);
 
   await Notifications.cancelAllScheduledNotificationsAsync();
 
@@ -93,11 +94,13 @@ async function rebook(settings: Settings): Promise<void> {
     const byId = new Map<string, Point>(points.map((p) => [p.id, p]));
     const t = strings(settings.language);
     const text = { title: t.notifTitle, privateOne: t.notifPrivateOne, privateMany: t.notifPrivateMany, privateExtra: t.notifPrivateExtra };
-    for (const slot of planSlots(points, settings, now)) {
+    const limit = Platform.OS === 'android' ? MAX_BOOKED_ANDROID : MAX_BOOKED;
+    for (const slot of planSlots(points, settings, now, limit)) {
       const content = buildContent(slot.pointIds, byId, settings.privateMode, text);
       try {
         await Notifications.scheduleNotificationAsync({
-          content: { title: content.title, body: content.body, sound: false },
+          // Only ids travel with the notification, never point text beyond what the body already shows.
+          content: { title: content.title, body: content.body, sound: false, color: categoryColour(content.category), data: { pointIds: slot.pointIds } },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: slot.at, channelId: CHANNEL },
         });
         future.push({ at: slot.at.toISOString(), pointIds: slot.pointIds });
@@ -106,5 +109,5 @@ async function rebook(settings: Settings): Promise<void> {
       }
     }
   }
-  await recordAppearances(counts, lastAt, passed, future);
+  await recordAppearances(counts, lastAt, passed, latest, future);
 }

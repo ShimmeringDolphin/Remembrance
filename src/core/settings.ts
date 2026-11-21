@@ -1,25 +1,38 @@
 import { isTime } from './time.ts';
-import type { Language, Pace, Settings } from './types';
+import type { Language, Settings } from './types';
 
-export const PACE_MINUTES: Record<Pace, number> = { often: 30, regular: 60, gentle: 120 };
+/** Minutes between reminders the user can choose. 15 minutes is the shortest, to protect battery and goodwill. */
+export const EVERY_CHOICES = [15, 30, 45, 60, 90, 120, 180] as const;
+export const DEFAULT_EVERY = 60;
+/** Older settings stored a named pace. */
+const OLD_PACE: Record<string, number> = { often: 30, regular: 60, gentle: 120 };
 
 export function defaultSettings(language: Language): Settings {
-  return { from: '07:00', to: '22:00', pace: 'regular', paused: false, privateMode: false, language };
+  return { from: '07:00', to: '22:00', every: DEFAULT_EVERY, asleep: false, privateMode: false, language, readAloud: false };
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+const isChoice = (v: unknown): v is number => typeof v === 'number' && (EVERY_CHOICES as readonly number[]).includes(v);
 
 /** Settings from stored JSON. Anything missing or invalid falls back to the default, so old or damaged data never breaks the app. */
 export function mergeSettings(stored: unknown, language: Language): Settings {
   const base = defaultSettings(language);
   if (!isObject(stored)) return base;
   const s = stored;
+  const old = typeof s.pace === 'string' ? OLD_PACE[s.pace] : undefined;
+  const asleep = typeof s.asleep === 'boolean' ? s.asleep : typeof s.paused === 'boolean' ? s.paused : base.asleep;
   return {
     from: isTime(s.from) ? s.from : base.from,
     to: isTime(s.to) ? s.to : base.to,
-    pace: s.pace === 'often' || s.pace === 'regular' || s.pace === 'gentle' ? s.pace : base.pace,
-    paused: typeof s.paused === 'boolean' ? s.paused : base.paused,
+    every: isChoice(s.every) ? s.every : old ?? base.every,
+    asleep,
     privateMode: typeof s.privateMode === 'boolean' ? s.privateMode : base.privateMode,
     language: s.language === 'en' || s.language === 'hi' || s.language === 'gu' ? s.language : base.language,
+    readAloud: typeof s.readAloud === 'boolean' ? s.readAloud : base.readAloud,
   };
+}
+
+/** Reminders a day with these settings (before the booking cap). */
+export function remindersPerDay(settings: Settings, windowMinutes: number): number {
+  return windowMinutes <= 0 ? 0 : Math.ceil(windowMinutes / settings.every);
 }
