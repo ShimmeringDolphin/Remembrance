@@ -2,7 +2,9 @@
 //
 // Each reminder shows a small handful of points, taking turns, so every notification can be read
 // at a glance and every point gets its fair share. Long-term points join every third reminder.
-import { parseTime, windowLength } from './time.ts';
+import { activeAt } from './expiry.ts';
+import { inQuiet } from './quiet.ts';
+import { DAY_MINUTES, parseTime, windowLength } from './time.ts';
 import type { Point, Settings } from './types';
 
 /** iOS keeps at most 64 pending notifications; stay a little under. */
@@ -34,10 +36,12 @@ function hash(text: string): number {
 /** Reminder times after `now`, soonest first: every `every` minutes inside the from-to window. Nothing while asleep. */
 export function planTimes(settings: Settings, now: Date, limit: number = MAX_BOOKED): Date[] {
   if (settings.asleep || limit <= 0) return [];
-  const length = windowLength(settings.from, settings.to);
+  // Button mode: all day while Awake. Hours mode: only From to Until.
+  const allDay = settings.mode === 'button';
+  const length = allDay ? DAY_MINUTES : windowLength(settings.from, settings.to);
   if (length === 0) return [];
   const step = Math.max(15, settings.every);
-  const start = parseTime(settings.from);
+  const start = allDay ? 0 : parseTime(settings.from);
   const out: Date[] = [];
   // Start yesterday: a window that crosses midnight may still be running this morning.
   for (let day = -1; day < DAYS_AHEAD && out.length < limit; day++) {
@@ -49,7 +53,9 @@ export function planTimes(settings: Settings, now: Date, limit: number = MAX_BOO
       let j = (hash(`${y}-${mo}-${d}|${k}`) % (2 * JITTER_MINUTES + 1)) - JITTER_MINUTES;
       if (offset + j < 0 || offset + j >= length) j = 0;
       const at = new Date(y, mo, d, 0, start + offset + j);
-      if (at.getTime() > now.getTime()) out.push(at);
+      if (at.getTime() <= now.getTime()) continue;
+      if (inQuiet(at.getHours() * 60 + at.getMinutes(), settings.quiet)) continue;
+      out.push(at);
     }
   }
   out.sort((a, b) => a.getTime() - b.getTime());
@@ -69,12 +75,16 @@ function take<T>(list: readonly T[], start: number, count: number): T[] {
  * carries on fairly across rebookings instead of restarting with the same point.
  */
 export function fillTimes(times: readonly Date[], points: readonly Point[], settings: Settings): Slot[] {
-  const live = points.filter((p) => !p.archived).sort(byAge);
-  const daily = live.filter((p) => p.category === 'daily');
-  const longTerm = live.filter((p) => p.category === 'long_term');
-  if (live.length === 0) return [];
+  const all = points.filter((p) => !p.archived).sort(byAge);
+  if (all.length === 0) return [];
   const stepMs = Math.max(15, settings.every) * 60000;
-  return times.map((at) => {
+  const out: Slot[] = [];
+  for (const at of times) {
+    // A Daily point never comes back at or after its expiry.
+    const live = all.filter((p) => activeAt(p.expiresAt, at));
+    const daily = live.filter((p) => p.category === 'daily');
+    const longTerm = live.filter((p) => p.category === 'long_term');
+    if (live.length === 0) continue;
     const n = Math.round(at.getTime() / stepMs);
     const ids: string[] = [];
     if (daily.length === 0) {
@@ -84,8 +94,9 @@ export function fillTimes(times: readonly Date[], points: readonly Point[], sett
       ids.push(...take(daily, n * HANDFUL, withLongTerm ? HANDFUL - 1 : HANDFUL).map((p) => p.id));
       if (withLongTerm) ids.push(longTerm[Math.floor(n / LONG_TERM_EVERY) % longTerm.length].id);
     }
-    return { at, pointIds: ids };
-  });
+    out.push({ at, pointIds: ids });
+  }
+  return out;
 }
 
 export const planSlots = (points: readonly Point[], settings: Settings, now: Date, limit: number = MAX_BOOKED): Slot[] =>

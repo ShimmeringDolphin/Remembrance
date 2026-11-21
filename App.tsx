@@ -6,6 +6,7 @@ import { AppState, Linking, Platform, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import type { Booked } from './src/core/appearances';
+import { DEFAULT_DAILY_DAYS, expiryFor, resolveDays } from './src/core/expiry';
 import { freshIds, idsFromData, listenQueue, momentPoints, parseShown } from './src/core/moment';
 import { mergeSettings } from './src/core/settings';
 import { skyUnlocked } from './src/core/sky';
@@ -29,8 +30,6 @@ type Screen = 'home' | 'settings' | 'sky' | 'help';
 
 /** Test builds (Expo Go, or an APK built with EXPO_PUBLIC_TESTING=1) open the sky early. */
 const TESTING = __DEV__ || process.env.EXPO_PUBLIC_TESTING === '1';
-/** Pause between points while listening. */
-const LISTEN_GAP_MS = 1200;
 
 function readSettings(json: string | null): Settings {
   try {
@@ -118,19 +117,19 @@ export default function App() {
     stopSpeaking();
   }, []);
 
+  // Every point is handed to the phone's voice at once, in order; it reads them one after another.
+  // (Waiting for each one to finish before starting the next stopped after the first point on some phones.)
   const listen = () => {
     if (listening) return stopListening();
     const queue = listenQueue(points);
+    if (queue.length === 0) return;
     const run = ++listenRun.current;
+    stopSpeaking();
     setListening(true);
-    const step = (i: number) => {
-      if (listenRun.current !== run) return;
-      if (i >= queue.length) return stopListening();
-      speak(queue[i].text, settingsRef.current.language, () => {
-        if (listenRun.current === run) setTimeout(() => step(i + 1), LISTEN_GAP_MS);
-      });
-    };
-    step(0);
+    queue.forEach((p, i) => {
+      const last = i === queue.length - 1;
+      speak(p.text, settingsRef.current.language, last ? () => listenRun.current === run && stopListening() : undefined);
+    });
   };
 
   // Coming back to the app: the user may have changed notification permission or let reminders pass.
@@ -159,8 +158,12 @@ export default function App() {
     if (!sameReminders) await rebook(s);
   };
 
-  const add = async (text: string, category: Category): Promise<boolean> => {
-    const ok = await data.addPoint(text, category);
+  const add = async (text: string, category: Category, days: number = DEFAULT_DAILY_DAYS): Promise<boolean> => {
+    // More than 6 days is saved as Long-term, which never stops.
+    const r = resolveDays(days);
+    const cat: Category = category === 'daily' && r.longTerm ? 'long_term' : category;
+    const expires = cat === 'daily' ? expiryFor(new Date(), r.days).toISOString() : null;
+    const ok = await data.addPoint(text, cat, expires);
     if (ok) {
       if (!asked && perm === 'undetermined') setAskNow(true);
       await rebook();

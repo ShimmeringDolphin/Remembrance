@@ -1,3 +1,4 @@
+import { isRange, MAX_QUIET } from './quiet.ts';
 import { isTime } from './time.ts';
 import type { Language, Settings } from './types';
 
@@ -8,7 +9,7 @@ export const DEFAULT_EVERY = 60;
 const OLD_PACE: Record<string, number> = { often: 30, regular: 60, gentle: 120 };
 
 export function defaultSettings(language: Language): Settings {
-  return { from: '07:00', to: '22:00', every: DEFAULT_EVERY, asleep: false, privateMode: false, language, readAloud: false };
+  return { from: '07:00', to: '22:00', every: DEFAULT_EVERY, asleep: false, mode: 'hours', quiet: [], privateMode: false, language, readAloud: false };
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -26,6 +27,8 @@ export function mergeSettings(stored: unknown, language: Language): Settings {
     to: isTime(s.to) ? s.to : base.to,
     every: isChoice(s.every) ? s.every : old ?? base.every,
     asleep,
+    mode: s.mode === 'button' || s.mode === 'hours' ? s.mode : base.mode,
+    quiet: Array.isArray(s.quiet) ? s.quiet.filter(isRange).slice(0, MAX_QUIET) : base.quiet,
     privateMode: typeof s.privateMode === 'boolean' ? s.privateMode : base.privateMode,
     language: s.language === 'en' || s.language === 'hi' || s.language === 'gu' ? s.language : base.language,
     readAloud: typeof s.readAloud === 'boolean' ? s.readAloud : base.readAloud,
@@ -34,5 +37,6 @@ export function mergeSettings(stored: unknown, language: Language): Settings {
 
 /** Reminders a day with these settings (before the booking cap). */
 export function remindersPerDay(settings: Settings, windowMinutes: number): number {
-  return windowMinutes <= 0 ? 0 : Math.ceil(windowMinutes / settings.every);
+  const length = settings.mode === 'button' ? 1440 : windowMinutes;
+  return length <= 0 ? 0 : Math.ceil(length / settings.every);
 }
