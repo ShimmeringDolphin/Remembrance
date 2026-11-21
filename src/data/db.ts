@@ -4,7 +4,8 @@ import * as SQLite from 'expo-sqlite';
 
 import type { Booked } from '../core/appearances';
 import { MAX_PER_CATEGORY } from '../core/limits';
-import type { Category, Point } from '../core/types';
+import { isPace } from '../core/pace';
+import type { Category, Pace, Point } from '../core/types';
 
 let opened: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -28,6 +29,8 @@ const MIGRATIONS: string[] = [
    CREATE TABLE kv (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);`,
   // 2: Daily points can stop after a few days. Existing points never expire.
   `ALTER TABLE points ADD COLUMN expires_at TEXT;`,
+  // 3: each point's share of the turns. Existing points stay Normal.
+  `ALTER TABLE points ADD COLUMN pace TEXT NOT NULL DEFAULT 'normal';`,
 ];
 
 export function db(): Promise<SQLite.SQLiteDatabase> {
@@ -69,6 +72,7 @@ interface PointRow {
   appearances: number;
   last_appeared_at: string | null;
   expires_at: string | null;
+  pace: string | null;
 }
 
 const toPoint = (r: PointRow): Point => ({
@@ -84,6 +88,7 @@ const toPoint = (r: PointRow): Point => ({
   appearances: r.appearances,
   lastAppearedAt: r.last_appeared_at,
   expiresAt: r.expires_at ?? null,
+  pace: isPace(r.pace) ? r.pace : 'normal',
 });
 
 const newId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -127,6 +132,12 @@ export async function movePoint(id: string, category: Category): Promise<boolean
 export async function setPrivate(id: string, value: boolean): Promise<void> {
   const d = await db();
   await d.runAsync('UPDATE points SET private = ?, updated_at = ? WHERE id = ?', value ? 1 : 0, new Date().toISOString(), id);
+}
+
+export async function setPace(id: string, pace: Pace): Promise<void> {
+  if (!isPace(pace)) return;
+  const d = await db();
+  await d.runAsync('UPDATE points SET pace = ?, updated_at = ? WHERE id = ?', pace, new Date().toISOString(), id);
 }
 
 export async function putAway(id: string): Promise<void> {

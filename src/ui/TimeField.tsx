@@ -1,6 +1,6 @@
 // A time you can tap to set with the phone's own picker: Android's clock dialog (which also
 // offers typing the time) or the iPhone wheel.
-import DateTimePicker, { DateTimePickerAndroid, type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -15,7 +15,7 @@ function toDate(hhmm: string): Date {
   d.setHours(Math.floor(m / 60), m % 60, 0, 0);
   return d;
 }
-const fromDate = (d: Date) => formatTime(d.getHours() * 60 + d.getMinutes());
+export const fromDate = (d: Date) => formatTime(d.getHours() * 60 + d.getMinutes());
 
 export function TimeField(props: { label: string; value: string; onChange: (v: string) => void; t: Strings; theme: Theme }) {
   const { theme } = props;
@@ -28,9 +28,7 @@ export function TimeField(props: { label: string; value: string; onChange: (v: s
         value: toDate(props.value),
         mode: 'time',
         is24Hour: true,
-        onChange: (e: DateTimePickerEvent, d?: Date) => {
-          if (e.type === 'set' && d) props.onChange(fromDate(d));
-        },
+        onValueChange: (_e, d) => props.onChange(fromDate(d)),
       });
     } else {
       setDraft(toDate(props.value));
@@ -53,7 +51,7 @@ export function TimeField(props: { label: string; value: string; onChange: (v: s
           <View style={[styles.scrim, { backgroundColor: theme.scrim }]}>
             <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
               <Text style={[styles.label, { color: theme.text }]}>{props.label}</Text>
-              <DateTimePicker value={draft} mode="time" display="spinner" is24Hour onChange={(_e, d) => d && setDraft(d)} />
+              <DateTimePicker value={draft} mode="time" display="spinner" is24Hour onValueChange={(_e, d) => setDraft(d)} />
               <Button
                 label={props.t.save}
                 theme={theme}

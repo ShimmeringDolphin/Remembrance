@@ -7,6 +7,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - A point is one line of up to 200 characters (whitespace collapsed). `kind` is `note`; `qa` and `answer` are reserved.
 - Category is **Daily** or **Long-term**. Each holds at most **15** live points. The limit is checked inside the SQL statement that adds, moves or brings back a point.
 - A point can be **private** (its words never appear in a notification or on the sky) and can be **put away** (kept, never shown in reminders, not counted toward the limit). Only a put-away point can be deleted for good, after a confirmation.
+- Each point has a **pace** (`pace`: `often`, `normal` or `rarely`, default `normal`), set on its page. It changes the point's share of the turns, 4 : 2 : 1, not the number of reminders; How often in Settings stays the base for everything. Home tags points that are not Normal. Migration 3 adds `pace` (existing points are Normal).
 
 ## Daily points that stop (from main PRs #17 and #19)
 
@@ -20,10 +21,10 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - Settings: `from` and `to` (may cross midnight, can never be equal from the UI), `every` (15, 30, 45, 60, 90, 120 or 180 minutes), private mode, read aloud, language. Defaults: 07:00 to 22:00, every 60 minutes, awake, not private, not read aloud, phone language or English. Older stored `pace` and `paused` values carry over.
 - **Awake/Asleep** sits at the top of Home. Asleep books nothing until the user taps Awake, and always wins.
 - **When** (Settings) has two modes: "Between my hours" (default: reminders only from From to Until) and "All day, until I tap Asleep" (`mode: 'button'`, reminders around the clock while Awake). Times are set with the phone's own picker (tap the time) or nudged by 30 minutes with − and +.
-- **Quiet hours** (from main PR #20): up to 3 daily ranges (may cross midnight) with no reminders. New ranges start at 13:00 to 14:00.
+- **Quiet hours** (from main PR #20): up to 3 daily ranges (may cross midnight) with no reminders. Nothing is prefilled: "Add quiet hours" asks for the start and then the end with the phone's picker (Android: two clock dialogs, "Set start" then "Set end"; iPhone: both wheels in one sheet), and adds the range only when both are chosen.
 - A reminder happens at each pace step inside the window, moved by up to ±2 minutes (deterministic per day and step, never outside the window).
 - At most **60** reminders are booked on iOS (it allows 64) and **120** on Android (it allows 500 alarms per app), up to 14 days ahead. Asleep, an empty window, or no live points books nothing.
-- Each reminder shows a **handful of 3** points taking turns, oldest first. When there are Daily and Long-term points, every 3rd reminder swaps one Daily point for a Long-term one. With only Long-term points they take turns 3 at a time. Turn order comes from the reminder's time, so it carries on across rebookings.
+- Each reminder shows a **handful of 3** different points taking turns, oldest first. Turns are spread by stride scheduling over each point's share (`src/core/pace.ts`); when all points share a pace this is plain round-robin. When there are Daily and Long-term points, every 3rd reminder swaps one Daily point for a Long-term one. With only Long-term points they take turns 3 at a time. Turn order comes from the reminder's time, so it carries on across rebookings.
 - Text: the title is "Keep in mind"; the body lists the points one per line. Private points are replaced by "+ n private". When nothing can be shown (all private, or private mode), the body is only a count.
 - Notifications are silent (no sound, no vibration on the Android channel `points`).
 - Rebooking happens only when the app opens or returns to the front, and after a point or setting changes. It cancels everything and books again. Runs never overlap; changes during a run trigger one more run.
@@ -53,4 +54,4 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 
 ## Storage
 
-- SQLite (`yaadom.db`), migrations by `PRAGMA user_version`. Version 1: `points` and `kv`; version 2 adds `points.expires_at` (settings, booked reminders, reminders passed, first-run flags and the battery tip flag). Points are not encrypted yet.
+- SQLite (`yaadom.db`), migrations by `PRAGMA user_version`. Version 1: `points` and `kv`; version 2 adds `points.expires_at`; version 3 adds `points.pace` (settings, booked reminders, reminders passed, first-run flags and the battery tip flag). Points are not encrypted yet.

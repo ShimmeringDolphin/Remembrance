@@ -3,9 +3,9 @@ import { isTime, parseTime } from './time.ts';
 import type { TimeRange } from './types';
 
 export const MAX_QUIET = 3;
-export const NEW_QUIET: TimeRange = { start: '13:00', end: '14:00' };
-
-export const addQuiet = (ranges: readonly TimeRange[]): TimeRange[] => (ranges.length >= MAX_QUIET ? [...ranges] : [...ranges, { ...NEW_QUIET }]);
+/** Adds the range the user picked (nothing is prefilled), unless three already exist. */
+export const addQuiet = (ranges: readonly TimeRange[], range: TimeRange): TimeRange[] =>
+  ranges.length >= MAX_QUIET || !isRange(range) ? [...ranges] : [...ranges, { start: range.start, end: range.end }];
 export const removeQuiet = (ranges: readonly TimeRange[], index: number): TimeRange[] => ranges.filter((_, i) => i !== index);
 export const setQuiet = (ranges: readonly TimeRange[], index: number, field: 'start' | 'end', value: string): TimeRange[] =>
   ranges.map((r, i) => (i === index ? { ...r, [field]: value } : r));

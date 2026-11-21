@@ -10,6 +10,7 @@ import { FULL_STAR, layoutSky, skyUnlocked, starSize, totalAppearances } from '.
 import { formatTime, parseTime, shiftTime, windowLength } from './time.ts';
 import { activeAt, expiryFor, lastDayOf, resolveDays } from './expiry.ts';
 import { addQuiet, inQuiet, MAX_QUIET, removeQuiet, setQuiet } from './quiet.ts';
+import { isPace, paceWindows } from './pace.ts';
 import { freshIds, listenQueue, momentPoints, starGrowth } from './moment.ts';
 import type { Point, Settings } from './types.ts';
 
@@ -22,7 +23,7 @@ function point(id: string, o: Partial<Point> = {}): Point {
   return {
     id, kind: 'note', text: `text ${id}`, answer: null, category: 'daily', private: false, archived: false,
     createdAt: `2026-01-01T00:${String(Math.floor(seq / 60) % 60).padStart(2, '0')}:${String(seq % 60).padStart(2, '0')}.000Z`,
-    updatedAt: '2026-01-01T00:00:00.000Z', appearances: 0, lastAppearedAt: null, expiresAt: null, ...o,
+    updatedAt: '2026-01-01T00:00:00.000Z', appearances: 0, lastAppearedAt: null, expiresAt: null, pace: 'normal', ...o,
   };
 }
 
@@ -281,11 +282,13 @@ test('quiet hours drop reminders inside them, including ranges across midnight',
   assert.equal(inQuiet(600, [{ start: '10:00', end: '10:00' }]), false);
   const times = planTimes({ ...settings, quiet: [{ start: '12:00', end: '15:00' }] }, at(5, 6), 15);
   for (const t of times) assert.ok(t.getHours() < 12 || t.getHours() >= 15 || (t.getHours() === 11), `${t}`);
-  let r = addQuiet([]);
+  // Nothing is prefilled: a quiet time is added only with the times the user picked.
+  let r = addQuiet([], { start: '13:00', end: '14:00' });
   assert.deepEqual(r, [{ start: '13:00', end: '14:00' }]);
+  assert.deepEqual(addQuiet([], { start: 'x', end: '14:00' } as never), []);
   r = setQuiet(r, 0, 'end', '15:30');
   assert.equal(r[0].end, '15:30');
-  for (let i = 0; i < 5; i++) r = addQuiet(r);
+  for (let i = 0; i < 5; i++) r = addQuiet(r, { start: '01:00', end: '02:00' });
   assert.equal(r.length, MAX_QUIET);
   assert.equal(removeQuiet(r, 0).length, MAX_QUIET - 1);
   assert.equal(mergeSettings({ quiet: [r[0], { start: 'x' }, r[1], r[2], r[0]] }, 'en').quiet.length, MAX_QUIET);
@@ -319,4 +322,35 @@ test('turns stay fair in half-hour and quarter-hour time zones, and with a :30 s
     if (saved === undefined) delete process.env.TZ;
     else process.env.TZ = saved;
   }
+});
+
+test('a point set to Often comes back about twice as much as Normal, Rarely about half', () => {
+  const pts = [point('often', { pace: 'often' }), ...Array.from({ length: 5 }, (_, i) => point(`n${i}`)), point('rarely', { pace: 'rarely' })];
+  const s = { ...settings, mode: 'button' as const, every: 15 };
+  const seen = new Map<string, number>();
+  for (const slot of fillTimes(planTimes(s, at(5, 0), 400), pts, s)) {
+    assert.equal(new Set(slot.pointIds).size, slot.pointIds.length, 'a point twice in one reminder');
+    for (const id of slot.pointIds) seen.set(id, (seen.get(id) ?? 0) + 1);
+  }
+  const normal = [0, 1, 2, 3, 4].map((i) => seen.get(`n${i}`) ?? 0);
+  const avg = normal.reduce((a, b) => a + b, 0) / normal.length;
+  assert.ok(Math.max(...normal) - Math.min(...normal) <= 2, `normal unfair: ${normal}`);
+  const often = (seen.get('often') ?? 0) / avg;
+  const rarely = (seen.get('rarely') ?? 0) / avg;
+  assert.ok(often > 1.6 && often < 2.4, `often ${often}`);
+  assert.ok(rarely > 0.35 && rarely < 0.65, `rarely ${rarely}`);
+});
+
+test('when every point has the same pace, turns are exactly as before', () => {
+  const base = Array.from({ length: 5 }, (_, i) => point(`p${i}`));
+  const times = planTimes(settings, at(5, 0), 60);
+  const normal = fillTimes(times, base, settings);
+  for (const pace of ['often', 'rarely'] as const) {
+    assert.deepEqual(fillTimes(times, base.map((p) => ({ ...p, pace })), settings), normal);
+  }
+  // Plain round-robin in age order, three to a reminder.
+  const order = paceWindows(base, 3).flat().map((p) => p.id);
+  assert.deepEqual(order.slice(0, 10), ['p0', 'p1', 'p2', 'p3', 'p4', 'p0', 'p1', 'p2', 'p3', 'p4']);
+  assert.equal(isPace('often'), true);
+  assert.equal(isPace('fast'), false);
 });
