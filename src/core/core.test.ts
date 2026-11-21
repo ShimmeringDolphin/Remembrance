@@ -11,6 +11,7 @@ import { formatTime, parseTime, shiftTime, windowLength } from './time.ts';
 import { activeAt, expiryFor, lastDayOf, resolveDays } from './expiry.ts';
 import { addQuiet, inQuiet, MAX_QUIET, removeQuiet, setQuiet } from './quiet.ts';
 import { isPace, paceWindows } from './pace.ts';
+import { listenSteps } from './moment.ts';
 import { freshIds, listenQueue, momentPoints, starGrowth } from './moment.ts';
 import type { Point, Settings } from './types.ts';
 
@@ -23,7 +24,7 @@ function point(id: string, o: Partial<Point> = {}): Point {
   return {
     id, kind: 'note', text: `text ${id}`, answer: null, category: 'daily', private: false, archived: false,
     createdAt: `2026-01-01T00:${String(Math.floor(seq / 60) % 60).padStart(2, '0')}:${String(seq % 60).padStart(2, '0')}.000Z`,
-    updatedAt: '2026-01-01T00:00:00.000Z', appearances: 0, lastAppearedAt: null, expiresAt: null, pace: 'normal', ...o,
+    updatedAt: '2026-01-01T00:00:00.000Z', appearances: 0, lastAppearedAt: null, expiresAt: null, pace: 'normal', voice: null, ...o,
   };
 }
 
@@ -355,4 +356,11 @@ test('when every point has the same pace, turns are exactly as before', () => {
   assert.deepEqual(order.slice(0, 10), ['p0', 'p1', 'p2', 'p3', 'p4', 'p0', 'p1', 'p2', 'p3', 'p4']);
   assert.equal(isPace('often'), true);
   assert.equal(isPace('fast'), false);
+});
+
+test('listen hands runs of points to the phone voice and plays own recordings one by one', () => {
+  const a = point('a'), b = point('b'), c = point('c', { voice: 'c.m4a' }), d = point('d'), e = point('e', { voice: 'e.m4a' });
+  const steps = listenSteps([a, b, c, d, e]);
+  assert.deepEqual(steps.map((s) => (s.kind === 'own' ? `own:${s.point.id}` : `phone:${s.points.map((p) => p.id).join('')}`)), ['phone:ab', 'own:c', 'phone:d', 'own:e']);
+  assert.deepEqual(listenSteps([]), []);
 });

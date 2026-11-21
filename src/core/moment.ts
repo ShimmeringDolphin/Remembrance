@@ -49,3 +49,23 @@ export function idsFromData(data: unknown): string[] {
   const ids = (data as { pointIds?: unknown }).pointIds;
   return Array.isArray(ids) ? ids.filter((x): x is string => typeof x === 'string') : [];
 }
+
+/** One step of Listen: a run of points for the phone's voice, or one point in the user's own voice. */
+export type ListenStep = { kind: 'phone'; points: Point[] } | { kind: 'own'; point: Point };
+
+/**
+ * Groups the Listen queue so the phone's voice gets each run of points at once (waiting for each
+ * one to finish stopped after the first point on some phones) and recordings play one by one.
+ */
+export function listenSteps(queue: readonly Point[]): ListenStep[] {
+  const out: ListenStep[] = [];
+  for (const p of queue) {
+    if (p.voice) out.push({ kind: 'own', point: p });
+    else {
+      const last = out[out.length - 1];
+      if (last?.kind === 'phone') last.points.push(p);
+      else out.push({ kind: 'phone', points: [p] });
+    }
+  }
+  return out;
+}

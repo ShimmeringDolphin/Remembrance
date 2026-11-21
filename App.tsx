@@ -7,14 +7,15 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import type { Booked } from './src/core/appearances';
 import { DEFAULT_DAILY_DAYS, expiryFor, resolveDays } from './src/core/expiry';
-import { freshIds, idsFromData, listenQueue, momentPoints, parseShown } from './src/core/moment';
+import { freshIds, idsFromData, listenQueue, listenSteps, momentPoints, parseShown } from './src/core/moment';
 import { mergeSettings } from './src/core/settings';
 import { skyUnlocked } from './src/core/sky';
 import type { Category, Point, Settings } from './src/core/types';
 import * as data from './src/data/db';
 import { deviceLanguage, strings } from './src/i18n/strings';
 import { openBatterySettings } from './src/notify/phoneSettings';
-import { speak, stopSpeaking } from './src/notify/voice';
+import { deleteRecording } from './src/notify/ownVoice';
+import { say, speak, stopAll } from './src/notify/voice';
 import { askPermission, initNotifications, noteSettings, permission, syncReminders, type Permission } from './src/notify/reminders';
 import { themeFor } from './src/theme/calmStudy';
 import { HelpScreen } from './src/ui/HelpScreen';
@@ -137,22 +138,30 @@ export default function App() {
   const stopListening = useCallback(() => {
     listenRun.current++;
     setListening(false);
-    stopSpeaking();
+    stopAll();
   }, []);
 
-  // Every point is handed to the phone's voice at once, in order; it reads them one after another.
-  // (Waiting for each one to finish before starting the next stopped after the first point on some phones.)
+  // Each run of points goes to the phone's voice at once, in order, and it reads them one after
+  // another (waiting for each one stopped after the first point on some phones). Points recorded
+  // in the user's own voice play one by one in between.
   const listen = () => {
     if (listening) return stopListening();
-    const queue = listenQueue(points);
-    if (queue.length === 0) return;
+    const steps = listenSteps(listenQueue(points));
+    if (steps.length === 0) return;
     const run = ++listenRun.current;
-    stopSpeaking();
+    stopAll();
     setListening(true);
-    queue.forEach((p, i) => {
-      const last = i === queue.length - 1;
-      speak(p.text, settingsRef.current.language, last ? () => listenRun.current === run && stopListening() : undefined);
-    });
+    const next = (i: number) => {
+      if (listenRun.current !== run) return;
+      if (i >= steps.length) return stopListening();
+      const step = steps[i];
+      if (step.kind === 'own') return say(step.point, settingsRef.current.language, () => next(i + 1));
+      step.points.forEach((p, k) => {
+        const last = k === step.points.length - 1;
+        speak(p.text, settingsRef.current.language, last ? () => next(i + 1) : undefined);
+      });
+    };
+    next(0);
   };
 
   // Coming back to the app: the user may have changed notification permission or let reminders pass.
@@ -243,6 +252,14 @@ export default function App() {
     move: async (id, to) => (await act(() => data.movePoint(id, to))()) as boolean,
     setPrivate: (id, v) => void act(() => data.setPrivate(id, v))(),
     setPace: (id, pace) => void act(() => data.setPace(id, pace))(),
+    // A new recording replaces the old file; removing one deletes it.
+    setVoice: (id, voice) => {
+      const old = points.find((p) => p.id === id)?.voice;
+      void act(async () => {
+        await data.setVoice(id, voice);
+        if (old && old !== voice) deleteRecording(old);
+      })();
+    },
     putAway: (id) => {
       setOpenId(null);
       void act(() => data.putAway(id))();
@@ -254,7 +271,11 @@ export default function App() {
     },
     deleteForGood: (id) => {
       setOpenId(null);
-      void act(() => data.deleteForGood(id))();
+      const voice = points.find((p) => p.id === id)?.voice;
+      void act(async () => {
+        await data.deleteForGood(id);
+        deleteRecording(voice);
+      })();
     },
   };
 

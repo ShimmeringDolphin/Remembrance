@@ -33,6 +33,14 @@
             "./assets/sounds/gentle.wav"
           ]
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "YaadOM uses the microphone only when you tap Record, to save a point in your own voice on this phone.",
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
       ]
     ]
   }

@@ -8,12 +8,14 @@ import type { Pace, Point } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import type { Theme } from '../theme/calmStudy';
 import { Button, Choice } from './parts';
+import { VoiceRecorder } from './VoiceRecorder';
 
 export interface PointActions {
   edit: (id: string, text: string) => void;
   move: (id: string, to: Point['category']) => Promise<boolean>;
   setPrivate: (id: string, value: boolean) => void;
   setPace: (id: string, pace: Pace) => void;
+  setVoice: (id: string, voice: string | null) => void;
   putAway: (id: string) => void;
   bringBack: (id: string) => Promise<boolean>;
   deleteForGood: (id: string) => void;
@@ -77,6 +79,10 @@ export function PointSheet(props: { point: Point | null; t: Strings; theme: Them
               </View>
               <Text style={[styles.muted, { color: theme.muted }]}>{t.pointPaceHint}</Text>
             </View>
+          )}
+
+          {!p.archived && (
+            <VoiceRecorder key={p.id} point={p} t={t} theme={theme} onSaved={(name) => actions.setVoice(p.id, name)} onRemove={() => actions.setVoice(p.id, null)} />
           )}
 
           {!p.archived && (

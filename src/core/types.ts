@@ -28,6 +28,8 @@ export interface Point {
   expiresAt: string | null;
   /** Share of the turns. `normal` unless the user changes it; How often in Settings sets the base for all. */
   pace: Pace;
+  /** File name of the user's own recording of this point (in the app's documents), or null. */
+  voice: string | null;
 }
 
 /** A daily time range, "HH:mm" to "HH:mm"; may cross midnight. */

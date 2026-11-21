@@ -7,7 +7,7 @@ import { starGrowth } from '../core/moment';
 import { layoutSky } from '../core/sky';
 import type { Language, Point } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
-import { speak, stopSpeaking } from '../notify/voice';
+import { say, stopAll } from '../notify/voice';
 import { tint, tintSoft, type Theme } from '../theme/calmStudy';
 
 interface Props {
@@ -29,8 +29,8 @@ export function MomentScreen(props: Props) {
 
   // Read the current card when "read aloud" is on. Private points are only read from a tap.
   useEffect(() => {
-    if (!done && p && props.readAloud && !p.private) speak(p.text, props.language);
-    return stopSpeaking;
+    if (!done && p && props.readAloud && !p.private) say(p, props.language);
+    return stopAll;
   }, [i, done, props.readAloud]);
 
   if (moment.length === 0) return null;
@@ -38,14 +38,14 @@ export function MomentScreen(props: Props) {
 
   const colour = tint(theme, p.category);
   const next = () => {
-    stopSpeaking();
+    stopAll();
     setI((n) => n + 1);
   };
   const toggleVoice = () => {
     const on = !props.readAloud;
     props.onReadAloud(on);
-    if (on) speak(p.text, props.language);
-    else stopSpeaking();
+    if (on) say(p, props.language);
+    else stopAll();
   };
 
   return (

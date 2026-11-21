@@ -31,6 +31,8 @@ const MIGRATIONS: string[] = [
   `ALTER TABLE points ADD COLUMN expires_at TEXT;`,
   // 3: each point's share of the turns. Existing points stay Normal.
   `ALTER TABLE points ADD COLUMN pace TEXT NOT NULL DEFAULT 'normal';`,
+  // 4: the user's own recording of a point (a file name in the app's documents folder).
+  `ALTER TABLE points ADD COLUMN voice TEXT;`,
 ];
 
 export function db(): Promise<SQLite.SQLiteDatabase> {
@@ -73,6 +75,7 @@ interface PointRow {
   last_appeared_at: string | null;
   expires_at: string | null;
   pace: string | null;
+  voice: string | null;
 }
 
 const toPoint = (r: PointRow): Point => ({
@@ -89,6 +92,7 @@ const toPoint = (r: PointRow): Point => ({
   lastAppearedAt: r.last_appeared_at,
   expiresAt: r.expires_at ?? null,
   pace: isPace(r.pace) ? r.pace : 'normal',
+  voice: r.voice ?? null,
 });
 
 const newId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -138,6 +142,12 @@ export async function setPace(id: string, pace: Pace): Promise<void> {
   if (!isPace(pace)) return;
   const d = await db();
   await d.runAsync('UPDATE points SET pace = ?, updated_at = ? WHERE id = ?', pace, new Date().toISOString(), id);
+}
+
+/** Stores or clears the file name of a point's own recording. */
+export async function setVoice(id: string, voice: string | null): Promise<void> {
+  const d = await db();
+  await d.runAsync('UPDATE points SET voice = ?, updated_at = ? WHERE id = ?', voice, new Date().toISOString(), id);
 }
 
 export async function putAway(id: string): Promise<void> {
