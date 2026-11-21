@@ -1,5 +1,6 @@
 // Pure reminder planning. No I/O, no timers, no notification APIs, so it can be unit tested.
 // Behaviour is described in docs/SPEC.md ("Scheduling" and "Battery and memory").
+import { localDateKey } from './dailyRepeat.ts';
 import type { Frequency, NotificationStyle, Point, Settings, TimeRange } from './types';
 
 /** Shortest allowed gap between reminders for one point (proposal in the spec). */
@@ -123,10 +124,13 @@ export function planReminders(
     const mo = startOfToday.getMonth();
     const d = startOfToday.getDate() + day;
     const dayKey = `${y}-${mo}-${d}`;
+    // The calendar day this block of reminders starts on, for points with a last day.
+    const calendarDay = localDateKey(new Date(y, mo, d));
     const groupedByTime = new Map<number, string[]>();
     const dayReminders: PlannedReminder[] = [];
 
     for (const point of candidates) {
+      if (point.repeatUntil !== null && calendarDay > point.repeatUntil) continue;
       const style = point.notificationStyle ?? settings.notificationStyle;
       const interval = intervalMinutes(point.frequency, settings, activeMinutesPerDay);
       // Individual points start at a stable offset inside the interval so they spread out.

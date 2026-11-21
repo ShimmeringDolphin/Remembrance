@@ -35,6 +35,7 @@ function point(id: string, overrides: Partial<Point> = {}): Point {
     tags: [],
     status: 'active',
     frequency: { mode: 'default' },
+    repeatUntil: null,
     nextDueAt: '2026-01-01T00:00:00.000Z',
     speak: false,
     private: false,
@@ -70,6 +71,21 @@ test('hourly default runs 07:00 to 21:00 and stops before the 22:00 end', () => 
 test('only reminders after now are planned', () => {
   const plan = planReminders([point('a')], settings, at(5, 12, 30), 3);
   assert.deepEqual(plan.map((r) => hhmm(r.at)), ['13:00', '14:00', '15:00']);
+});
+
+test('a daily point with a last day gets no reminders after that day', () => {
+  // Entered on 5 January to repeat for 2 days: reminders on the 5th and 6th only.
+  const plan = planReminders([point('a', { repeatUntil: '2026-01-06' })], settings, at(5, 0), 100);
+  const days = [...new Set(plan.map((r) => r.at.getDate()))];
+  assert.deepEqual(days, [5, 6]);
+  assert.equal(hhmm(plan.at(-1)!.at), '21:00');
+});
+
+test('a point whose last day has passed plans nothing, one without a last day keeps going', () => {
+  const points = [point('old', { repeatUntil: '2026-01-04' }), point('open')];
+  const plan = planReminders(points, settings, at(5, 0), 100);
+  assert.ok(plan.length > 0);
+  assert.ok(plan.every((r) => r.pointIds.length === 1 && r.pointIds[0] === 'open'));
 });
 
 test('after the last slot of the day, planning continues the next morning', () => {

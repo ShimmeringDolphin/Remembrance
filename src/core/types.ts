@@ -24,6 +24,12 @@ export interface Point {
   tags: string[];
   status: PointStatus;
   frequency: Frequency;
+  /**
+   * Last local day ("YYYY-MM-DD") a point reminds; after it the point is archived. Set for daily
+   * points (1 to 6 days counting the day of entry). Null means no end: long-term points, and daily
+   * points created before this field existed.
+   */
+  repeatUntil: string | null;
   nextDueAt: string; // ISO 8601
   speak: boolean;
   /** Overrides Settings.notificationStyle when set. */

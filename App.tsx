@@ -6,7 +6,8 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { pickReviewPoints, pointIdsFromNotificationData } from './src/core/review';
 import { defaultSettings } from './src/core/settingsDefaults';
 import type { Category, Point, Settings } from './src/core/types';
-import { archivePoint, createPoint, listActivePoints, listPoints, updatePoint } from './src/db/points';
+import { localDateKey } from './src/core/dailyRepeat';
+import { archiveExpiredPoints, archivePoint, createPoint, listActivePoints, listPoints, updatePoint } from './src/db/points';
 import { getSettings, saveSettings } from './src/db/settings';
 import { detectLanguage, getStrings } from './src/i18n/strings';
 import {
@@ -79,9 +80,18 @@ function Home() {
       }
       setSettings(await getSettings());
       setPermission(await getPermissionState());
+      await archiveExpired();
       await syncReminders();
     })();
   }, []);
+
+  // Daily points past their last day are archived when the app opens or comes back; nothing runs
+  // in the background. The scheduler never books reminders after a point's last day either.
+  const reloadRef = useRef(reload);
+  reloadRef.current = reload;
+  const archiveExpired = async () => {
+    if ((await archiveExpiredPoints(new Date())) > 0) await reloadRef.current();
+  };
 
   // Coming back to the app refills the booked reminders (iOS holds only 64 at once).
   useEffect(() => {
@@ -89,6 +99,7 @@ function Home() {
       if (state === 'active') {
         void (async () => {
           setPermission(await getPermissionState());
+          await archiveExpired();
           await syncReminders();
         })();
       }
@@ -202,6 +213,13 @@ function Home() {
             style={[styles.card, { borderColor: colors.mutedText }]}
           >
             <Text style={[styles.cardText, { color: colors.text }]}>{item.prompt}</Text>
+            {item.category === 'daily' && item.repeatUntil ? (
+              <Text style={[styles.cardMeta, { color: colors.mutedText }]}>
+                {item.repeatUntil === localDateKey(new Date())
+                  ? t.lastDayToday
+                  : t.lastDay.replace('{date}', item.repeatUntil)}
+              </Text>
+            ) : null}
           </Pressable>
         )}
       />
@@ -294,6 +312,7 @@ const styles = StyleSheet.create({
   list: { padding: 16, paddingBottom: 120, gap: 12 },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 16 },
   cardText: { fontSize: 18, lineHeight: 26 },
+  cardMeta: { fontSize: 13, marginTop: 6 },
   empty: { textAlign: 'center', marginTop: 48, fontSize: 16, paddingHorizontal: 24 },
   fab: { position: 'absolute', right: 20, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   fabText: { fontSize: 30, lineHeight: 34 },

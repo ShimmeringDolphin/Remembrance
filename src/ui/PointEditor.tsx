@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { clampRepeatDays, daysLeft, MAX_DAILY_REPEAT_DAYS, repeatUntilFor } from '../core/dailyRepeat';
 import type { Category, Point } from '../core/types';
 import { MAX_PROMPT_LENGTH } from '../db/points';
 import type { Strings } from '../i18n/strings';
@@ -15,7 +16,7 @@ interface Props {
   defaultCategory: Category;
   t: Strings;
   colors: Colors;
-  onSave: (value: { prompt: string; category: Category }) => void;
+  onSave: (value: { prompt: string; category: Category; repeatUntil: string | null }) => void;
   onArchive: (id: string) => void;
   onCancel: () => void;
 }
@@ -24,15 +25,42 @@ export function PointEditor({ visible, point, defaultCategory, t, colors, onSave
   const insets = useSafeAreaInsets();
   const [prompt, setPrompt] = useState('');
   const [category, setCategory] = useState<Category>(defaultCategory);
+  // Days a daily point repeats, counting today. Daily points are archived after their last day.
+  const [days, setDays] = useState(1);
+  const [daysTouched, setDaysTouched] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setPrompt(point?.prompt ?? '');
       setCategory(point?.category ?? defaultCategory);
+      setDays(point?.repeatUntil ? clampRepeatDays(daysLeft(point.repeatUntil, new Date())) : 1);
+      setDaysTouched(false);
     }
   }, [visible, point, defaultCategory]);
 
   const canSave = prompt.trim().length > 0;
+
+  const changeDays = (next: number) => {
+    if (next > MAX_DAILY_REPEAT_DAYS) {
+      Alert.alert(t.longTermTitle, t.longTermBody, [
+        { text: t.cancel, style: 'cancel' },
+        { text: t.makeLongTerm, onPress: () => setCategory('long_term') },
+      ]);
+      return;
+    }
+    setDays(clampRepeatDays(next));
+    setDaysTouched(true);
+  };
+
+  const save = () => {
+    let repeatUntil: string | null = null;
+    if (category === 'daily') {
+      // A daily point from before repeat days existed keeps no end unless the days are changed.
+      const legacy = point !== null && point.category === 'daily' && point.repeatUntil === null && !daysTouched;
+      repeatUntil = legacy ? null : repeatUntilFor(new Date(), days);
+    }
+    onSave({ prompt, category, repeatUntil });
+  };
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onCancel}>
@@ -67,6 +95,33 @@ export function PointEditor({ visible, point, defaultCategory, t, colors, onSave
             </Pressable>
           ))}
         </View>
+        {category === 'daily' ? (
+          <>
+            <Text style={[styles.label, { color: colors.mutedText }]}>{t.repeatFor}</Text>
+            <View style={styles.row}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.fewerDays}
+                disabled={days <= 1}
+                onPress={() => changeDays(days - 1)}
+                style={[styles.step, { borderColor: colors.accent, opacity: days <= 1 ? 0.4 : 1 }]}
+              >
+                <Text style={{ color: colors.accent, fontSize: 20 }}>−</Text>
+              </Pressable>
+              <Text style={[styles.days, { color: colors.text }]}>
+                {days === 1 ? t.dayOne : t.daysMany.replace('{n}', String(days))}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.moreDays}
+                onPress={() => changeDays(days + 1)}
+                style={[styles.step, { borderColor: colors.accent }]}
+              >
+                <Text style={{ color: colors.accent, fontSize: 20 }}>+</Text>
+              </Pressable>
+            </View>
+          </>
+        ) : null}
         <View style={styles.spacer} />
         <View style={styles.row}>
           <Pressable accessibilityRole="button" onPress={onCancel} style={styles.button}>
@@ -80,7 +135,7 @@ export function PointEditor({ visible, point, defaultCategory, t, colors, onSave
           <Pressable
             accessibilityRole="button"
             disabled={!canSave}
-            onPress={() => onSave({ prompt, category })}
+            onPress={save}
             style={[styles.button, styles.primary, { backgroundColor: colors.accent, opacity: canSave ? 1 : 0.4 }]}
           >
             <Text style={{ color: colors.onAccent, fontWeight: '600' }}>{t.save}</Text>
@@ -98,6 +153,8 @@ const styles = StyleSheet.create({
   label: { marginTop: 20, marginBottom: 8, fontSize: 14 },
   row: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   chip: { borderWidth: 1, borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16 },
+  step: { width: 44, height: 44, borderWidth: 1, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  days: { fontSize: 16, minWidth: 140, textAlign: 'center' },
   spacer: { flex: 1 },
   button: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12 },
   primary: { marginLeft: 'auto' },

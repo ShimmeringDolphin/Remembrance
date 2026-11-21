@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { localDateKey } from '../core/dailyRepeat';
 import type { Point } from '../core/types';
 import { listArchivedPoints, restorePoint } from '../db/points';
 import type { Strings } from '../i18n/strings';
@@ -49,7 +50,9 @@ export function ArchiveScreen({ visible, t, colors, onRestored, onClose }: Props
             <View style={[styles.card, { borderColor: colors.mutedText }]}>
               <Text style={[styles.cardText, { color: colors.text }]}>{item.prompt}</Text>
               <View style={styles.cardFooter}>
-                <Text style={{ color: colors.mutedText }}>{item.category === 'daily' ? t.daily : t.longTerm}</Text>
+                <Text style={{ color: colors.mutedText, flexShrink: 1 }}>
+                  {`${item.category === 'daily' ? t.daily : t.longTerm} · ${t.addedOn.replace('{date}', localDateKey(new Date(item.createdAt)))}`}
+                </Text>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`${t.restore}: ${item.prompt}`}

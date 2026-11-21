@@ -15,6 +15,7 @@ function point(id: string, status: Point['status'] = 'active'): Point {
     tags: [],
     status,
     frequency: { mode: 'default' },
+    repeatUntil: null,
     nextDueAt: '2026-01-01T00:00:00.000Z',
     speak: false,
     notificationStyle: null,
