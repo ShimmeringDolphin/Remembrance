@@ -23,7 +23,7 @@ The project's running list of what is not done yet, what is postponed, and which
 
 - Archived view: archived points cannot be seen or restored today. Add a list with Restore, and Delete forever only after confirmation. Needs DB functions, strings in en/hi/gu and a SPEC update.
 - Review Now screen and notification tap handling: built, not tested on a device. Still to build: the Remembered / Again soon buttons and the review log.
-- Quiet hours settings screen (the scheduler already supports quiet hours).
+- Quiet hours settings: built (PR pending), up to 3 ranges. Not tested on a device.
 - Spoken delivery (text to speech), with resources released after use.
 - App lock.
 - Question-and-answer points (`kind: 'qa'`, `prompt`, `answer` are already in the data model).
