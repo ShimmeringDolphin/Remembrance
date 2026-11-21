@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, FlatList, Linking, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { isSameDay, lastDayOf } from './src/core/expiry';
 import { pointIdsFromData } from './src/core/reminderData';
 import { defaultSettings } from './src/core/settingsDefaults';
 import type { Category, Point, Settings } from './src/core/types';
@@ -111,6 +112,15 @@ function Home() {
 
   const closeEditor = () => setEditorOpen(false);
 
+  /** "Last day: today" or "Last day: 24 Nov" for a Daily point that expires; nothing otherwise. */
+  const lastDayText = (p: Point): string | null => {
+    if (p.category !== 'daily') return null;
+    const last = lastDayOf(p.expiresAt);
+    if (!last) return null;
+    if (isSameDay(last, new Date())) return t.lastDayToday;
+    return t.lastDay.replace('{date}', last.toLocaleDateString(settings.appLanguage, { day: 'numeric', month: 'short' }));
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top + 12 }]}>
       <View style={styles.header}>
@@ -190,6 +200,7 @@ function Home() {
             style={[styles.card, { borderColor: colors.mutedText }]}
           >
             <Text style={[styles.cardText, { color: colors.text }]}>{item.prompt}</Text>
+            {lastDayText(item) ? <Text style={[styles.cardMeta, { color: colors.mutedText }]}>{lastDayText(item)}</Text> : null}
           </Pressable>
         )}
       />
@@ -273,6 +284,7 @@ const styles = StyleSheet.create({
   list: { padding: 16, paddingBottom: 120, gap: 12 },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 16 },
   cardText: { fontSize: 18, lineHeight: 26 },
+  cardMeta: { marginTop: 6, fontSize: 14 },
   empty: { textAlign: 'center', marginTop: 48, fontSize: 16, paddingHorizontal: 24 },
   fab: { position: 'absolute', right: 20, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   fabText: { fontSize: 30, lineHeight: 34 },
