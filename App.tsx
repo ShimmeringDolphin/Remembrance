@@ -165,6 +165,7 @@ export default function App() {
     const expires = cat === 'daily' ? expiryFor(new Date(), r.days).toISOString() : null;
     const ok = await data.addPoint(text, cat, expires);
     if (ok) {
+      await refresh();
       if (!asked && perm === 'undetermined') setAskNow(true);
       await rebook();
     }
@@ -200,8 +201,18 @@ export default function App() {
     if (open) await openBatterySettings();
   };
 
+  // Show a change at once; rebooking the reminders can take a moment and runs after.
+  const refresh = async () => {
+    try {
+      setPoints(await data.listPoints());
+    } catch {
+      // Keep what is on screen.
+    }
+  };
+
   const act = (fn: () => Promise<unknown>) => async () => {
     const r = await fn();
+    await refresh();
     await rebook();
     return r;
   };

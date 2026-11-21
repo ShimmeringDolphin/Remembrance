@@ -1,7 +1,7 @@
 // The notebook: Awake/Asleep, a box to add a point, then the points in their colours.
 // Nothing to tick off and no counts to keep up. Points from the latest reminder glow for a while.
-import { useMemo, useState } from 'react';
-import { Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Keyboard, Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { DEFAULT_DAILY_DAYS, lastDayOf, MAX_DAILY_DAYS, sameDay } from '../core/expiry';
 import { MAX_TEXT_LENGTH, cleanText } from '../core/limits';
@@ -54,14 +54,31 @@ export function Home(props: Props) {
     return out;
   }, [points, showAway, t]);
 
+  const list = useRef<SectionList<Point, Section>>(null);
+  // After Keep it: the ids already there, so the list can scroll to the new point once it shows up.
+  const added = useRef<{ before: Set<string> } | null>(null);
+  useEffect(() => {
+    if (!added.current) return;
+    const fresh = points.find((p) => !p.archived && !added.current!.before.has(p.id));
+    if (!fresh) return;
+    added.current = null;
+    const sectionIndex = sections.findIndex((s) => s.key === fresh.category);
+    const itemIndex = sectionIndex < 0 ? -1 : sections[sectionIndex].data.findIndex((p) => p.id === fresh.id);
+    if (itemIndex >= 0) list.current?.scrollToLocation({ sectionIndex, itemIndex, viewPosition: 0.5, animated: true });
+  }, [points, sections]);
+
   const clean = cleanText(text);
   const add = async () => {
     if (!clean) return;
+    Keyboard.dismiss();
+    added.current = { before: new Set(points.map((p) => p.id)) };
     const ok = await props.onAdd(clean, category, days);
     setFull(!ok);
     if (ok) {
       setText('');
       setDays(DEFAULT_DAILY_DAYS);
+    } else {
+      added.current = null;
     }
   };
   const hasLive = points.some((p) => !p.archived);
@@ -182,7 +199,10 @@ export function Home(props: Props) {
 
   return (
     <SectionList
+      ref={list}
       sections={sections}
+      // A point that is not drawn yet cannot be scrolled to exactly; land near the end instead.
+      onScrollToIndexFailed={() => list.current?.getScrollResponder()?.scrollToEnd({ animated: true })}
       keyExtractor={(p) => p.id}
       ListHeaderComponent={header}
       ListFooterComponent={footer}
