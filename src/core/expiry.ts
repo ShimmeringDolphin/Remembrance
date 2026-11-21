@@ -11,3 +11,15 @@ export function resolveDays(requested: number): { longTerm: boolean; days: numbe
 export function expiryFor(entered: Date, days: number): Date {
   return new Date(entered.getFullYear(), entered.getMonth(), entered.getDate() + days, 0, 0);
 }
+
+/** The last day a point reminds (the day before its expiry moment), or null if it never expires. */
+export function lastDayOf(expiresAt: string | null): Date | null {
+  if (expiresAt === null) return null;
+  const end = new Date(expiresAt);
+  if (Number.isNaN(end.getTime())) return null;
+  return new Date(end.getFullYear(), end.getMonth(), end.getDate() - 1);
+}
+
+export function isSameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
