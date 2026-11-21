@@ -26,6 +26,8 @@ const MIGRATIONS: string[] = [
    );
    CREATE INDEX points_live ON points (archived, category);
    CREATE TABLE kv (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);`,
+  // 2: Daily points can stop after a few days. Existing points never expire.
+  `ALTER TABLE points ADD COLUMN expires_at TEXT;`,
 ];
 
 export function db(): Promise<SQLite.SQLiteDatabase> {
@@ -66,6 +68,7 @@ interface PointRow {
   updated_at: string;
   appearances: number;
   last_appeared_at: string | null;
+  expires_at: string | null;
 }
 
 const toPoint = (r: PointRow): Point => ({
@@ -80,6 +83,7 @@ const toPoint = (r: PointRow): Point => ({
   updatedAt: r.updated_at,
   appearances: r.appearances,
   lastAppearedAt: r.last_appeared_at,
+  expiresAt: r.expires_at ?? null,
 });
 
 const newId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -91,14 +95,14 @@ export async function listPoints(): Promise<Point[]> {
 }
 
 /** Adds a point unless its category is full. The count and insert are one statement, so two quick taps cannot pass the limit. */
-export async function addPoint(text: string, category: Category): Promise<boolean> {
+export async function addPoint(text: string, category: Category, expiresAt: string | null = null): Promise<boolean> {
   const d = await db();
   const now = new Date().toISOString();
   const r = await d.runAsync(
-    `INSERT INTO points (id, kind, text, answer, category, private, archived, created_at, updated_at)
-     SELECT ?, 'note', ?, NULL, ?, 0, 0, ?, ?
+    `INSERT INTO points (id, kind, text, answer, category, private, archived, created_at, updated_at, expires_at)
+     SELECT ?, 'note', ?, NULL, ?, 0, 0, ?, ?, ?
      WHERE (SELECT COUNT(*) FROM points WHERE category = ? AND archived = 0) < ?`,
-    newId(), text, category, now, now, category, MAX_PER_CATEGORY,
+    newId(), text, category, now, now, category === 'daily' ? expiresAt : null, category, MAX_PER_CATEGORY,
   );
   return r.changes === 1;
 }
@@ -112,7 +116,7 @@ export async function editPoint(id: string, text: string): Promise<void> {
 export async function movePoint(id: string, category: Category): Promise<boolean> {
   const d = await db();
   const r = await d.runAsync(
-    `UPDATE points SET category = ?, updated_at = ?
+    `UPDATE points SET category = ?, updated_at = ?, expires_at = NULL
      WHERE id = ? AND category <> ?
        AND (archived = 1 OR (SELECT COUNT(*) FROM points WHERE category = ? AND archived = 0) < ?)`,
     category, new Date().toISOString(), id, category, category, MAX_PER_CATEGORY,
@@ -134,12 +138,21 @@ export async function putAway(id: string): Promise<void> {
 export async function bringBack(id: string): Promise<boolean> {
   const d = await db();
   const r = await d.runAsync(
-    `UPDATE points SET archived = 0, updated_at = ?
+    `UPDATE points SET archived = 0, updated_at = ?, expires_at = NULL
      WHERE id = ? AND archived = 1
        AND (SELECT COUNT(*) FROM points p WHERE p.category = points.category AND p.archived = 0) < ?`,
     new Date().toISOString(), id, MAX_PER_CATEGORY,
   );
   return r.changes === 1;
+}
+
+/** Puts away Daily points whose last day has ended. Runs whenever reminders are rebooked. */
+export async function putAwayExpired(now: Date): Promise<void> {
+  const d = await db();
+  await d.runAsync(
+    'UPDATE points SET archived = 1, updated_at = ? WHERE archived = 0 AND expires_at IS NOT NULL AND expires_at <= ?',
+    now.toISOString(), now.toISOString(),
+  );
 }
 
 /** Only a put-away point can be deleted for good. */

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { DEFAULT_DAILY_DAYS, lastDayOf, MAX_DAILY_DAYS, sameDay } from '../core/expiry';
 import { MAX_TEXT_LENGTH, cleanText } from '../core/limits';
 import type { Category, Point } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
@@ -20,7 +21,7 @@ interface Props {
   batteryTip: boolean;
   listening: boolean;
   permission: Permission;
-  onAdd: (text: string, category: Category) => Promise<boolean>;
+  onAdd: (text: string, category: Category, days: number) => Promise<boolean>;
   onOpen: (id: string) => void;
   onSettings: () => void;
   onHelp: () => void;
@@ -38,6 +39,7 @@ export function Home(props: Props) {
   const { t, theme, points } = props;
   const [text, setText] = useState('');
   const [category, setCategory] = useState<Category>('daily');
+  const [days, setDays] = useState(DEFAULT_DAILY_DAYS);
   const [full, setFull] = useState(false);
   const [showAway, setShowAway] = useState(false);
 
@@ -55,11 +57,23 @@ export function Home(props: Props) {
   const clean = cleanText(text);
   const add = async () => {
     if (!clean) return;
-    const ok = await props.onAdd(clean, category);
+    const ok = await props.onAdd(clean, category, days);
     setFull(!ok);
-    if (ok) setText('');
+    if (ok) {
+      setText('');
+      setDays(DEFAULT_DAILY_DAYS);
+    }
   };
   const hasLive = points.some((p) => !p.archived);
+  const today = new Date();
+  const lastDay = (expiresAt: string | null) => {
+    const d = lastDayOf(expiresAt);
+    if (!d) return null;
+    const text = sameDay(d, today)
+      ? t.lastDayToday
+      : fill(t.lastDayOn, { date: d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) });
+    return <Text style={[styles.tag, { color: tint(theme, 'daily') }]}>{text}</Text>;
+  };
 
   const header = (
     <View style={styles.header}>
@@ -128,9 +142,20 @@ export function Home(props: Props) {
             <Choice key={c} label={c === 'daily' ? t.daily : t.longTerm} selected={category === c} theme={{ ...theme, accent: tint(theme, c) }} onPress={() => setCategory(c)} />
           ))}
         </View>
+        {category === 'daily' && (
+          <View style={styles.row}>
+            <Text style={[styles.note, { color: theme.text }]}>{t.repeatFor}</Text>
+            <Button label="−" hint={t.fewerDays} theme={theme} kind="plain" disabled={days <= 1} onPress={() => setDays((d) => Math.max(1, d - 1))} />
+            <Text accessibilityLiveRegion="polite" style={[styles.days, { color: tint(theme, 'daily') }]}>
+              {days > MAX_DAILY_DAYS ? t.dayMore : days === 1 ? t.dayOne : fill(t.dayMany, { n: days })}
+            </Text>
+            <Button label="+" hint={t.moreDays} theme={theme} kind="plain" disabled={days > MAX_DAILY_DAYS} onPress={() => setDays((d) => Math.min(MAX_DAILY_DAYS + 1, d + 1))} />
+          </View>
+        )}
+        {category === 'daily' && days > MAX_DAILY_DAYS && <Text style={[styles.note, { color: theme.muted }]}>{t.longTermNote}</Text>}
         {full && (
           <Text accessibilityLiveRegion="polite" style={[styles.note, { color: theme.muted }]}>
-            {fill(t.full, { name: category === 'daily' ? t.daily : t.longTerm })}
+            {fill(t.full, { name: category === 'daily' && days <= MAX_DAILY_DAYS ? t.daily : t.longTerm })}
           </Text>
         )}
         <Button label={t.keep} theme={{ ...theme, accent: tint(theme, category) }} disabled={!clean} onPress={add} />
@@ -203,6 +228,7 @@ export function Home(props: Props) {
             {isFresh && <Text style={[styles.freshTag, { backgroundColor: colour, color: theme.onAccent }]}>{t.justCameBack}</Text>}
             <Text style={[styles.pointText, { color: item.archived ? theme.muted : theme.text }]}>{item.text}</Text>
             {item.private && <Text style={[styles.tag, { color: theme.muted }]}>{t.privateTag}</Text>}
+            {!item.archived && lastDay(item.expiresAt)}
           </Pressable>
         );
       }}
@@ -234,5 +260,6 @@ const styles = StyleSheet.create({
   freshTag: { alignSelf: 'flex-start', fontSize: 12, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, overflow: 'hidden', marginBottom: 6 },
   pointText: { fontSize: 17, lineHeight: 24 },
   tag: { fontSize: 13, marginTop: 4 },
+  days: { fontSize: 16, fontWeight: '700', minWidth: 64, textAlign: 'center' },
   footer: { marginTop: 18, gap: 8 },
 });

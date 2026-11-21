@@ -8,6 +8,8 @@ import { DAYS_AHEAD, fillTimes, HANDFUL, JITTER_MINUTES, LONG_TERM_EVERY, MAX_BO
 import { defaultSettings, EVERY_CHOICES, mergeSettings } from './settings.ts';
 import { FULL_STAR, layoutSky, skyUnlocked, starSize, totalAppearances } from './sky.ts';
 import { formatTime, parseTime, shiftTime, windowLength } from './time.ts';
+import { activeAt, expiryFor, lastDayOf, resolveDays } from './expiry.ts';
+import { addQuiet, inQuiet, MAX_QUIET, removeQuiet, setQuiet } from './quiet.ts';
 import { freshIds, listenQueue, momentPoints, starGrowth } from './moment.ts';
 import type { Point, Settings } from './types.ts';
 
@@ -20,7 +22,7 @@ function point(id: string, o: Partial<Point> = {}): Point {
   return {
     id, kind: 'note', text: `text ${id}`, answer: null, category: 'daily', private: false, archived: false,
     createdAt: `2026-01-01T00:${String(Math.floor(seq / 60) % 60).padStart(2, '0')}:${String(seq % 60).padStart(2, '0')}.000Z`,
-    updatedAt: '2026-01-01T00:00:00.000Z', appearances: 0, lastAppearedAt: null, ...o,
+    updatedAt: '2026-01-01T00:00:00.000Z', appearances: 0, lastAppearedAt: null, expiresAt: null, ...o,
   };
 }
 
@@ -37,7 +39,7 @@ test('times parse, format, shift across midnight and measure windows', () => {
 });
 
 test('defaults are hourly 07:00 to 22:00, awake, not private, not read aloud', () => {
-  assert.deepEqual(defaultSettings('hi'), { from: '07:00', to: '22:00', every: 60, asleep: false, privateMode: false, language: 'hi', readAloud: false });
+  assert.deepEqual(defaultSettings('hi'), { from: '07:00', to: '22:00', every: 60, asleep: false, mode: 'hours', quiet: [], privateMode: false, language: 'hi', readAloud: false });
 });
 
 test('stored settings keep valid values and fall back on junk', () => {
@@ -239,4 +241,82 @@ test('a reminder with a Long-term point is coloured as Long-term', () => {
   const text = { title: 'T', privateOne: '1', privateMany: '{n}', privateExtra: '+{n}' };
   assert.equal(buildContent(['d'], byId, false, text).category, 'daily');
   assert.equal(buildContent(['d', 'l'], byId, false, text).category, 'long_term');
+});
+
+// ---- from main: Daily expiry (#17, #19) and quiet hours (#20)
+
+test('Daily points repeat 1 to 6 days counting today; more becomes Long-term', () => {
+  assert.deepEqual(resolveDays(1), { days: 1, longTerm: false });
+  assert.deepEqual(resolveDays(6), { days: 6, longTerm: false });
+  assert.deepEqual(resolveDays(7), { days: 7, longTerm: true });
+  assert.deepEqual(resolveDays(0), { days: 1, longTerm: false });
+  assert.deepEqual(resolveDays(Number.NaN), { days: 1, longTerm: false });
+  const end = expiryFor(new Date(2026, 0, 5, 15, 30), 1);
+  assert.deepEqual(end, new Date(2026, 0, 6));
+  assert.deepEqual(lastDayOf(end.toISOString()), new Date(2026, 0, 5));
+  assert.equal(lastDayOf(null), null);
+  assert.equal(activeAt(end.toISOString(), new Date(2026, 0, 5, 23, 59)), true);
+  assert.equal(activeAt(end.toISOString(), new Date(2026, 0, 6)), false);
+});
+
+test('a Daily point is never booked at or after its expiry', () => {
+  const now = at(5, 6);
+  const end = expiryFor(now, 1).toISOString();
+  const slots = planSlots([point('short', { expiresAt: end }), point('keep')], { ...settings, to: '23:59' }, now, 200);
+  const after = slots.filter((s) => s.at.getTime() >= Date.parse(end));
+  assert.ok(after.length > 0);
+  for (const s of after) assert.ok(!s.pointIds.includes('short'));
+  assert.ok(slots.some((s) => s.at.getTime() < Date.parse(end) && s.pointIds.includes('short')));
+  // When the only point has expired, nothing more is booked.
+  const only = planSlots([point('x', { expiresAt: end })], settings, now, 200);
+  assert.ok(only.every((s) => s.at.getTime() < Date.parse(end)));
+});
+
+test('quiet hours drop reminders inside them, including ranges across midnight', () => {
+  assert.equal(inQuiet(13 * 60, [{ start: '13:00', end: '14:00' }]), true);
+  assert.equal(inQuiet(14 * 60, [{ start: '13:00', end: '14:00' }]), false);
+  assert.equal(inQuiet(23 * 60 + 30, [{ start: '23:00', end: '06:00' }]), true);
+  assert.equal(inQuiet(5 * 60, [{ start: '23:00', end: '06:00' }]), true);
+  assert.equal(inQuiet(7 * 60, [{ start: '23:00', end: '06:00' }]), false);
+  assert.equal(inQuiet(600, [{ start: '10:00', end: '10:00' }]), false);
+  const times = planTimes({ ...settings, quiet: [{ start: '12:00', end: '15:00' }] }, at(5, 6), 15);
+  for (const t of times) assert.ok(t.getHours() < 12 || t.getHours() >= 15 || (t.getHours() === 11), `${t}`);
+  let r = addQuiet([]);
+  assert.deepEqual(r, [{ start: '13:00', end: '14:00' }]);
+  r = setQuiet(r, 0, 'end', '15:30');
+  assert.equal(r[0].end, '15:30');
+  for (let i = 0; i < 5; i++) r = addQuiet(r);
+  assert.equal(r.length, MAX_QUIET);
+  assert.equal(removeQuiet(r, 0).length, MAX_QUIET - 1);
+  assert.equal(mergeSettings({ quiet: [r[0], { start: 'x' }, r[1], r[2], r[0]] }, 'en').quiet.length, MAX_QUIET);
+});
+
+test('button mode reminds all day while Awake; Asleep always wins', () => {
+  const day = planTimes({ ...settings, mode: 'button', every: 60 }, at(5, 0), 200).filter((t) => t.getDate() === 5);
+  assert.ok(day.length >= 23, `${day.length}`);
+  assert.ok(day.some((t) => t.getHours() < 7) && day.some((t) => t.getHours() >= 22));
+  assert.deepEqual(planTimes({ ...settings, mode: 'button', asleep: true }, at(5, 0)), []);
+  assert.deepEqual(planTimes({ ...settings, mode: 'hours', asleep: true }, at(5, 0)), []);
+});
+
+test('turns stay fair in half-hour and quarter-hour time zones, and with a :30 start', () => {
+  const saved = process.env.TZ;
+  try {
+    for (const tz of ['Asia/Kolkata', 'Asia/Kathmandu', 'UTC']) {
+      process.env.TZ = tz;
+      for (const from of ['07:00', '07:30']) {
+        const s = { ...settings, from };
+        const pts = Array.from({ length: 7 }, (_, i) => point(`f${i}`));
+        const seen = new Map<string, number>();
+        for (const slot of fillTimes(planTimes(s, new Date(2026, 0, 5, 0, 0), 60), pts, s)) {
+          for (const id of slot.pointIds) seen.set(id, (seen.get(id) ?? 0) + 1);
+        }
+        const counts = [...seen.values()];
+        assert.ok(Math.max(...counts) - Math.min(...counts) <= 2, `${tz} ${from}: ${counts}`);
+      }
+    }
+  } finally {
+    if (saved === undefined) delete process.env.TZ;
+    else process.env.TZ = saved;
+  }
 });

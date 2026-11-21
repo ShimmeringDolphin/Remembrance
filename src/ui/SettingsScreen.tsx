@@ -2,12 +2,14 @@
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
+import { addQuiet, MAX_QUIET, removeQuiet, setQuiet } from '../core/quiet';
 import { EVERY_CHOICES, remindersPerDay } from '../core/settings';
 import { shiftTime, windowLength } from '../core/time';
 import type { Language, Settings } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import type { Theme } from '../theme/calmStudy';
 import { Button, Choice } from './parts';
+import { TimeField } from './TimeField';
 
 const STEP = 30;
 
@@ -42,11 +44,15 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
     </Pressable>
   );
 
+  const setTime = (key: 'from' | 'to', value: string) => {
+    if (value !== s[key === 'from' ? 'to' : 'from']) set({ [key]: value });
+  };
+  // Tap the time for the phone's picker; − and + nudge it by 30 minutes.
   const stepper = (label: string, key: 'from' | 'to') => (
     <View style={styles.stepper}>
       <Text style={[styles.stepLabel, { color: theme.muted }]}>{label}</Text>
       {round(fill(t.earlierBy, { label }), '−', () => shift(key, -STEP))}
-      <Text accessibilityLabel={`${label} ${s[key]}`} style={[styles.time, { color: theme.text }]}>{s[key]}</Text>
+      <TimeField label={label} value={s[key]} onChange={(v) => setTime(key, v)} t={t} theme={theme} />
       {round(fill(t.laterBy, { label }), '+', () => shift(key, STEP))}
     </View>
   );
@@ -79,9 +85,33 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
       {section(
         t.sectionWhen,
         <>
-          <Text style={[styles.big, { color: theme.text }]}>{s.from} – {s.to}</Text>
-          {stepper(t.from, 'from')}
-          {stepper(t.until, 'to')}
+          <View style={styles.choices} accessibilityRole="radiogroup" accessibilityLabel={t.sectionWhen}>
+            <Choice label={t.modeHours} selected={s.mode === 'hours'} theme={theme} onPress={() => set({ mode: 'hours' })} />
+            <Choice label={t.modeButton} selected={s.mode === 'button'} theme={theme} onPress={() => set({ mode: 'button' })} />
+          </View>
+          <Text style={[styles.hint, { color: theme.muted }]}>{s.mode === 'hours' ? t.modeHoursHint : t.modeButtonHint}</Text>
+          {s.mode === 'hours' && (
+            <>
+              {stepper(t.from, 'from')}
+              {stepper(t.until, 'to')}
+            </>
+          )}
+        </>,
+      )}
+
+      {section(
+        t.quietTitle,
+        <>
+          <Text style={[styles.hint, { color: theme.muted }]}>{t.quietHint}</Text>
+          {s.quiet.map((r, i) => (
+            <View key={i} style={styles.quietRow}>
+              <TimeField label={`${t.quietTitle} ${i + 1}, ${t.from}`} value={r.start} onChange={(v) => set({ quiet: setQuiet(s.quiet, i, 'start', v) })} t={t} theme={theme} />
+              <Text style={[styles.hint, { color: theme.muted }]}>–</Text>
+              <TimeField label={`${t.quietTitle} ${i + 1}, ${t.until}`} value={r.end} onChange={(v) => set({ quiet: setQuiet(s.quiet, i, 'end', v) })} t={t} theme={theme} />
+              <Button label={t.removeQuiet} theme={theme} kind="quiet" onPress={() => set({ quiet: removeQuiet(s.quiet, i) })} />
+            </View>
+          ))}
+          {s.quiet.length < MAX_QUIET && <Button label={t.addQuiet} theme={theme} kind="plain" onPress={() => set({ quiet: addQuiet(s.quiet) })} />}
         </>,
       )}
 
@@ -93,7 +123,7 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
               <Choice key={n} label={everyLabel(n)} selected={s.every === n} theme={theme} onPress={() => set({ every: n })} />
             ))}
           </View>
-          <Text style={[styles.hint, { color: theme.muted }]}>{fill(t.perDay, { n: perDay, from: s.from, to: s.to })}</Text>
+          <Text style={[styles.hint, { color: theme.muted }]}>{fill(t.perDay, { n: perDay, from: s.mode === 'button' ? '00:00' : s.from, to: s.mode === 'button' ? '24:00' : s.to })}</Text>
           {s.every <= 30 && <Text style={[styles.hint, { color: theme.muted }]}>{t.openDaily}</Text>}
         </>,
       )}
@@ -120,7 +150,8 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 12 },
   section: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2 },
   big: { fontSize: 28, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  quietRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   stepLabel: { fontSize: 15, minWidth: 56 },
   round: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   roundText: { fontSize: 22, fontWeight: '600', lineHeight: 26 },

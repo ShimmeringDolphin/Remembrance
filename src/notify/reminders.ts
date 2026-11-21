@@ -7,7 +7,7 @@ import { countAppearances, parseBooked, type Booked } from '../core/appearances'
 import { buildContent } from '../core/content';
 import { MAX_BOOKED, MAX_BOOKED_ANDROID, planSlots } from '../core/planner';
 import type { Point, Settings } from '../core/types';
-import { getValue, listPoints, recordAppearances } from '../data/db';
+import { getValue, listPoints, putAwayExpired, recordAppearances } from '../data/db';
 import { strings } from '../i18n/strings';
 import { categoryColour } from '../theme/calmStudy';
 
@@ -88,6 +88,7 @@ async function rebook(settings: Settings): Promise<void> {
 
   await Notifications.cancelAllScheduledNotificationsAsync();
 
+  await putAwayExpired(now);
   const points = await listPoints();
   const future: Booked[] = [];
   if ((await permission()) === 'granted') {

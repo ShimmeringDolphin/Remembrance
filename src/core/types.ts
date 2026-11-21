@@ -22,7 +22,18 @@ export interface Point {
   /** Approximate: booked reminders that included this point and whose time has passed. */
   appearances: number;
   lastAppearedAt: string | null;
+  /** Daily points stop at this moment (local midnight after their last day) and are put away. Null: never. */
+  expiresAt: string | null;
 }
+
+/** A daily time range, "HH:mm" to "HH:mm"; may cross midnight. */
+export interface TimeRange {
+  start: string;
+  end: string;
+}
+
+/** `hours`: reminders only between From and Until. `button`: all day while Awake. */
+export type ActiveMode = 'hours' | 'button';
 
 
 export interface Settings {
@@ -31,8 +42,11 @@ export interface Settings {
   to: string;
   /** Minutes between reminders: one of EVERY_CHOICES (15 to 180). */
   every: number;
-  /** Awake/Asleep button: nothing is booked while asleep. */
+  /** Awake/Asleep button: nothing is booked while asleep. Asleep always wins over the hours. */
   asleep: boolean;
+  mode: ActiveMode;
+  /** Up to 3 daily ranges with no reminders. */
+  quiet: TimeRange[];
   /** Lock screen shows only a count, never text. */
   privateMode: boolean;
   language: Language;
