@@ -26,7 +26,9 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - At most **60** reminders are booked on iOS (it allows 64) and **120** on Android (it allows 500 alarms per app), up to 14 days ahead. Asleep, an empty window, or no live points books nothing.
 - Each reminder shows a **handful of 3** different points taking turns, oldest first. Turns are spread by stride scheduling over each point's share (`src/core/pace.ts`); when all points share a pace this is plain round-robin. When there are Daily and Long-term points, every 3rd reminder swaps one Daily point for a Long-term one. With only Long-term points they take turns 3 at a time. Turn order comes from the reminder's time, so it carries on across rebookings.
 - Text: the title is "Keep in mind"; the body lists the points one per line. Private points are replaced by "+ n private". When nothing can be shown (all private, or private mode), the body is only a count.
-- Notifications are silent (no sound, no vibration on the Android channel `points`).
+- Notifications are silent by default (no sound, no vibration on the Android channel `points`). Settings > Voice > **Gentle sound** (`sound`, off by default) books them on the channel `points-gentle` with a soft generated chime (`assets/sounds/gentle.wav`, about 1.6 s, no vibration); on iPhone the same file is the notification sound.
+- Any settings change except read aloud rebooks.
+- **Latest reminder**: recorded on every rebook and whenever a reminder arrives while the app is open. "Go through the latest reminder" rebooks first, then opens it, and hides once gone through until a newer reminder comes (`seenShown` in kv). The glow lasts 90 minutes.
 - Rebooking happens only when the app opens or returns to the front, and after a point or setting changes. It cancels everything and books again. Runs never overlap; changes during a run trigger one more run.
 
 ## Moments, colour and voice
@@ -54,4 +56,16 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 
 ## Storage
 
-- SQLite (`yaadom.db`), migrations by `PRAGMA user_version`. Version 1: `points` and `kv`; version 2 adds `points.expires_at`; version 3 adds `points.pace` (settings, booked reminders, reminders passed, first-run flags and the battery tip flag). Points are not encrypted yet.
+- SQLite (`yaadom.db`), migrations by `PRAGMA user_version`. Version 1: `points` and `kv`; version 2 adds `points.expires_at`; version 3 adds `points.pace`; version 4 adds `points.voice` (settings, booked reminders, reminders passed, first-run flags and the battery tip flag). Points are not encrypted yet.
+
+## Your own voice
+
+- A point's page can record it in the user's own voice: Record, Stop (30 seconds at most), Play, Record again, Remove recording. Mono AAC at 64 kbps (about 240 KB per 30 s).
+- Recordings are files in the app's documents folder (`voices/`), not encrypted, never sent anywhere; the file name is in `points.voice`. Replacing or removing a recording deletes the old file, and deleting a point for good deletes its file. Putting a point away keeps it.
+- Read aloud in a moment and Listen play the recording instead of the phone's voice. Private points are never read aloud either way.
+- The microphone is used only between Record and Stop. expo-audio is configured with no background playback or recording (no foreground service). Android asks for RECORD_AUDIO the first time Record is tapped.
+
+## Home-screen widget (Android)
+
+- "Keep in mind" widget (4 x 2 cells, resizable): the points of the reminder that came last, or before the first one the next one, with the same privacy rules as a notification (private points and private mode show only a count). Tapping it opens the app.
+- Redrawn whenever the app rebooks reminders and by Android at most once an hour (`updatePeriodMillis` 3,600,000), through a headless task that only reads the database. No iPhone widget yet (needs a WidgetKit extension).

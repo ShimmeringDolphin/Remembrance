@@ -12,6 +12,7 @@ import { activeAt, expiryFor, lastDayOf, resolveDays } from './expiry.ts';
 import { addQuiet, inQuiet, MAX_QUIET, removeQuiet, setQuiet } from './quiet.ts';
 import { isPace, paceWindows } from './pace.ts';
 import { listenSteps } from './moment.ts';
+import { widgetSlot } from './widget.ts';
 import { freshIds, listenQueue, momentPoints, starGrowth } from './moment.ts';
 import type { Point, Settings } from './types.ts';
 
@@ -363,4 +364,14 @@ test('listen hands runs of points to the phone voice and plays own recordings on
   const steps = listenSteps([a, b, c, d, e]);
   assert.deepEqual(steps.map((s) => (s.kind === 'own' ? `own:${s.point.id}` : `phone:${s.points.map((p) => p.id).join('')}`)), ['phone:ab', 'own:c', 'phone:d', 'own:e']);
   assert.deepEqual(listenSteps([]), []);
+});
+
+test('the widget shows the reminder that came last, else the next one', () => {
+  const now = at(5, 12);
+  const b = (h: number, id: string) => ({ at: at(5, h).toISOString(), pointIds: [id] });
+  assert.equal(widgetSlot([b(10, 'a'), b(11, 'b'), b(13, 'c')], null, now)?.pointIds[0], 'b');
+  assert.equal(widgetSlot([b(13, 'c'), b(14, 'd')], b(9, 'old'), now)?.pointIds[0], 'old');
+  assert.equal(widgetSlot([b(14, 'd'), b(13, 'c')], null, now)?.pointIds[0], 'c');
+  assert.equal(widgetSlot([], null, now), null);
+  assert.equal(widgetSlot([{ at: 'junk', pointIds: ['x'] }], null, now), null);
 });

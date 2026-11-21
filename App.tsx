@@ -18,6 +18,7 @@ import { deleteRecording } from './src/notify/ownVoice';
 import { say, speak, stopAll } from './src/notify/voice';
 import { askPermission, initNotifications, noteSettings, permission, syncReminders, type Permission } from './src/notify/reminders';
 import { themeFor } from './src/theme/calmStudy';
+import { updateWidget } from './src/widget/update';
 import { HelpScreen } from './src/ui/HelpScreen';
 import { MomentScreen } from './src/ui/MomentScreen';
 import { Home } from './src/ui/Home';
@@ -71,6 +72,7 @@ export default function App() {
     } catch {
       // Reminders are rebooked again on the next open; never surface point text in errors.
     }
+    void updateWidget();
     try {
       setPoints(await data.listPoints());
       setRemindersPassed(Number(await data.getValue('remindersPassed')) || 0);
