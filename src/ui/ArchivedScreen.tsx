@@ -64,6 +64,9 @@ export function ArchivedScreen({ visible, t, colors, onClose, onRestored }: Prop
           renderItem={({ item }) => (
             <View style={[styles.card, { borderColor: colors.mutedText }]}>
               <Text style={[styles.cardText, { color: colors.text }]}>{item.prompt}</Text>
+              <Text style={[styles.date, { color: colors.mutedText }]}>
+                {t.added.replace('{date}', new Date(item.createdAt).toLocaleDateString(item.language))}
+              </Text>
               <View style={styles.actions}>
                 <Pressable accessibilityRole="button" accessibilityLabel={t.restore} onPress={() => void restore(item.id)} style={styles.action}>
                   <Text style={{ color: colors.accent, fontWeight: '600' }}>{t.restore}</Text>
@@ -88,6 +91,7 @@ const styles = StyleSheet.create({
   empty: { textAlign: 'center', marginTop: 48, fontSize: 16, paddingHorizontal: 24 },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 16 },
   cardText: { fontSize: 18, lineHeight: 26 },
+  date: { marginTop: 6, fontSize: 14 },
   actions: { flexDirection: 'row', gap: 16, marginTop: 12 },
   action: { paddingVertical: 8, paddingRight: 8 },
 });

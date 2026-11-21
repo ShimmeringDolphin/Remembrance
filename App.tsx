@@ -6,7 +6,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { pointIdsFromData } from './src/core/reminderData';
 import { defaultSettings } from './src/core/settingsDefaults';
 import type { Category, Point, Settings } from './src/core/types';
-import { archivePoint, createPoint, listPoints, updatePoint } from './src/db/points';
+import { archivePoint, createPoint, expireDuePoints, listPoints, updatePoint } from './src/db/points';
 import { getSettings, saveSettings } from './src/db/settings';
 import { detectLanguage, getStrings } from './src/i18n/strings';
 import {
@@ -80,12 +80,13 @@ function Home() {
       if (state === 'active') {
         void (async () => {
           setPermission(await getPermissionState());
+          if (await expireDuePoints()) await reload();
           await syncReminders();
         })();
       }
     });
     return () => sub.remove();
-  }, []);
+  }, [reload]);
 
   const updateSettings = async (next: Settings) => {
     setSettings(next);

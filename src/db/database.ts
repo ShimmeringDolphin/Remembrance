@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 /** Opens the database once and runs migrations. */
@@ -57,6 +57,12 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
       );
     `);
     version = 2;
+  }
+
+  if (version === 2) {
+    // Daily points can expire; existing points never do.
+    await db.execAsync('ALTER TABLE points ADD COLUMN expires_at TEXT;');
+    version = 3;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

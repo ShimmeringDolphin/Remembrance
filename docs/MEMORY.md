@@ -48,3 +48,8 @@ The project's running list of what is not done yet, what is postponed, and which
 - Default repeat every hour, minimum 15 minutes. Default active hours 7:00 AM to 10:00 PM, plus an Awake/Sleep button.
 - Notification style default grouped, with one-per-point as an option.
 - Library versions are pinned from `node_modules/expo/bundledNativeModules.json` because `npx expo install` is blocked in the cloud sandbox.
+
+## Daily point expiry (2026-11-21)
+
+- Built from the owner's request: Daily points repeat 1 to 6 days (default 1) then archive with their entry date; more than 6 days saves as Long-term after a notice. This is my reading of the request and needs the owner's confirmation. Daily points that existed before it never expire. Not tested on a device.
+- Quiet hours have no settings screen yet (the scheduler supports any number of ranges; the default is none). Sleep is the Awake/Sleep button, not a quiet hour.

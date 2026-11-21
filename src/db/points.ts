@@ -1,4 +1,5 @@
 import type { Category, Frequency, Language, NotificationStyle, Point, PointKind, PointStatus } from '../core/types';
+import { expiryFor } from '../core/expiry';
 import { getDb } from './database';
 
 interface PointRow {
@@ -16,6 +17,7 @@ interface PointRow {
   speak: number;
   private: number;
   notification_style: string | null;
+  expires_at: string | null;
   created_at: string;
   updated_at: string;
   last_shown_at: string | null;
@@ -39,6 +41,7 @@ function toPoint(r: PointRow): Point {
     speak: r.speak === 1,
     private: r.private === 1,
     notificationStyle: r.notification_style as NotificationStyle | null,
+    expiresAt: r.expires_at,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     lastShownAt: r.last_shown_at,
@@ -71,21 +74,27 @@ export async function listActivePoints(): Promise<Point[]> {
   return rows.map(toPoint);
 }
 
+/** `days` only applies to Daily points: how many days (counting today) the point repeats before it is archived. */
 export async function createPoint(input: {
   prompt: string;
   category: Category;
   language: Language;
+  days?: number;
 }): Promise<void> {
   const db = await getDb();
-  const now = new Date().toISOString();
+  const entered = new Date();
+  const now = entered.toISOString();
+  const expiresAt =
+    input.category === 'daily' ? expiryFor(entered, input.days ?? 1).toISOString() : null;
   await db.runAsync(
-    `INSERT INTO points (id, prompt, language, category, next_due_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO points (id, prompt, language, category, next_due_at, expires_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     newId(),
     input.prompt.trim().slice(0, MAX_PROMPT_LENGTH),
     input.language,
     input.category,
     now,
+    expiresAt,
     now,
     now,
   );
@@ -97,8 +106,9 @@ export async function updatePoint(
 ): Promise<void> {
   const db = await getDb();
   await db.runAsync(
-    'UPDATE points SET prompt = ?, category = ?, updated_at = ? WHERE id = ?',
+    "UPDATE points SET prompt = ?, category = ?, expires_at = CASE WHEN ? = 'long_term' THEN NULL ELSE expires_at END, updated_at = ? WHERE id = ?",
     input.prompt.trim().slice(0, MAX_PROMPT_LENGTH),
+    input.category,
     input.category,
     new Date().toISOString(),
     id,
@@ -146,11 +156,11 @@ export async function listArchived(): Promise<Point[]> {
   return rows.map(toPoint);
 }
 
-/** Brings an archived point back as active. */
+/** Brings an archived point back as active. A restored point no longer expires. */
 export async function restorePoint(id: string): Promise<void> {
   const db = await getDb();
   await db.runAsync(
-    "UPDATE points SET status = 'active', updated_at = ? WHERE id = ? AND status = 'archived'",
+    "UPDATE points SET status = 'active', expires_at = NULL, updated_at = ? WHERE id = ? AND status = 'archived'",
     new Date().toISOString(),
     id,
   );
@@ -160,4 +170,15 @@ export async function restorePoint(id: string): Promise<void> {
 export async function deleteArchivedPoint(id: string): Promise<void> {
   const db = await getDb();
   await db.runAsync("DELETE FROM points WHERE id = ? AND status = 'archived'", id);
+}
+
+/** Archives Daily points whose last day has passed. Returns true if any changed. */
+export async function expireDuePoints(now: Date = new Date()): Promise<boolean> {
+  const db = await getDb();
+  const result = await db.runAsync(
+    "UPDATE points SET status = 'archived', updated_at = ? WHERE status != 'archived' AND expires_at IS NOT NULL AND expires_at <= ?",
+    now.toISOString(),
+    now.toISOString(),
+  );
+  return result.changes > 0;
 }

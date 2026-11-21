@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MAX_DAILY_DAYS, resolveDays } from '../core/expiry';
 import type { Category, Point } from '../core/types';
 import { MAX_PROMPT_LENGTH } from '../db/points';
 import type { Strings } from '../i18n/strings';
@@ -15,7 +16,8 @@ interface Props {
   defaultCategory: Category;
   t: Strings;
   colors: Colors;
-  onSave: (value: { prompt: string; category: Category }) => void;
+  /** `days` is set only when adding a Daily point. */
+  onSave: (value: { prompt: string; category: Category; days?: number }) => void;
   onArchive: (id: string) => void;
   onCancel: () => void;
 }
@@ -24,15 +26,34 @@ export function PointEditor({ visible, point, defaultCategory, t, colors, onSave
   const insets = useSafeAreaInsets();
   const [prompt, setPrompt] = useState('');
   const [category, setCategory] = useState<Category>(defaultCategory);
+  const [days, setDays] = useState(1);
 
   useEffect(() => {
     if (visible) {
       setPrompt(point?.prompt ?? '');
       setCategory(point?.category ?? defaultCategory);
+      setDays(1);
     }
   }, [visible, point, defaultCategory]);
 
   const canSave = prompt.trim().length > 0;
+  const showDays = point === null && category === 'daily';
+
+  const save = () => {
+    if (!showDays) {
+      onSave({ prompt, category });
+      return;
+    }
+    if (resolveDays(days).longTerm) {
+      // Longer than a Daily point may run: tell the user it will be saved as Long-term.
+      Alert.alert(t.longTermTitle, t.longTermBody, [
+        { text: t.cancel, style: 'cancel' },
+        { text: t.saveLongTerm, onPress: () => onSave({ prompt, category: 'long_term' }) },
+      ]);
+      return;
+    }
+    onSave({ prompt, category, days });
+  };
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onCancel}>
@@ -67,6 +88,37 @@ export function PointEditor({ visible, point, defaultCategory, t, colors, onSave
             </Pressable>
           ))}
         </View>
+        {showDays ? (
+          <>
+            <Text style={[styles.label, { color: colors.mutedText }]}>{t.repeatFor}</Text>
+            <View style={styles.row}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="-"
+                disabled={days <= 1}
+                onPress={() => setDays((d) => Math.max(1, d - 1))}
+                style={[styles.chip, { borderColor: colors.accent, opacity: days <= 1 ? 0.4 : 1 }]}
+              >
+                <Text style={{ color: colors.accent }}>−</Text>
+              </Pressable>
+              <Text style={{ color: colors.text, fontSize: 18, minWidth: 80, textAlign: 'center' }}>
+                {days === 1 ? t.dayCount : t.daysCount.replace('{n}', String(days))}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="+"
+                disabled={days >= 30}
+                onPress={() => setDays((d) => Math.min(30, d + 1))}
+                style={[styles.chip, { borderColor: colors.accent, opacity: days >= 30 ? 0.4 : 1 }]}
+              >
+                <Text style={{ color: colors.accent }}>+</Text>
+              </Pressable>
+            </View>
+            <Text style={[styles.note, { color: colors.mutedText }]}>
+              {days > MAX_DAILY_DAYS ? t.longTermBody : t.dailyNote}
+            </Text>
+          </>
+        ) : null}
         <View style={styles.spacer} />
         <View style={styles.row}>
           <Pressable accessibilityRole="button" onPress={onCancel} style={styles.button}>
@@ -80,7 +132,7 @@ export function PointEditor({ visible, point, defaultCategory, t, colors, onSave
           <Pressable
             accessibilityRole="button"
             disabled={!canSave}
-            onPress={() => onSave({ prompt, category })}
+            onPress={save}
             style={[styles.button, styles.primary, { backgroundColor: colors.accent, opacity: canSave ? 1 : 0.4 }]}
           >
             <Text style={{ color: colors.onAccent, fontWeight: '600' }}>{t.save}</Text>
@@ -98,6 +150,7 @@ const styles = StyleSheet.create({
   label: { marginTop: 20, marginBottom: 8, fontSize: 14 },
   row: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   chip: { borderWidth: 1, borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16 },
+  note: { marginTop: 8, fontSize: 14 },
   spacer: { flex: 1 },
   button: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12 },
   primary: { marginLeft: 'auto' },

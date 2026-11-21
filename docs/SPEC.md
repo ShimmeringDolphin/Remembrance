@@ -51,6 +51,8 @@ See [src/core/types.ts](../src/core/types.ts). Points have `kind` (`note` now, `
 
 Welcome and permission flow, Reminder card, Today (review now: a "Review now" button on Home shows the newest active points, and tapping a reminder shows that reminder's points; the Remembered and Again soon buttons are not built yet), Points list (Daily and Long-term tabs), Archived (list of archived points with Restore, and Delete forever after a confirmation; only archived points can be deleted), Add or edit point, Settings. If notification permission is refused, Today shows a banner linking to system settings.
 
+Daily points expire: when adding one the user picks how many days it repeats (1 to 6, counting the day of entry; default 1). After its last day (local midnight) it is archived automatically, with its date of entry shown in the Archived view, and the user can restore it (a restored point no longer expires). Choosing more than 6 days shows a notice and saves the point as Long-term, which never expires. Moving a point to Long-term clears its expiry. Expiry is checked when the app opens or returns to the foreground, and the scheduler never books a reminder at or after a point's expiry, so no background work is needed. Daily points created before this change do not expire.
+
 ## Languages
 
 English, Hindi, Gujarati. Screen text lives in language files so more can be added. Spoken reminders depend on voices installed on the phone; the app checks and warns if one is missing. Noto Sans is used for Devanagari and Gujarati.

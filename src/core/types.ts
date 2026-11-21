@@ -29,6 +29,8 @@ export interface Point {
   /** Overrides Settings.notificationStyle when set. */
   notificationStyle: NotificationStyle | null;
   private: boolean;
+  /** When a Daily point stops and is archived (ISO 8601). Null means it never expires. */
+  expiresAt: string | null;
   createdAt: string;
   updatedAt: string;
   lastShownAt: string | null;
