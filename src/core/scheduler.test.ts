@@ -39,6 +39,7 @@ function point(id: string, overrides: Partial<Point> = {}): Point {
     speak: false,
     private: false,
     notificationStyle: null,
+    expiresAt: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     lastShownAt: null,
@@ -185,4 +186,21 @@ test('default frequency comes from settings', () => {
 
 test('no points plans nothing', () => {
   assert.deepEqual(planReminders([], settings, at(5, 0)), []);
+});
+
+test('a point does not remind at or after its expiry', () => {
+  const expiresAt = at(2, 0).toISOString(); // midnight at the end of Jan 1
+  const plan = planReminders([point('a', { expiresAt })], settings, at(1, 6, 0), 60);
+  assert.ok(plan.length > 0);
+  assert.ok(plan.every((r) => r.at.getTime() < at(2, 0).getTime()));
+});
+
+test('an already expired point plans nothing', () => {
+  const expiresAt = at(1, 5).toISOString();
+  assert.deepEqual(planReminders([point('a', { expiresAt })], settings, at(1, 6, 0)), []);
+});
+
+test('a point with no expiry keeps going across days', () => {
+  const plan = planReminders([point('a')], settings, at(1, 6, 0), 60);
+  assert.ok(plan.some((r) => r.at.getTime() >= at(2, 0).getTime()));
 });

@@ -143,6 +143,7 @@ export function planReminders(
         if (!win.isActive(minute % DAY)) continue;
         const at = new Date(y, mo, d, 0, minute);
         if (at.getTime() <= now.getTime()) continue;
+        if (point.expiresAt !== null && at.getTime() >= Date.parse(point.expiresAt)) continue;
 
         if (style === 'grouped') {
           const ids = groupedByTime.get(at.getTime());
