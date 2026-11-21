@@ -53,6 +53,8 @@ Welcome and permission flow, Reminder card, Today (review now: a "Review now" bu
 
 Daily points expire: when adding one the user picks how many days it repeats (1 to 6, counting the day of entry; default 1). After its last day (local midnight) it is archived automatically, with its date of entry shown in the Archived view, and the user can restore it (a restored point no longer expires). Choosing more than 6 days shows a notice and saves the point as Long-term, which never expires. Moving a point to Long-term clears its expiry. Expiry is checked when the app opens or returns to the foreground, and the scheduler never books a reminder at or after a point's expiry, so no background work is needed. Daily points created before this change do not expire. Each expiring Daily card shows "Last day: today" or the date (a text label for now; the owner may replace it with a clock icon later).
 
+Quiet hours are set in Settings: up to 3 daily time ranges (From and To in 30-minute steps, ranges may cross midnight), each removable. No reminders fall inside a quiet range, every day. They are separate from the Awake/Sleep button, which stops all reminders until switched back. New ranges start at 13:00 to 14:00 and stored settings with more than 3 are trimmed.
+
 ## Languages
 
 English, Hindi, Gujarati. Screen text lives in language files so more can be added. Spoken reminders depend on voices installed on the phone; the app checks and warns if one is missing. Noto Sans is used for Devanagari and Gujarati.
