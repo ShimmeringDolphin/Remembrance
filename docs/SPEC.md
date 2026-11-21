@@ -21,12 +21,18 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 ## Appearances and the sky
 
 - When rebooking, reminders that were booked and whose time has passed count as one appearance for each point in them, in the same transaction that stores the new bookings. This is approximate: a phone that was off still counts.
-- **Your sky** appears once the total appearances of live points reach 30. Up to 30 stars on a golden-angle spiral, oldest in the middle; size grows with appearances (log scale, full at 200) and never shrinks.
+- **Your sky** appears once the total appearances of live points reach 30. In development builds (testing in Expo Go) it also appears after 3 reminders have passed (`remindersPassed` in `kv`). Up to 30 stars on a golden-angle spiral, oldest in the middle; size grows with appearances (log scale, full at 200) and never shrinks.
 
 ## First run
 
 - One screen: a title, a sentence and one box. Keeping the first point (as Daily) asks once whether to turn on reminders, explaining the default times. "Not now" leaves a calm banner on Home with a Turn on button.
 
+## Help and late reminders
+
+- Android without the exact-alarm permission (we do not ask for it) books reminders with `setAndAllowWhileIdle`. While the phone sleeps (Doze) or under maker battery savers, they can be held and shown together on unlock.
+- After notifications are allowed on Android, Home shows a one-time card suggesting "Unrestricted" battery use, with a button to the phone's battery page (`android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS`, falling back to the app's settings).
+- A Help page answers: late or bundled reminders (Android) or bundled ones (iPhone: Focus, Scheduled Summary), no reminders, no words on the lock screen, battery use, and where points are kept.
+
 ## Storage
 
-- SQLite (`yaadom.db`), migrations by `PRAGMA user_version`. Version 1: `points` and `kv` (settings, booked reminders, first-run flags). Points are not encrypted yet.
+- SQLite (`yaadom.db`), migrations by `PRAGMA user_version`. Version 1: `points` and `kv` (settings, booked reminders, reminders passed, first-run flags and the battery tip flag). Points are not encrypted yet.

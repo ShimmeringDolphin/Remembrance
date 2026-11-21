@@ -6,7 +6,7 @@ import { buildContent } from './content.ts';
 import { canAdd, cleanText, MAX_PER_CATEGORY, MAX_TEXT_LENGTH } from './limits.ts';
 import { DAYS_AHEAD, fillTimes, HANDFUL, JITTER_MINUTES, LONG_TERM_EVERY, MAX_BOOKED, planSlots, planTimes } from './planner.ts';
 import { defaultSettings, mergeSettings } from './settings.ts';
-import { FULL_STAR, layoutSky, starSize, totalAppearances } from './sky.ts';
+import { FULL_STAR, layoutSky, skyUnlocked, starSize, totalAppearances } from './sky.ts';
 import { formatTime, parseTime, shiftTime, windowLength } from './time.ts';
 import type { Point, Settings } from './types.ts';
 
@@ -174,6 +174,7 @@ test('appearances count passed reminders once per point; damaged records read as
   assert.equal(r.counts.get('a'), 2);
   assert.equal(r.counts.get('b'), 1);
   assert.equal(r.lastAt.get('a'), '2026-01-05T11:00:00Z');
+  assert.equal(r.passed, 2);
   assert.deepEqual(parseBooked('nope'), []);
   assert.deepEqual(parseBooked('[{"at":"x","pointIds":[1]}]'), []);
 });
@@ -191,4 +192,12 @@ test('stars grow with appearances, never shrink, keep their place and skip put-a
   for (const s of sky) assert.ok(s.x > 0 && s.x < 1 && s.y > 0 && s.y < 1);
   assert.deepEqual(layoutSky([...pts, point('new')]).slice(0, 8), sky);
   assert.equal(totalAppearances(pts), 40);
+});
+
+test('the sky opens at 30 appearances, or after 3 reminders only while testing', () => {
+  const few = [point('a', { appearances: 2 })];
+  assert.equal(skyUnlocked(few, 3, false), false);
+  assert.equal(skyUnlocked(few, 2, true), false);
+  assert.equal(skyUnlocked(few, 3, true), true);
+  assert.equal(skyUnlocked([point('b', { appearances: 30 })], 0, false), true);
 });

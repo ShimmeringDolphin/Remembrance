@@ -47,6 +47,24 @@ export function PointSheet(props: { point: Point | null; t: Strings; theme: Them
           <Text style={[styles.muted, { color: theme.muted }]}>{seen}</Text>
 
           {!p.archived && (
+            <View style={[styles.privateRow, { borderColor: theme.line, backgroundColor: theme.soft }]}>
+              <View style={styles.flex}>
+                <Text style={[styles.label, { color: theme.text }]}>{t.makePrivate}</Text>
+                <Text style={[styles.muted, { color: theme.muted }]}>{t.privateHint}</Text>
+              </View>
+              <Switch
+                accessibilityLabel={t.makePrivate}
+                accessibilityHint={t.privateHint}
+                value={p.private}
+                onValueChange={(v) => actions.setPrivate(p.id, v)}
+                trackColor={{ false: theme.line, true: theme.accent }}
+                thumbColor={theme.surface}
+                ios_backgroundColor={theme.line}
+              />
+            </View>
+          )}
+
+          {!p.archived && (
             <>
               <Button
                 label={p.category === 'daily' ? t.moveToLongTerm : t.moveToDaily}
@@ -54,10 +72,6 @@ export function PointSheet(props: { point: Point | null; t: Strings; theme: Them
                 kind="plain"
                 onPress={async () => setFull(!(await actions.move(p.id, other)))}
               />
-              <View style={styles.switchRow}>
-                <Text style={[styles.label, { color: theme.text }]}>{t.makePrivate}</Text>
-                <Switch accessibilityLabel={t.makePrivate} value={p.private} onValueChange={(v) => actions.setPrivate(p.id, v)} />
-              </View>
               <Button label={t.putAway} hint={t.putAwayHint} theme={theme} kind="plain" onPress={() => actions.putAway(p.id)} />
             </>
           )}
@@ -91,6 +105,7 @@ const styles = StyleSheet.create({
   content: { padding: 24, paddingBottom: 40, gap: 12 },
   input: { minHeight: 80, borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 18, textAlignVertical: 'top' },
   muted: { fontSize: 15, lineHeight: 22 },
-  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 48 },
-  label: { fontSize: 16, flex: 1 },
+  privateRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 12, padding: 12 },
+  flex: { flex: 1, gap: 2 },
+  label: { fontSize: 17, fontWeight: '600' },
 });

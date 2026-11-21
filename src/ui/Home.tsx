@@ -3,7 +3,6 @@ import { useMemo, useState } from 'react';
 import { Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { MAX_TEXT_LENGTH, cleanText } from '../core/limits';
-import { SKY_UNLOCK, totalAppearances } from '../core/sky';
 import type { Category, Point } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import type { Permission } from '../notify/reminders';
@@ -15,6 +14,10 @@ interface Props {
   theme: Theme;
   points: Point[];
   paused: boolean;
+  skyOpen: boolean;
+  batteryTip: boolean;
+  onBatteryTip: (open: boolean) => void;
+  onHelp: () => void;
   permission: Permission;
   onAdd: (text: string, category: Category) => Promise<boolean>;
   onOpen: (id: string) => void;
@@ -51,18 +54,30 @@ export function Home(props: Props) {
     setFull(!ok);
     if (ok) setText('');
   };
-  const total = totalAppearances(points);
 
   const header = (
     <View style={styles.header}>
       <View style={styles.topRow}>
         <Text accessibilityRole="header" style={[styles.brand, { color: theme.accent }]}>{t.appName}</Text>
-        <Button label={t.settings} theme={theme} kind="quiet" onPress={props.onSettings} />
+        <View style={styles.row}>
+          <Button label={t.help} theme={theme} kind="quiet" onPress={props.onHelp} />
+          <Button label={t.settings} theme={theme} kind="quiet" onPress={props.onSettings} />
+        </View>
       </View>
       {props.permission !== 'granted' && (
         <Card theme={theme}>
           <Text style={[styles.note, { color: theme.text }]}>{t.notificationsOff}</Text>
           <Button label={t.turnOn} theme={theme} kind="plain" onPress={props.onTurnOn} />
+        </Card>
+      )}
+      {props.batteryTip && (
+        <Card theme={theme}>
+          <Text style={[styles.tipTitle, { color: theme.text }]}>{t.batteryTipTitle}</Text>
+          <Text style={[styles.note, { color: theme.muted }]}>{t.batteryTipBody}</Text>
+          <View style={styles.row}>
+            <Button label={t.openBattery} theme={theme} kind="plain" onPress={() => props.onBatteryTip(true)} />
+            <Button label={t.gotIt} theme={theme} kind="quiet" onPress={() => props.onBatteryTip(false)} />
+          </View>
         </Card>
       )}
       {props.paused && (
@@ -96,7 +111,7 @@ export function Home(props: Props) {
         )}
         <Button label={t.keep} theme={theme} disabled={!clean} onPress={add} />
       </Card>
-      {total >= SKY_UNLOCK && (
+      {props.skyOpen && (
         <Pressable accessibilityRole="button" accessibilityLabel={t.skyOpen} onPress={props.onSky} style={[styles.sky, { backgroundColor: theme.sky }]}>
           <Text style={[styles.skyTitle, { color: theme.star }]}>✦ {t.skyTitle}</Text>
           <Text style={[styles.skyBody, { color: '#D9DCF0' }]}>{t.skyCardBody}</Text>
@@ -153,6 +168,7 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   brand: { fontSize: 22, fontWeight: '700', letterSpacing: 1 },
   note: { fontSize: 15, lineHeight: 22 },
+  tipTitle: { fontSize: 16, fontWeight: '700' },
   input: { minHeight: 56, fontSize: 18, textAlignVertical: 'top' },
   row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   sky: { borderRadius: 14, padding: 16, gap: 4 },

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "YaadOM",
-    "slug": "yaadom",
+    "name": "YaadOM-Sky",
+    "slug": "yaadom-sky",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,7 +16,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "dev.yaadom.sky.test"
     },
     "web": {
       "favicon": "./assets/favicon.png"
