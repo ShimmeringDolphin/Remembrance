@@ -3,15 +3,17 @@ import { useEffect, useState } from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { MAX_TEXT_LENGTH, cleanText } from '../core/limits';
-import type { Point } from '../core/types';
+import { PACES } from '../core/pace';
+import type { Pace, Point } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import type { Theme } from '../theme/calmStudy';
-import { Button } from './parts';
+import { Button, Choice } from './parts';
 
 export interface PointActions {
   edit: (id: string, text: string) => void;
   move: (id: string, to: Point['category']) => Promise<boolean>;
   setPrivate: (id: string, value: boolean) => void;
+  setPace: (id: string, pace: Pace) => void;
   putAway: (id: string) => void;
   bringBack: (id: string) => Promise<boolean>;
   deleteForGood: (id: string) => void;
@@ -29,6 +31,7 @@ export function PointSheet(props: { point: Point | null; t: Strings; theme: Them
   const clean = cleanText(text);
   const other = p.category === 'daily' ? 'long_term' : 'daily';
   const seen = p.appearances === 0 ? t.appearedNone : p.appearances === 1 ? t.appearedOnce : fill(t.appeared, { n: p.appearances });
+  const paceLabel: Record<Pace, string> = { often: t.paceOften, normal: t.paceNormal, rarely: t.paceRarely };
   const fullText = fill(t.full, { name: other === 'daily' ? t.daily : t.longTerm });
 
   return (
@@ -61,6 +64,18 @@ export function PointSheet(props: { point: Point | null; t: Strings; theme: Them
                 thumbColor={theme.surface}
                 ios_backgroundColor={theme.line}
               />
+            </View>
+          )}
+
+          {!p.archived && (
+            <View style={[styles.paceBox, { borderColor: theme.line }]} accessibilityRole="radiogroup" accessibilityLabel={t.pointPace}>
+              <Text style={[styles.label, { color: theme.text }]}>{t.pointPace}</Text>
+              <View style={styles.paceRow}>
+                {PACES.map((pace) => (
+                  <Choice key={pace} label={paceLabel[pace]} selected={p.pace === pace} theme={theme} onPress={() => actions.setPace(p.id, pace)} />
+                ))}
+              </View>
+              <Text style={[styles.muted, { color: theme.muted }]}>{t.pointPaceHint}</Text>
             </View>
           )}
 
@@ -105,6 +120,8 @@ const styles = StyleSheet.create({
   content: { padding: 24, paddingBottom: 40, gap: 12 },
   input: { minHeight: 80, borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 18, textAlignVertical: 'top' },
   muted: { fontSize: 15, lineHeight: 22 },
+  paceBox: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 8 },
+  paceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   privateRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 12, padding: 12 },
   flex: { flex: 1, gap: 2 },
   label: { fontSize: 17, fontWeight: '600' },

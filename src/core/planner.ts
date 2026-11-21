@@ -3,6 +3,7 @@
 // Each reminder shows a small handful of points, taking turns, so every notification can be read
 // at a glance and every point gets its fair share. Long-term points join every third reminder.
 import { activeAt } from './expiry.ts';
+import { paceWindows } from './pace.ts';
 import { inQuiet } from './quiet.ts';
 import { DAY_MINUTES, parseTime, windowLength } from './time.ts';
 import type { Point, Settings } from './types';
@@ -83,12 +84,6 @@ function turnCounter(settings: Settings): (at: Date) => number {
 
 const byAge = (a: Point, b: Point) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id);
 
-function take<T>(list: readonly T[], start: number, count: number): T[] {
-  const out: T[] = [];
-  for (let i = 0; i < Math.min(count, list.length); i++) out.push(list[(start + i) % list.length]);
-  return out;
-}
-
 /**
  * Picks the points for each reminder time. The turn order comes from the time itself, so it
  * carries on fairly across rebookings instead of restarting with the same point.
@@ -97,23 +92,33 @@ export function fillTimes(times: readonly Date[], points: readonly Point[], sett
   const all = points.filter((p) => !p.archived).sort(byAge);
   if (all.length === 0) return [];
   const turn = turnCounter(settings);
+  // Turn cycles only change when a point expires, so build each one once.
+  const cycles = new Map<string, Point[][]>();
+  const cycle = (list: Point[], size: number) => {
+    const key = `${size}|${list.map((p) => p.id).join(',')}`;
+    let c = cycles.get(key);
+    if (!c) cycles.set(key, (c = paceWindows(list, size)));
+    return c;
+  };
+  const ids = (windows: Point[][], n: number, count: number) => windows[n % windows.length].slice(0, count).map((p) => p.id);
   const out: Slot[] = [];
   for (const at of times) {
     // A Daily point never comes back at or after its expiry.
     const live = all.filter((p) => activeAt(p.expiresAt, at));
+    if (live.length === 0) continue;
     const daily = live.filter((p) => p.category === 'daily');
     const longTerm = live.filter((p) => p.category === 'long_term');
-    if (live.length === 0) continue;
     const n = turn(at);
-    const ids: string[] = [];
+    let pointIds: string[];
     if (daily.length === 0) {
-      ids.push(...take(longTerm, n * HANDFUL, HANDFUL).map((p) => p.id));
+      pointIds = ids(cycle(longTerm, HANDFUL), n, HANDFUL);
     } else {
+      // Each point's pace decides its share of the turns (see pace.ts).
       const withLongTerm = longTerm.length > 0 && n % LONG_TERM_EVERY === 0;
-      ids.push(...take(daily, n * HANDFUL, withLongTerm ? HANDFUL - 1 : HANDFUL).map((p) => p.id));
-      if (withLongTerm) ids.push(longTerm[Math.floor(n / LONG_TERM_EVERY) % longTerm.length].id);
+      pointIds = ids(cycle(daily, HANDFUL), n, withLongTerm ? HANDFUL - 1 : HANDFUL);
+      if (withLongTerm) pointIds.push(...ids(cycle(longTerm, 1), Math.floor(n / LONG_TERM_EVERY), 1));
     }
-    out.push({ at, pointIds: ids });
+    out.push({ at, pointIds });
   }
   return out;
 }

@@ -9,6 +9,7 @@ import type { Language, Settings } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import type { Theme } from '../theme/calmStudy';
 import { Button, Choice } from './parts';
+import { QuietAdder } from './QuietAdder';
 import { TimeField } from './TimeField';
 
 const STEP = 30;
@@ -111,7 +112,7 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
               <Button label={t.removeQuiet} theme={theme} kind="quiet" onPress={() => set({ quiet: removeQuiet(s.quiet, i) })} />
             </View>
           ))}
-          {s.quiet.length < MAX_QUIET && <Button label={t.addQuiet} theme={theme} kind="plain" onPress={() => set({ quiet: addQuiet(s.quiet) })} />}
+          {s.quiet.length < MAX_QUIET && <QuietAdder t={t} theme={theme} onAdd={(r) => set({ quiet: addQuiet(s.quiet, r) })} />}
         </>,
       )}
 

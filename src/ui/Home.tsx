@@ -228,6 +228,9 @@ export function Home(props: Props) {
             {isFresh && <Text style={[styles.freshTag, { backgroundColor: colour, color: theme.onAccent }]}>{t.justCameBack}</Text>}
             <Text style={[styles.pointText, { color: item.archived ? theme.muted : theme.text }]}>{item.text}</Text>
             {item.private && <Text style={[styles.tag, { color: theme.muted }]}>{t.privateTag}</Text>}
+            {!item.archived && item.pace !== 'normal' && (
+              <Text style={[styles.tag, { color: theme.muted }]}>{item.pace === 'often' ? t.paceOftenTag : t.paceRarelyTag}</Text>
+            )}
             {!item.archived && lastDay(item.expiresAt)}
           </Pressable>
         );

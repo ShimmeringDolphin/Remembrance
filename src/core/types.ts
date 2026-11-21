@@ -4,6 +4,8 @@ export type Language = 'en' | 'hi' | 'gu';
 export type Category = 'daily' | 'long_term';
 /** `note` today. `qa` is reserved for question-and-answer points (a later, opt-in mode). */
 export type PointKind = 'note' | 'qa';
+/** How often a point comes back compared with the others: `often` about twice as much as `normal`, `rarely` about half. */
+export type Pace = 'often' | 'normal' | 'rarely';
 
 export interface Point {
   id: string;
@@ -24,6 +26,8 @@ export interface Point {
   lastAppearedAt: string | null;
   /** Daily points stop at this moment (local midnight after their last day) and are put away. Null: never. */
   expiresAt: string | null;
+  /** Share of the turns. `normal` unless the user changes it; How often in Settings sets the base for all. */
+  pace: Pace;
 }
 
 /** A daily time range, "HH:mm" to "HH:mm"; may cross midnight. */
