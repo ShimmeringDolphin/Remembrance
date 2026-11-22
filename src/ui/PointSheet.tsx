@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { MAX_TEXT_LENGTH, cleanText } from '../core/limits';
-import { PACES } from '../core/pace';
+import { MAX_EVERY, PACES } from '../core/pace';
 import type { Pace, Point } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import type { Theme } from '../theme/calmStudy';
@@ -21,7 +21,7 @@ export interface PointActions {
   deleteForGood: (id: string) => void;
 }
 
-export function PointSheet(props: { point: Point | null; t: Strings; theme: Theme; actions: PointActions; onClose: () => void }) {
+export function PointSheet(props: { point: Point | null; t: Strings; theme: Theme; actions: PointActions; onClose: () => void; /** Live Daily points set to Every reminder. */ everyCount: number }) {
   const { point: p, t, theme, actions } = props;
   const [text, setText] = useState(p?.text ?? '');
   const [full, setFull] = useState(false);
@@ -33,7 +33,9 @@ export function PointSheet(props: { point: Point | null; t: Strings; theme: Them
   const clean = cleanText(text);
   const other = p.category === 'daily' ? 'long_term' : 'daily';
   const seen = p.appearances === 0 ? t.appearedNone : p.appearances === 1 ? t.appearedOnce : fill(t.appeared, { n: p.appearances });
-  const paceLabel: Record<Pace, string> = { often: t.paceOften, normal: t.paceNormal, rarely: t.paceRarely };
+  const paceLabel: Record<Pace, string> = { every: t.paceEvery, often: t.paceOften, normal: t.paceNormal };
+  // Only Daily points have a pace; the cap leaves at least one place in each reminder rotating.
+  const everyFull = p.pace !== 'every' && props.everyCount >= MAX_EVERY;
   const fullText = fill(t.full, { name: other === 'daily' ? t.daily : t.longTerm });
 
   return (
@@ -69,15 +71,21 @@ export function PointSheet(props: { point: Point | null; t: Strings; theme: Them
             </View>
           )}
 
-          {!p.archived && (
+          {!p.archived && p.category === 'daily' && (
             <View style={[styles.paceBox, { borderColor: theme.line }]} accessibilityRole="radiogroup" accessibilityLabel={t.pointPace}>
               <Text style={[styles.label, { color: theme.text }]}>{t.pointPace}</Text>
               <View style={styles.paceRow}>
                 {PACES.map((pace) => (
-                  <Choice key={pace} label={paceLabel[pace]} selected={p.pace === pace} theme={theme} onPress={() => actions.setPace(p.id, pace)} />
+                  <Choice
+                    key={pace}
+                    label={paceLabel[pace]}
+                    selected={p.pace === pace}
+                    theme={theme}
+                    onPress={() => (pace === 'every' && everyFull ? undefined : actions.setPace(p.id, pace))}
+                  />
                 ))}
               </View>
-              <Text style={[styles.muted, { color: theme.muted }]}>{t.pointPaceHint}</Text>
+              <Text style={[styles.muted, { color: theme.muted }]}>{everyFull ? t.paceEveryFull : t.pointPaceHint}</Text>
             </View>
           )}
 

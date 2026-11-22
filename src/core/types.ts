@@ -4,8 +4,11 @@ export type Language = 'en' | 'hi' | 'gu';
 export type Category = 'daily' | 'long_term';
 /** `note` today. `qa` is reserved for question-and-answer points (a later, opt-in mode). */
 export type PointKind = 'note' | 'qa';
-/** How often a point comes back compared with the others: `often` about twice as much as `normal`, `rarely` about half. */
-export type Pace = 'often' | 'normal' | 'rarely';
+/**
+ * How often a Daily point comes back: `every` reminder (at most MAX_EVERY points), `often` (about
+ * twice as much as `normal`) or `normal`. Long-term points always take normal turns.
+ */
+export type Pace = 'every' | 'often' | 'normal';
 
 export interface Point {
   id: string;

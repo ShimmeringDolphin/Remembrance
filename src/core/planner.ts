@@ -3,7 +3,7 @@
 // Each reminder shows a small handful of points, taking turns, so every notification can be read
 // at a glance and every point gets its fair share. Long-term points join every third reminder.
 import { activeAt } from './expiry.ts';
-import { paceWindows } from './pace.ts';
+import { asNormal, paceWindows, splitDaily } from './pace.ts';
 import { inQuiet } from './quiet.ts';
 import { DAY_MINUTES, parseTime, windowLength } from './time.ts';
 import type { Point, Settings } from './types';
@@ -107,7 +107,7 @@ export function fillTimes(times: readonly Date[], points: readonly Point[], sett
     const live = all.filter((p) => activeAt(p.expiresAt, at));
     if (live.length === 0) continue;
     const daily = live.filter((p) => p.category === 'daily');
-    const longTerm = live.filter((p) => p.category === 'long_term');
+    const longTerm = asNormal(live.filter((p) => p.category === 'long_term'));
     const n = turn(at);
     let pointIds: string[];
     if (daily.length === 0) {
@@ -115,7 +115,23 @@ export function fillTimes(times: readonly Date[], points: readonly Point[], sett
     } else {
       // Each point's pace decides its share of the turns (see pace.ts).
       const withLongTerm = longTerm.length > 0 && n % LONG_TERM_EVERY === 0;
-      pointIds = ids(cycle(daily, HANDFUL), n, withLongTerm ? HANDFUL - 1 : HANDFUL);
+      const room = withLongTerm ? HANDFUL - 1 : HANDFUL;
+      // "Every reminder" points first, then the rotating ones in the places left.
+      const { every, rotating } = splitDaily(daily);
+      pointIds = every.slice(0, room).map((p) => p.id);
+      const left = room - pointIds.length;
+      if (left > 0 && rotating.length > 0) {
+        // The rotating points form one stream of turns; each reminder takes the next `left` of
+        // them. The stream position counts the places all earlier reminders had, so places lost
+        // to a Long-term point never skip the same Daily point twice.
+        const stream = cycle(rotating, 1).map((w) => w[0]);
+        const base = HANDFUL - every.length;
+        const start = n * base - (longTerm.length > 0 ? Math.ceil(n / LONG_TERM_EVERY) : 0);
+        for (let k = 0; k < left; k++) {
+          const id = stream[(((start + k) % stream.length) + stream.length) % stream.length].id;
+          if (!pointIds.includes(id)) pointIds.push(id);
+        }
+      }
       if (withLongTerm) pointIds.push(...ids(cycle(longTerm, 1), Math.floor(n / LONG_TERM_EVERY), 1));
     }
     out.push({ at, pointIds });

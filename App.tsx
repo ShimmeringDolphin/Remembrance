@@ -335,7 +335,7 @@ export default function App() {
             onTurnOn={turnOn}
           />
         )}
-        <PointSheet point={points.find((p) => p.id === openId) ?? null} t={t} theme={theme} actions={actions} onClose={() => setOpenId(null)} />
+        <PointSheet everyCount={points.filter((p) => !p.archived && p.category === 'daily' && p.pace === 'every').length} point={points.find((p) => p.id === openId) ?? null} t={t} theme={theme} actions={actions} onClose={() => setOpenId(null)} />
         <PermissionSheet visible={askNow} t={t} theme={theme} from={settings.from} to={settings.to} onYes={() => answerPermission(true)} onLater={() => answerPermission(false)} />
       </SafeAreaView>
     </SafeAreaProvider>

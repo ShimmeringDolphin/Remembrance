@@ -125,7 +125,7 @@ export async function editPoint(id: string, text: string): Promise<void> {
 export async function movePoint(id: string, category: Category): Promise<boolean> {
   const d = await db();
   const r = await d.runAsync(
-    `UPDATE points SET category = ?, updated_at = ?, expires_at = NULL
+    `UPDATE points SET category = ?, updated_at = ?, expires_at = NULL, pace = 'normal'
      WHERE id = ? AND category <> ?
        AND (archived = 1 OR (SELECT COUNT(*) FROM points WHERE category = ? AND archived = 0) < ?)`,
     category, new Date().toISOString(), id, category, category, MAX_PER_CATEGORY,
