@@ -11,6 +11,7 @@ import { fill, type Strings } from '../i18n/strings';
 import type { Permission } from '../notify/reminders';
 import { tint, tintSoft, type Theme } from '../theme/calmStudy';
 import { OverflowMenu } from './OverflowMenu';
+import { SkyMark } from './SkyMark';
 import { Button, Card, Choice } from './parts';
 
 interface Props {
@@ -104,6 +105,12 @@ export function Home(props: Props) {
     <View style={styles.header}>
       <View style={styles.topRow}>
         <Text accessibilityRole="header" style={[styles.brand, { color: theme.accent }]}>{t.appName}</Text>
+        <View style={styles.menuRow}>
+        {props.skyOpen && (
+          <Pressable accessibilityRole="button" accessibilityLabel={t.skyOpen} onPress={props.onSky} hitSlop={4} style={[styles.skyButton, { backgroundColor: theme.sky }]}>
+            <SkyMark size={30} />
+          </Pressable>
+        )}
         <OverflowMenu
           label={t.menu}
           theme={theme}
@@ -112,6 +119,7 @@ export function Home(props: Props) {
             { label: t.settings, run: props.onSettings },
           ]}
         />
+        </View>
       </View>
 
       <View style={[styles.toggle, { borderColor: theme.line, backgroundColor: theme.surface }]} accessibilityRole="radiogroup">
@@ -205,12 +213,6 @@ export function Home(props: Props) {
       {props.fresh.size > 0 && props.latestNew && (
         <Button label={t.latestMoment} theme={theme} kind="plain" onPress={props.onLatestMoment} />
       )}
-      {props.skyOpen && (
-        <Pressable accessibilityRole="button" accessibilityLabel={t.skyOpen} onPress={props.onSky} style={[styles.sky, { backgroundColor: theme.sky }]}>
-          <Text style={[styles.skyTitle, { color: theme.star }]}>✦ {t.skyTitle}</Text>
-          <Text style={[styles.skyBody, { color: theme.skyText }]}>{t.skyCardBody}</Text>
-        </Pressable>
-      )}
     </View>
   );
 
@@ -295,9 +297,8 @@ const styles = StyleSheet.create({
   tipTitle: { fontSize: 16, fontWeight: '700' },
   input: { minHeight: 56, fontSize: 18, textAlignVertical: 'top' },
   row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' },
-  sky: { borderRadius: 14, padding: 16, gap: 4 },
-  skyTitle: { fontSize: 18, fontWeight: '700' },
-  skyBody: { fontSize: 15, lineHeight: 22 },
+  menuRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  skyButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   sectionHead: { paddingTop: 18, paddingBottom: 8, minHeight: 44, justifyContent: 'center' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 12, height: 12, borderRadius: 6 },
