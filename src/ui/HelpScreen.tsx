@@ -1,10 +1,44 @@
 // Plain answers to the questions people actually ask, with a button where one helps.
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { Strings } from '../i18n/strings';
 import { openAppSettings, openBatterySettings } from '../notify/phoneSettings';
 import type { Theme } from '../theme/calmStudy';
 import { Button, Card } from './parts';
+
+// An answer shows two lines with a fade of three dots; Read more opens it, See less closes it.
+// A hidden copy of the full text is measured so short answers get no link.
+function Answer(props: { text: string; theme: Theme; t: Strings }) {
+  const { text, theme, t } = props;
+  const [open, setOpen] = useState(false);
+  const [long, setLong] = useState(false);
+  return (
+    <View>
+      <Text
+        style={[styles.a, styles.measure]}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        onTextLayout={(e) => setLong(e.nativeEvent.lines.length > 2)}
+      >
+        {text}
+      </Text>
+      <Text style={[styles.a, { color: theme.muted }]} numberOfLines={open ? undefined : 2} ellipsizeMode="tail">{text}</Text>
+      {long && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={open ? t.seeLess : t.readMore}
+          accessibilityState={{ expanded: open }}
+          hitSlop={8}
+          onPress={() => setOpen(!open)}
+          style={styles.more}
+        >
+          <Text style={[styles.moreText, { color: theme.accent }]}>{open ? t.seeLess : t.readMore}</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
 
 export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void }) {
   const { t, theme } = props;
@@ -26,7 +60,7 @@ export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void
       {items.map((item) => (
         <Card key={item.q} theme={theme}>
           <Text accessibilityRole="header" style={[styles.q, { color: theme.text }]}>{item.q}</Text>
-          <Text style={[styles.a, { color: theme.muted }]}>{item.a}</Text>
+          <Answer text={item.a} theme={theme} t={t} />
           {item.action && <Button label={item.action.label} theme={theme} kind="plain" onPress={item.action.run} />}
         </Card>
       ))}
@@ -40,4 +74,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '700', flexShrink: 1 },
   q: { fontSize: 17, fontWeight: '700', lineHeight: 24 },
   a: { fontSize: 16, lineHeight: 24 },
+  measure: { position: 'absolute', left: 0, right: 0, opacity: 0 },
+  more: { alignSelf: 'flex-start', paddingVertical: 6, minHeight: 32, justifyContent: 'center' },
+  moreText: { fontSize: 15, fontWeight: '700' },
 });
