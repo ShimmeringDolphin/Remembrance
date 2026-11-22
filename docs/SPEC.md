@@ -7,7 +7,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - A point is one line of up to 200 characters (whitespace collapsed). `kind` is `note`; `qa` and `answer` are reserved.
 - Category is **Daily** or **Long-term**. Each holds at most **15** live points. The limit is checked inside the SQL statement that adds, moves or brings back a point.
 - A point can be **private** (its words never appear in a notification or on the sky) and can be **put away** (kept, never shown in reminders, not counted toward the limit). Only a put-away point can be deleted for good, after a confirmation.
-- Each **Daily** point has a **pace** (`pace`: `every`, `often` or `normal`, default `normal`), set on its page. `every` puts it in every Daily reminder (at most 2 such points, oldest first, so one place keeps rotating; a third takes turns as Often). Rotating points share the other places Often 2 : Normal 1, by evenly spaced due times. Long-term points have no pace choice and always take normal turns; moving a point resets its pace. How often in Settings stays the base and sets the number of reminders. Home tags Daily points that are not Normal. Migration 3 adds `pace`; an older `rarely` reads as Normal.
+- Each point has a **pace** (`pace`), set on its page; default `normal`. Daily: `every` (in every Daily reminder; at most 2 such points, oldest first, so one place keeps rotating; a third takes turns as Often), `often` or `normal`. Long-term: `often`, `normal` or `rarely`. Rotating shares are Often 4 : Normal 2 : Rarely 1, by evenly spaced due times. A value from the other category reads as the nearest one (Every as Often, Rarely as Normal); moving a point resets its pace. How often in Settings stays the base and sets the number of reminders. Home tags points that are not Normal. Migration 3 adds `pace`.
 
 ## Daily points that stop (from main PRs #17 and #19)
 
@@ -15,7 +15,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - Expired points are put away whenever reminders are rebooked (app open, return to the front, any change). The planner never books a point at or after its expiry.
 - Bringing a point back or moving it to Long-term clears its expiry. Points written before this change never expire (migration 2 adds `expires_at`).
 - Cards show "Last day: today" or the date.
-- In a moment, **Done** on the last point is unavailable for 5 seconds (dimmed, with a short note), so a reminder is not closed before it is read.
+- In a moment, **Next** and **Done** (and tapping the card) are unavailable for 5 seconds on every point (dimmed, with a short note), so no point is skipped before it is read.
 
 ## Reminders
 

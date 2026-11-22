@@ -3,7 +3,7 @@
 // Each reminder shows a small handful of points, taking turns, so every notification can be read
 // at a glance and every point gets its fair share. Long-term points join every third reminder.
 import { activeAt } from './expiry.ts';
-import { asNormal, paceWindows, splitDaily } from './pace.ts';
+import { asLongTerm, paceWindows, splitDaily } from './pace.ts';
 import { inQuiet } from './quiet.ts';
 import { DAY_MINUTES, parseTime, windowLength } from './time.ts';
 import type { Point, Settings } from './types';
@@ -107,7 +107,7 @@ export function fillTimes(times: readonly Date[], points: readonly Point[], sett
     const live = all.filter((p) => activeAt(p.expiresAt, at));
     if (live.length === 0) continue;
     const daily = live.filter((p) => p.category === 'daily');
-    const longTerm = asNormal(live.filter((p) => p.category === 'long_term'));
+    const longTerm = asLongTerm(live.filter((p) => p.category === 'long_term'));
     const n = turn(at);
     let pointIds: string[];
     if (daily.length === 0) {

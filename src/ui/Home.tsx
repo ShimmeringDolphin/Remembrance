@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { paceFor } from '../core/pace';
 import { DEFAULT_DAILY_DAYS, lastDayOf, MAX_DAILY_DAYS, sameDay } from '../core/expiry';
 import { MAX_TEXT_LENGTH, cleanText } from '../core/limits';
 import type { Category, Point } from '../core/types';
@@ -250,8 +251,8 @@ export function Home(props: Props) {
             {isFresh && <Text style={[styles.freshTag, { backgroundColor: colour, color: theme.onAccent }]}>{t.justCameBack}</Text>}
             <Text style={[styles.pointText, { color: item.archived ? theme.muted : theme.text }]}>{item.text}</Text>
             {item.private && <Text style={[styles.tag, { color: theme.muted }]}>{t.privateTag}</Text>}
-            {!item.archived && item.category === 'daily' && item.pace !== 'normal' && (
-              <Text style={[styles.tag, { color: theme.muted }]}>{item.pace === 'every' ? t.paceEveryTag : t.paceOftenTag}</Text>
+            {!item.archived && paceFor(item) !== 'normal' && (
+              <Text style={[styles.tag, { color: theme.muted }]}>{{ every: t.paceEveryTag, often: t.paceOftenTag, rarely: t.paceRarelyTag, normal: '' }[paceFor(item)]}</Text>
             )}
             {!item.archived && lastDay(item.expiresAt)}
           </Pressable>
