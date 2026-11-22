@@ -13,7 +13,8 @@ import { skyUnlocked } from './src/core/sky';
 import type { Category, Point, Settings } from './src/core/types';
 import * as data from './src/data/db';
 import { deviceLanguage, strings } from './src/i18n/strings';
-import { openBatterySettings } from './src/notify/phoneSettings';
+import { isSamsung, openBatterySettings } from './src/notify/phoneSettings';
+import { dismissLateTip, lateTipNow } from './src/notify/timing';
 import { deleteRecording } from './src/notify/ownVoice';
 import { say, speak, stopAll } from './src/notify/voice';
 import { askPermission, initNotifications, noteSettings, permission, syncReminders, type Permission } from './src/notify/reminders';
@@ -54,6 +55,7 @@ export default function App() {
   const [askNow, setAskNow] = useState(false);
   const [remindersPassed, setRemindersPassed] = useState(0);
   const [tipSeen, setTipSeen] = useState(true);
+  const [lateTip, setLateTip] = useState(false);
   const [lastShown, setLastShown] = useState<Booked | null>(null);
   const [momentIds, setMomentIds] = useState<string[] | null>(null);
   // The latest reminder the user has already gone through; its button hides until the next one.
@@ -103,6 +105,7 @@ export default function App() {
         setReady(true);
       }
       await rebook();
+      setLateTip(await lateTipNow());
     })();
   }, [rebook]);
 
@@ -176,6 +179,7 @@ export default function App() {
       }
       setPerm(await permission());
       await rebook();
+      setLateTip(await lateTipNow());
     });
     return () => sub.remove();
   }, [rebook, stopListening]);
@@ -241,6 +245,12 @@ export default function App() {
     } catch {
       // Keep what is on screen.
     }
+  };
+
+  const answerLateTip = async (open: boolean) => {
+    setLateTip(false);
+    await dismissLateTip();
+    if (open) await openBatterySettings();
   };
 
   const act = (fn: () => Promise<unknown>) => async () => {
@@ -326,6 +336,9 @@ export default function App() {
             skyOpen={skyUnlocked(points, remindersPassed, TESTING)}
             batteryTip={Platform.OS === 'android' && perm === 'granted' && !tipSeen}
             onBatteryTip={answerBatteryTip}
+            lateTip={lateTip}
+            samsung={isSamsung}
+            onLateTip={answerLateTip}
             onHelp={() => setScreen('help')}
             permission={asked || perm !== 'undetermined' ? perm : 'granted'}
             onAdd={add}

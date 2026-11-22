@@ -21,8 +21,8 @@ interface Props {
   onClose: () => void;
 }
 
-/** How long Done stays unavailable on the last point of a moment. */
-const DONE_DELAY_MS = 5000;
+/** How long Next and Done stay unavailable on each point of a moment. */
+const READ_DELAY_MS = 5000;
 
 export function MomentScreen(props: Props) {
   const { t, theme, moment } = props;
@@ -30,14 +30,14 @@ export function MomentScreen(props: Props) {
   const done = i >= moment.length;
   const p = moment[Math.min(i, moment.length - 1)];
   const last = i === moment.length - 1;
-  // Done waits a few seconds on the last point, so a reminder is not closed before it is read.
-  const [doneReady, setDoneReady] = useState(false);
+  // Next and Done wait a few seconds on every point, so no point is skipped before it is read.
+  // One timeout per point, cleared when the point changes or the screen closes.
+  const [ready, setReady] = useState(false);
   useEffect(() => {
-    if (!last) return;
-    setDoneReady(false);
-    const timer = setTimeout(() => setDoneReady(true), DONE_DELAY_MS);
+    setReady(false);
+    const timer = setTimeout(() => setReady(true), READ_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [last, i]);
+  }, [i]);
 
   // Read the current card when "read aloud" is on. Private points are only read from a tap.
   useEffect(() => {
@@ -50,7 +50,7 @@ export function MomentScreen(props: Props) {
 
   const colour = tint(theme, p.category);
   const next = () => {
-    if (last && !doneReady) return;
+    if (!ready) return;
     stopAll();
     setI((n) => n + 1);
   };
@@ -90,15 +90,15 @@ export function MomentScreen(props: Props) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={last ? t.done : t.next}
-          accessibilityState={{ disabled: last && !doneReady }}
-          disabled={last && !doneReady}
+          accessibilityState={{ disabled: !ready }}
+          disabled={!ready}
           onPress={next}
-          style={[styles.btn, { backgroundColor: theme.cardText, borderColor: theme.cardText, opacity: last && !doneReady ? 0.35 : 1 }]}
+          style={[styles.btn, { backgroundColor: theme.cardText, borderColor: theme.cardText, opacity: ready ? 1 : 0.35 }]}
         >
           <Text style={[styles.btnText, { color: tintSoft(theme, p.category) }]}>{i < moment.length - 1 ? t.next : t.done}</Text>
         </Pressable>
       </View>
-      <Text style={[styles.small, { color: theme.cardText }]}>{last && !doneReady ? t.doneWait : t.tapNext}</Text>
+      <Text style={[styles.small, { color: theme.cardText }]}>{ready ? t.tapNext : t.readWait}</Text>
     </View>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { paceFor } from '../core/pace';
 import { DEFAULT_DAILY_DAYS, lastDayOf, MAX_DAILY_DAYS, sameDay } from '../core/expiry';
 import { MAX_TEXT_LENGTH, cleanText } from '../core/limits';
 import type { Category, Point } from '../core/types';
@@ -29,6 +30,10 @@ interface Props {
   onAsleep: (asleep: boolean) => void;
   onTurnOn: () => void;
   onBatteryTip: (open: boolean) => void;
+  /** Reminders were seen arriving late: say what to change. */
+  lateTip: boolean;
+  samsung: boolean;
+  onLateTip: (open: boolean) => void;
   onLatestMoment: () => void;
   /** The latest reminder has not been gone through yet. */
   latestNew: boolean;
@@ -131,10 +136,22 @@ export function Home(props: Props) {
           <Button label={t.turnOn} theme={theme} kind="plain" onPress={props.onTurnOn} />
         </Card>
       )}
-      {props.batteryTip && (
+      {props.lateTip && (
+        <Card theme={theme}>
+          <Text accessibilityRole="header" style={[styles.tipTitle, { color: theme.text }]}>{t.lateTipTitle}</Text>
+          <Text style={[styles.note, { color: theme.muted }]}>{t.lateTipBody}</Text>
+          {props.samsung && <Text style={[styles.note, { color: theme.muted }]}>{t.lateTipSamsung}</Text>}
+          <View style={styles.row}>
+            <Button label={t.openBattery} theme={theme} kind="plain" onPress={() => props.onLateTip(true)} />
+            <Button label={t.notNow} theme={theme} kind="quiet" onPress={() => props.onLateTip(false)} />
+          </View>
+        </Card>
+      )}
+      {props.batteryTip && !props.lateTip && (
         <Card theme={theme}>
           <Text style={[styles.tipTitle, { color: theme.text }]}>{t.batteryTipTitle}</Text>
           <Text style={[styles.note, { color: theme.muted }]}>{t.batteryTipBody}</Text>
+          {props.samsung && <Text style={[styles.note, { color: theme.muted }]}>{t.lateTipSamsung}</Text>}
           <View style={styles.row}>
             <Button label={t.openBattery} theme={theme} kind="plain" onPress={() => props.onBatteryTip(true)} />
             <Button label={t.gotIt} theme={theme} kind="quiet" onPress={() => props.onBatteryTip(false)} />
@@ -250,8 +267,8 @@ export function Home(props: Props) {
             {isFresh && <Text style={[styles.freshTag, { backgroundColor: colour, color: theme.onAccent }]}>{t.justCameBack}</Text>}
             <Text style={[styles.pointText, { color: item.archived ? theme.muted : theme.text }]}>{item.text}</Text>
             {item.private && <Text style={[styles.tag, { color: theme.muted }]}>{t.privateTag}</Text>}
-            {!item.archived && item.category === 'daily' && item.pace !== 'normal' && (
-              <Text style={[styles.tag, { color: theme.muted }]}>{item.pace === 'every' ? t.paceEveryTag : t.paceOftenTag}</Text>
+            {!item.archived && paceFor(item) !== 'normal' && (
+              <Text style={[styles.tag, { color: theme.muted }]}>{{ every: t.paceEveryTag, often: t.paceOftenTag, rarely: t.paceRarelyTag, normal: '' }[paceFor(item)]}</Text>
             )}
             {!item.archived && lastDay(item.expiresAt)}
           </Pressable>

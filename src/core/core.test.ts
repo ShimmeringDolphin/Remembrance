@@ -10,7 +10,7 @@ import { FULL_STAR, layoutSky, skyUnlocked, starSize, totalAppearances } from '.
 import { formatTime, parseTime, shiftTime, windowLength } from './time.ts';
 import { activeAt, expiryFor, lastDayOf, resolveDays } from './expiry.ts';
 import { addQuiet, inQuiet, MAX_QUIET, removeQuiet, setQuiet } from './quiet.ts';
-import { isPace, paceWindows } from './pace.ts';
+import { isPace, paceFor, paceWindows } from './pace.ts';
 import { listenSteps } from './moment.ts';
 import { widgetSlot } from './widget.ts';
 import { freshIds, listenQueue, momentPoints, starGrowth } from './moment.ts';
@@ -358,13 +358,25 @@ test('Every reminder: up to two Daily points in every Daily reminder, the rest s
   assert.ok((seen.get('lt') ?? 0) > 0);
 });
 
-test('Long-term points ignore pace; old "rarely" values read as Normal', () => {
-  const base = [point('a', { category: 'long_term' }), point('b', { category: 'long_term' }), point('c', { category: 'long_term' }), point('d', { category: 'long_term' })];
-  const times = planTimes(settings, at(5, 0), 40);
-  const plain = fillTimes(times, base, settings);
-  const paced = fillTimes(times, base.map((p, i) => (i === 0 ? { ...p, pace: 'every' as const } : p)), settings);
-  assert.deepEqual(paced, plain);
-  assert.equal(isPace('rarely'), false);
+test('Long-term points keep Often, Normal and Rarely: about twice and about half', () => {
+  const lt = (id: string, pace: Point['pace'] = 'normal') => point(id, { category: 'long_term', pace });
+  const pts = [lt('often', 'often'), ...Array.from({ length: 5 }, (_, i) => lt(`n${i}`)), lt('rarely', 'rarely')];
+  const s = { ...settings, mode: 'button' as const, every: 15 };
+  const seen = new Map<string, number>();
+  for (const slot of fillTimes(planTimes(s, at(5, 0), 400), pts, s)) {
+    assert.equal(new Set(slot.pointIds).size, slot.pointIds.length);
+    for (const id of slot.pointIds) seen.set(id, (seen.get(id) ?? 0) + 1);
+  }
+  const normal = [0, 1, 2, 3, 4].map((i) => seen.get(`n${i}`) ?? 0);
+  const avg = normal.reduce((x, y) => x + y, 0) / normal.length;
+  const often = (seen.get('often') ?? 0) / avg;
+  const rarely = (seen.get('rarely') ?? 0) / avg;
+  assert.ok(often > 1.6 && often < 2.4, `often ${often}`);
+  assert.ok(rarely > 0.35 && rarely < 0.65, `rarely ${rarely}`);
+  // Values from the other category read as the nearest one: Every on Long-term is Often, Rarely on Daily is Normal.
+  assert.equal(paceFor({ category: 'long_term', pace: 'every' }), 'often');
+  assert.equal(paceFor({ category: 'daily', pace: 'rarely' }), 'normal');
+  assert.equal(paceFor({ category: 'daily', pace: 'every' }), 'every');
 });
 
 test('when every point has the same pace, turns are exactly as before', () => {
@@ -379,6 +391,7 @@ test('when every point has the same pace, turns are exactly as before', () => {
   assert.deepEqual(order.slice(0, 10), ['p0', 'p1', 'p2', 'p3', 'p4', 'p0', 'p1', 'p2', 'p3', 'p4']);
   assert.equal(isPace('often'), true);
   assert.equal(isPace('fast'), false);
+  assert.equal(isPace('rarely'), true);
 });
 
 test('listen hands runs of points to the phone voice and plays own recordings one by one', () => {

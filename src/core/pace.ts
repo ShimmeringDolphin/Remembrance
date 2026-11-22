@@ -1,19 +1,23 @@
 // A point's pace: how big a share of the turns it gets. Pure.
 //
-// Daily points only. "Every reminder" points (at most MAX_EVERY, oldest first) are in every Daily
-// reminder; the rest share the other places, Often 2 : Normal 1. Long-term points always take
-// normal turns. When every point has the same pace it is plain round-robin in age order.
-import type { Pace, Point } from './types';
+// Daily points: Every reminder (at most MAX_EVERY, oldest first, in every Daily reminder), Often or
+// Normal. Long-term points: Often, Normal or Rarely. Shares of the rotating places are
+// Often 4 : Normal 2 : Rarely 1. When every point has the same pace it is plain round-robin.
+import type { Category, Pace, Point } from './types';
 
-export const PACES: readonly Pace[] = ['every', 'often', 'normal'];
+export const PACES: Record<Category, readonly Pace[]> = { daily: ['every', 'often', 'normal'], long_term: ['often', 'normal', 'rarely'] };
 export const DEFAULT_PACE: Pace = 'normal';
 /** At most this many Daily points can be in every reminder, so at least one place keeps rotating. */
 export const MAX_EVERY = 2;
 /** Shares of the rotating places. `every` points are not rotated; a share is kept for safety. */
-export const SHARE: Record<Pace, number> = { every: 2, often: 2, normal: 1 };
+export const SHARE: Record<Pace, number> = { every: 4, often: 4, normal: 2, rarely: 1 };
 
-/** Older builds stored `rarely`; it reads as normal. */
-export const isPace = (v: unknown): v is Pace => v === 'every' || v === 'often' || v === 'normal';
+export const isPace = (v: unknown): v is Pace => v === 'every' || v === 'often' || v === 'normal' || v === 'rarely';
+
+/** The pace a point really takes turns at, for its category. */
+export function paceFor(p: Pick<Point, 'pace' | 'category'>): Pace {
+  return PACES[p.category].includes(p.pace) ? p.pace : p.pace === 'every' ? 'often' : 'normal';
+}
 
 /**
  * Splits live Daily points (in age order) into the ones shown in every reminder and the ones that
@@ -23,14 +27,15 @@ export function splitDaily<T extends Point>(daily: readonly T[]): { every: T[]; 
   const every: T[] = [];
   const rotating: T[] = [];
   for (const p of daily) {
-    if (p.pace === 'every' && every.length < MAX_EVERY) every.push(p);
-    else rotating.push(p.pace === 'every' ? { ...p, pace: 'often' } : p);
+    const pace = paceFor(p);
+    if (pace === 'every' && every.length < MAX_EVERY) every.push(p);
+    else rotating.push(pace === p.pace && pace !== 'every' ? p : { ...p, pace: pace === 'every' ? 'often' : pace });
   }
   return { every, rotating };
 }
 
-/** Long-term points always take normal turns. */
-export const asNormal = <T extends Point>(list: readonly T[]): T[] => list.map((p) => (p.pace === 'normal' ? p : { ...p, pace: 'normal' }));
+/** Long-term points take turns at their own pace; a Daily-only value reads as the nearest one. */
+export const asLongTerm = <T extends Point>(list: readonly T[]): T[] => list.map((p) => (paceFor(p) === p.pace ? p : { ...p, pace: paceFor(p) }));
 
 /**
  * One full cycle of reminders, each holding up to `size` different points. Each point is due again

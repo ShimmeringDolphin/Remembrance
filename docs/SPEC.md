@@ -7,7 +7,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - A point is one line of up to 200 characters (whitespace collapsed). `kind` is `note`; `qa` and `answer` are reserved.
 - Category is **Daily** or **Long-term**. Each holds at most **15** live points. The limit is checked inside the SQL statement that adds, moves or brings back a point.
 - A point can be **private** (its words never appear in a notification or on the sky) and can be **put away** (kept, never shown in reminders, not counted toward the limit). Only a put-away point can be deleted for good, after a confirmation.
-- Each **Daily** point has a **pace** (`pace`: `every`, `often` or `normal`, default `normal`), set on its page. `every` puts it in every Daily reminder (at most 2 such points, oldest first, so one place keeps rotating; a third takes turns as Often). Rotating points share the other places Often 2 : Normal 1, by evenly spaced due times. Long-term points have no pace choice and always take normal turns; moving a point resets its pace. How often in Settings stays the base and sets the number of reminders. Home tags Daily points that are not Normal. Migration 3 adds `pace`; an older `rarely` reads as Normal.
+- Each point has a **pace** (`pace`), set on its page; default `normal`. Daily: `every` (in every Daily reminder; at most 2 such points, oldest first, so one place keeps rotating; a third takes turns as Often), `often` or `normal`. Long-term: `often`, `normal` or `rarely`. Rotating shares are Often 4 : Normal 2 : Rarely 1, by evenly spaced due times. A value from the other category reads as the nearest one (Every as Often, Rarely as Normal); moving a point resets its pace. How often in Settings stays the base and sets the number of reminders. Home tags points that are not Normal. Migration 3 adds `pace`.
 
 ## Daily points that stop (from main PRs #17 and #19)
 
@@ -15,7 +15,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - Expired points are put away whenever reminders are rebooked (app open, return to the front, any change). The planner never books a point at or after its expiry.
 - Bringing a point back or moving it to Long-term clears its expiry. Points written before this change never expire (migration 2 adds `expires_at`).
 - Cards show "Last day: today" or the date.
-- In a moment, **Done** on the last point is unavailable for 5 seconds (dimmed, with a short note), so a reminder is not closed before it is read.
+- In a moment, **Next** and **Done** (and tapping the card) are unavailable for 5 seconds on every point (dimmed, with a short note), so no point is skipped before it is read.
 
 ## Reminders
 
@@ -30,7 +30,8 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - Notifications are silent by default (no sound, no vibration on the Android channel `points`). Settings > Voice > **Gentle sound** (`sound`, off by default) books them on the channel `points-gentle` with a soft generated chime (`assets/sounds/gentle.wav`, about 1.6 s, no vibration); on iPhone the same file is the notification sound.
 - Any settings change except read aloud rebooks.
 - **Latest reminder**: recorded on every rebook and whenever a reminder arrives while the app is open. "Go through the latest reminder" rebooks first, then opens it, and hides once gone through until a newer reminder comes (`seenShown` in kv). The glow lasts 90 minutes.
-- Rebooking happens only when the app opens or returns to the front, and after a point or setting changes. It cancels everything and books again. Runs never overlap; changes during a run trigger one more run.
+- Rebooking happens only when the app opens or returns to the front, and after a point or setting changes. It cancels everything and books again. Runs never overlap; changes during a run trigger one more run. Everything that can fail (reading the points, the permission check, planning) runs before the cancel, so a failure leaves the old reminders booked instead of wiping them (`src/core/booking.ts`, tested with a fake phone). Each reminder's data carries only `{pointIds, at}`, `at` being the time it is due.
+- **Runway:** reminders are booked ahead only, and the app rebooks when opened, so a phone left unopened runs out: about 7.6 days with the defaults on Android (3.6 on iPhone), 1.7 days at every 15 minutes between 07:00 and 22:00, 1.2 days (Android) or 0.6 days (iPhone) at every 15 minutes all day.
 
 ## Moments, colour and voice
 
@@ -70,3 +71,10 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 
 - "Keep in mind" widget (4 x 2 cells, resizable): the points of the reminder that came last, or before the first one the next one, with the same privacy rules as a notification (private points and private mode show only a count). Tapping it opens the app.
 - Redrawn whenever the app rebooks reminders and by Android at most once an hour (`updatePeriodMillis` 3,600,000), through a headless task that only reads the database. No iPhone widget yet (needs a WidgetKit extension).
+
+## Late reminders (Android)
+
+- Booked reminders use `setAndAllowWhileIdle` (inexact) because the app has no exact-alarm permission; the library uses exact alarms only when `canScheduleExactAlarms()` is true. Android's documentation says inexact alarms may arrive up to an hour late, and during Doze or battery saving they are held. Samsung's "Deep sleeping apps" "only work when you open them", and Samsung keeps its own "Never sleeping apps" list, apart from Android's battery optimisation page.
+- **Timing check** (`src/core/lateness.ts`, `src/notify/timing.ts`): when the app opens or returns to the front, it reads the notifications still in the tray. Android stamps each with the time the phone posted it (`postTime`) and each carries its due time `at`, so posted minus due is the delay. A reminder 10 minutes or more late counts as late; the tip appears when two do, or one is 30 minutes or more late, among those that arrived in the last 24 hours. Several late ones posted within 2 minutes of each other with due times spread over 10 minutes or more are the sign of a phone holding reminders back.
+- The tip on Home says what to change (battery use "Unrestricted"; on Samsung also turn off "Put unused apps to sleep" and add the app to "Never sleeping apps") and has Open battery settings and Not now. After Not now it is not shown again for 3 days. It reads only times, never words, and runs no timer or listener.
+- The Help answer and the battery tip carry the same Samsung steps. The path is Settings, Battery and device care, Battery, Background usage limits.
