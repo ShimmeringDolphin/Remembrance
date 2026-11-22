@@ -10,6 +10,7 @@ import type { Category, Point } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import type { Permission } from '../notify/reminders';
 import { tint, tintSoft, type Theme } from '../theme/calmStudy';
+import { OverflowMenu } from './OverflowMenu';
 import { Button, Card, Choice } from './parts';
 
 interface Props {
@@ -103,10 +104,14 @@ export function Home(props: Props) {
     <View style={styles.header}>
       <View style={styles.topRow}>
         <Text accessibilityRole="header" style={[styles.brand, { color: theme.accent }]}>{t.appName}</Text>
-        <View style={styles.row}>
-          <Button label={t.help} theme={theme} kind="quiet" onPress={props.onHelp} />
-          <Button label={t.settings} theme={theme} kind="quiet" onPress={props.onSettings} />
-        </View>
+        <OverflowMenu
+          label={t.menu}
+          theme={theme}
+          items={[
+            { label: t.help, run: props.onHelp },
+            { label: t.settings, run: props.onSettings },
+          ]}
+        />
       </View>
 
       <View style={[styles.toggle, { borderColor: theme.line, backgroundColor: theme.surface }]} accessibilityRole="radiogroup">

@@ -7,33 +7,69 @@ import { openAppSettings, openBatterySettings } from '../notify/phoneSettings';
 import type { Theme } from '../theme/calmStudy';
 import { Button, Card } from './parts';
 
-// An answer shows two lines with a fade of three dots; Read more opens it, See less closes it.
-// A hidden copy of the full text is measured so short answers get no link.
+// An answer shows two lines. When it is longer, "... Read more" ends the second line and opens the rest;
+// "See less" closes it. Hidden copies of the text are measured: the full text to see if it
+// needs more than two lines, then the cut text is trimmed until its last line fits "... Read more".
 function Answer(props: { text: string; theme: Theme; t: Strings }) {
   const { text, theme, t } = props;
   const [open, setOpen] = useState(false);
-  const [long, setLong] = useState(false);
+  const [base, setBase] = useState<string | null>(null); // first two lines of a long answer
+  const [keep, setKeep] = useState(0);
+  const [fits, setFits] = useState(false);
+
+  const body = [styles.a, { color: theme.muted }];
+  const link = [styles.moreText, { color: theme.accent }];
+  const hidden = { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' } as const;
+  const cut = base === null ? '' : base.slice(0, keep).trimEnd();
+
   return (
     <View>
       <Text
+        {...hidden}
         style={[styles.a, styles.measure]}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        onTextLayout={(e) => setLong(e.nativeEvent.lines.length > 2)}
+        onTextLayout={(e) => {
+          const lines = e.nativeEvent.lines;
+          setFits(false);
+          if (lines.length > 2) {
+            const two = lines[0].text + lines[1].text;
+            setBase(two);
+            setKeep(two.length);
+          } else {
+            setBase(null);
+          }
+        }}
       >
         {text}
       </Text>
-      <Text style={[styles.a, { color: theme.muted }]} numberOfLines={open ? undefined : 2} ellipsizeMode="tail">{text}</Text>
-      {long && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={open ? t.seeLess : t.readMore}
-          accessibilityState={{ expanded: open }}
-          hitSlop={8}
-          onPress={() => setOpen(!open)}
-          style={styles.more}
+      {base !== null && !fits && (
+        <Text
+          {...hidden}
+          style={[styles.a, styles.measure]}
+          onTextLayout={(e) => {
+            if (e.nativeEvent.lines.length <= 2 || keep <= 0) setFits(true);
+            else setKeep(Math.max(0, keep - 2));
+          }}
         >
-          <Text style={[styles.moreText, { color: theme.accent }]}>{open ? t.seeLess : t.readMore}</Text>
+          {cut}… <Text style={link}>{t.readMore}</Text>
+        </Text>
+      )}
+      {base === null || open ? (
+        <Text style={body}>{text}</Text>
+      ) : (
+        <Text style={body} numberOfLines={2} ellipsizeMode="clip" accessibilityLabel={text}>
+          {fits ? cut : ''}
+          {fits ? '… ' : ''}
+          {fits && (
+            <Text accessibilityRole="button" accessibilityLabel={t.readMore} style={link} onPress={() => setOpen(true)}>
+              {t.readMore}
+            </Text>
+          )}
+          {!fits && text}
+        </Text>
+      )}
+      {base !== null && open && (
+        <Pressable accessibilityRole="button" accessibilityLabel={t.seeLess} accessibilityState={{ expanded: true }} hitSlop={8} onPress={() => setOpen(false)} style={styles.more}>
+          <Text style={link}>{t.seeLess}</Text>
         </Pressable>
       )}
     </View>
