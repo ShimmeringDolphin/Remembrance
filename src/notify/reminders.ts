@@ -3,10 +3,10 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-import { countAppearances, parseBooked, type Booked } from '../core/appearances';
-import { buildContent } from '../core/content';
-import { MAX_BOOKED, MAX_BOOKED_ANDROID, planSlots } from '../core/planner';
-import type { Point, Settings } from '../core/types';
+import { bookReminders } from '../core/booking';
+import { reminderData } from '../core/lateness';
+import { MAX_BOOKED, MAX_BOOKED_ANDROID } from '../core/planner';
+import type { Settings } from '../core/types';
 import { getValue, listPoints, putAwayExpired, recordAppearances } from '../data/db';
 import { strings } from '../i18n/strings';
 import { categoryColour } from '../theme/calmStudy';
@@ -93,33 +93,28 @@ export const noteSettings = (s: Settings) => {
 };
 
 async function rebook(settings: Settings): Promise<void> {
-  const now = new Date();
-  const booked = parseBooked(await getValue('booked'));
-  const { counts, lastAt, passed, latest } = countAppearances(booked, now);
-
-  await Notifications.cancelAllScheduledNotificationsAsync();
-
-  await putAwayExpired(now);
-  const points = await listPoints();
-  const future: Booked[] = [];
-  if ((await permission()) === 'granted') {
-    const byId = new Map<string, Point>(points.map((p) => [p.id, p]));
-    const t = strings(settings.language);
-    const text = { title: t.notifTitle, privateOne: t.notifPrivateOne, privateMany: t.notifPrivateMany, privateExtra: t.notifPrivateExtra };
-    const limit = Platform.OS === 'android' ? MAX_BOOKED_ANDROID : MAX_BOOKED;
-    for (const slot of planSlots(points, settings, now, limit)) {
-      const content = buildContent(slot.pointIds, byId, settings.privateMode, text);
-      try {
+  const t = strings(settings.language);
+  const text = { title: t.notifTitle, privateOne: t.notifPrivateOne, privateMany: t.notifPrivateMany, privateExtra: t.notifPrivateExtra };
+  const limit = Platform.OS === 'android' ? MAX_BOOKED_ANDROID : MAX_BOOKED;
+  await bookReminders(
+    {
+      readBooked: () => getValue('booked'),
+      listPoints,
+      putAwayExpired,
+      permissionGranted: async () => (await Notifications.getPermissionsAsync()).granted,
+      cancelAll: () => Notifications.cancelAllScheduledNotificationsAsync(),
+      schedule: async (r) => {
         await Notifications.scheduleNotificationAsync({
-          // Only ids travel with the notification, never point text beyond what the body already shows.
-          content: { title: content.title, body: content.body, sound: settings.sound ? SOUND_FILE : false, color: categoryColour(content.category), data: { pointIds: slot.pointIds } },
-          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: slot.at, channelId: settings.sound ? SOUND_CHANNEL : CHANNEL },
+          // Only ids and the due time travel with the notification, never point text beyond what the body already shows.
+          content: { title: r.title, body: r.body, sound: settings.sound ? SOUND_FILE : false, color: categoryColour(r.category), data: reminderData(r) },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: r.at, channelId: settings.sound ? SOUND_CHANNEL : CHANNEL },
         });
-        future.push({ at: slot.at.toISOString(), pointIds: slot.pointIds });
-      } catch {
-        // Skip this one; the next rebook tries again. Never log the point text.
-      }
-    }
-  }
-  await recordAppearances(counts, lastAt, passed, latest, future);
+      },
+      record: recordAppearances,
+    },
+    settings,
+    new Date(),
+    limit,
+    text,
+  );
 }

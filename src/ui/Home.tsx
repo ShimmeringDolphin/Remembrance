@@ -30,6 +30,10 @@ interface Props {
   onAsleep: (asleep: boolean) => void;
   onTurnOn: () => void;
   onBatteryTip: (open: boolean) => void;
+  /** Reminders were seen arriving late: say what to change. */
+  lateTip: boolean;
+  samsung: boolean;
+  onLateTip: (open: boolean) => void;
   onLatestMoment: () => void;
   /** The latest reminder has not been gone through yet. */
   latestNew: boolean;
@@ -132,10 +136,22 @@ export function Home(props: Props) {
           <Button label={t.turnOn} theme={theme} kind="plain" onPress={props.onTurnOn} />
         </Card>
       )}
-      {props.batteryTip && (
+      {props.lateTip && (
+        <Card theme={theme}>
+          <Text accessibilityRole="header" style={[styles.tipTitle, { color: theme.text }]}>{t.lateTipTitle}</Text>
+          <Text style={[styles.note, { color: theme.muted }]}>{t.lateTipBody}</Text>
+          {props.samsung && <Text style={[styles.note, { color: theme.muted }]}>{t.lateTipSamsung}</Text>}
+          <View style={styles.row}>
+            <Button label={t.openBattery} theme={theme} kind="plain" onPress={() => props.onLateTip(true)} />
+            <Button label={t.notNow} theme={theme} kind="quiet" onPress={() => props.onLateTip(false)} />
+          </View>
+        </Card>
+      )}
+      {props.batteryTip && !props.lateTip && (
         <Card theme={theme}>
           <Text style={[styles.tipTitle, { color: theme.text }]}>{t.batteryTipTitle}</Text>
           <Text style={[styles.note, { color: theme.muted }]}>{t.batteryTipBody}</Text>
+          {props.samsung && <Text style={[styles.note, { color: theme.muted }]}>{t.lateTipSamsung}</Text>}
           <View style={styles.row}>
             <Button label={t.openBattery} theme={theme} kind="plain" onPress={() => props.onBatteryTip(true)} />
             <Button label={t.gotIt} theme={theme} kind="quiet" onPress={() => props.onBatteryTip(false)} />
