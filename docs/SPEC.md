@@ -55,6 +55,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - Android without the exact-alarm permission (we do not ask for it) books reminders with `setAndAllowWhileIdle`. While the phone sleeps (Doze) or under maker battery savers, they can be held and shown together on unlock.
 - After notifications are allowed on Android, Home shows a one-time card suggesting "Unrestricted" battery use, with a button to the phone's battery page (`android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS`, falling back to the app's settings).
 - A Help page answers: late or bundled reminders (Android) or bundled ones (iPhone: Focus, Scheduled Summary), no reminders, no words on the lock screen, battery use, and where points are kept.
+- Each answer shows two lines ending in "...". "Read more" opens it and "See less" closes it. Answers that fit in two lines show no link.
 
 ## Storage
 
