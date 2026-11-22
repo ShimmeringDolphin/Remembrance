@@ -28,7 +28,36 @@
         {
           "color": "#3B4A9C",
           "defaultChannel": "points",
-          "enableRemoteNotifications": false
+          "enableRemoteNotifications": false,
+          "sounds": [
+            "./assets/sounds/gentle.wav"
+          ]
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "YaadOM uses the microphone only when you tap Record, to save a point in your own voice on this phone.",
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "KeepInMind",
+              "label": "Keep in mind",
+              "description": "The points from your latest reminder",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 3600000
+            }
+          ]
         }
       ]
     ]

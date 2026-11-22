@@ -30,6 +30,8 @@ interface Props {
   onTurnOn: () => void;
   onBatteryTip: (open: boolean) => void;
   onLatestMoment: () => void;
+  /** The latest reminder has not been gone through yet. */
+  latestNew: boolean;
   onListen: () => void;
 }
 
@@ -178,7 +180,7 @@ export function Home(props: Props) {
         <Button label={t.keep} theme={{ ...theme, accent: tint(theme, category) }} disabled={!clean} onPress={add} />
       </Card>
 
-      {props.fresh.size > 0 && (
+      {props.fresh.size > 0 && props.latestNew && (
         <Button label={t.latestMoment} theme={theme} kind="plain" onPress={props.onLatestMoment} />
       )}
       {props.skyOpen && (
@@ -248,8 +250,8 @@ export function Home(props: Props) {
             {isFresh && <Text style={[styles.freshTag, { backgroundColor: colour, color: theme.onAccent }]}>{t.justCameBack}</Text>}
             <Text style={[styles.pointText, { color: item.archived ? theme.muted : theme.text }]}>{item.text}</Text>
             {item.private && <Text style={[styles.tag, { color: theme.muted }]}>{t.privateTag}</Text>}
-            {!item.archived && item.pace !== 'normal' && (
-              <Text style={[styles.tag, { color: theme.muted }]}>{item.pace === 'often' ? t.paceOftenTag : t.paceRarelyTag}</Text>
+            {!item.archived && item.category === 'daily' && item.pace !== 'normal' && (
+              <Text style={[styles.tag, { color: theme.muted }]}>{item.pace === 'every' ? t.paceEveryTag : t.paceOftenTag}</Text>
             )}
             {!item.archived && lastDay(item.expiresAt)}
           </Pressable>

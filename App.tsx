@@ -7,16 +7,18 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import type { Booked } from './src/core/appearances';
 import { DEFAULT_DAILY_DAYS, expiryFor, resolveDays } from './src/core/expiry';
-import { freshIds, idsFromData, listenQueue, momentPoints, parseShown } from './src/core/moment';
+import { freshIds, idsFromData, listenQueue, listenSteps, momentPoints, parseShown } from './src/core/moment';
 import { mergeSettings } from './src/core/settings';
 import { skyUnlocked } from './src/core/sky';
 import type { Category, Point, Settings } from './src/core/types';
 import * as data from './src/data/db';
 import { deviceLanguage, strings } from './src/i18n/strings';
 import { openBatterySettings } from './src/notify/phoneSettings';
-import { speak, stopSpeaking } from './src/notify/voice';
+import { deleteRecording } from './src/notify/ownVoice';
+import { say, speak, stopAll } from './src/notify/voice';
 import { askPermission, initNotifications, noteSettings, permission, syncReminders, type Permission } from './src/notify/reminders';
 import { themeFor } from './src/theme/calmStudy';
+import { updateWidget } from './src/widget/update';
 import { HelpScreen } from './src/ui/HelpScreen';
 import { MomentScreen } from './src/ui/MomentScreen';
 import { Home } from './src/ui/Home';
@@ -54,6 +56,8 @@ export default function App() {
   const [tipSeen, setTipSeen] = useState(true);
   const [lastShown, setLastShown] = useState<Booked | null>(null);
   const [momentIds, setMomentIds] = useState<string[] | null>(null);
+  // The latest reminder the user has already gone through; its button hides until the next one.
+  const [seenShown, setSeenShown] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
   const listenRun = useRef(0);
   const handled = useRef(new Set<string>());
@@ -61,18 +65,23 @@ export default function App() {
   const settingsRef = useRef(settings);
   const t = strings(settings.language);
 
-  const rebook = useCallback(async (s: Settings = settingsRef.current) => {
+  /** Books the reminders again and returns the latest reminder that has come. */
+  const rebook = useCallback(async (s: Settings = settingsRef.current): Promise<Booked | null> => {
     try {
       await syncReminders(s);
     } catch {
       // Reminders are rebooked again on the next open; never surface point text in errors.
     }
+    void updateWidget();
     try {
       setPoints(await data.listPoints());
       setRemindersPassed(Number(await data.getValue('remindersPassed')) || 0);
-      setLastShown(parseShown(await data.getValue('lastShown')));
+      const latest = parseShown(await data.getValue('lastShown'));
+      setLastShown(latest);
+      return latest;
     } catch {
       // Keep what is on screen.
+      return null;
     }
   }, []);
 
@@ -86,8 +95,9 @@ export default function App() {
         setWelcomed((await data.getValue('welcomed')) === '1');
         setAsked((await data.getValue('askedPermission')) === '1');
         setTipSeen((await data.getValue('batteryTipSeen')) === '1');
+        setSeenShown(await data.getValue('seenShown'));
         setPoints(await data.listPoints());
-        await initNotifications(strings(s.language).appName);
+        await initNotifications(strings(s.language).appName, strings(s.language).soundChannel);
         setPerm(await permission());
       } finally {
         setReady(true);
@@ -111,25 +121,49 @@ export default function App() {
     }
   }, [response]);
 
+  // A reminder that arrives while the app is open: count it and move "latest" on to it.
+  // One event listener, no polling; it fires only when a notification is shown.
+  useEffect(() => {
+    const sub = Notifications.addNotificationReceivedListener(() => void rebook());
+    return () => sub.remove();
+  }, [rebook]);
+
+  const openLatest = async () => {
+    // Rebook first, so the button never opens an older reminder than the newest one that came.
+    const latest = (await rebook()) ?? lastShown;
+    if (!latest) return;
+    setMomentIds(latest.pointIds);
+    setSeenShown(latest.at);
+    await data.setValue('seenShown', latest.at);
+  };
+
   const stopListening = useCallback(() => {
     listenRun.current++;
     setListening(false);
-    stopSpeaking();
+    stopAll();
   }, []);
 
-  // Every point is handed to the phone's voice at once, in order; it reads them one after another.
-  // (Waiting for each one to finish before starting the next stopped after the first point on some phones.)
+  // Each run of points goes to the phone's voice at once, in order, and it reads them one after
+  // another (waiting for each one stopped after the first point on some phones). Points recorded
+  // in the user's own voice play one by one in between.
   const listen = () => {
     if (listening) return stopListening();
-    const queue = listenQueue(points);
-    if (queue.length === 0) return;
+    const steps = listenSteps(listenQueue(points));
+    if (steps.length === 0) return;
     const run = ++listenRun.current;
-    stopSpeaking();
+    stopAll();
     setListening(true);
-    queue.forEach((p, i) => {
-      const last = i === queue.length - 1;
-      speak(p.text, settingsRef.current.language, last ? () => listenRun.current === run && stopListening() : undefined);
-    });
+    const next = (i: number) => {
+      if (listenRun.current !== run) return;
+      if (i >= steps.length) return stopListening();
+      const step = steps[i];
+      if (step.kind === 'own') return say(step.point, settingsRef.current.language, () => next(i + 1));
+      step.points.forEach((p, k) => {
+        const last = k === step.points.length - 1;
+        speak(p.text, settingsRef.current.language, last ? () => next(i + 1) : undefined);
+      });
+    };
+    next(0);
   };
 
   // Coming back to the app: the user may have changed notification permission or let reminders pass.
@@ -153,9 +187,8 @@ export default function App() {
     setSettings(s);
     const before = prev;
     await data.setValue('settings', JSON.stringify(s));
-    // Turning the voice on or off changes no reminder, so skip the rebook.
-    const sameReminders = (['from', 'to', 'every', 'asleep', 'privateMode', 'language'] as const).every((k) => before[k] === s[k]);
-    if (!sameReminders) await rebook(s);
+    // Turning read aloud on or off changes no reminder, so skip the rebook; anything else rebooks.
+    if (JSON.stringify({ ...before, readAloud: s.readAloud }) !== JSON.stringify(s)) await rebook(s);
   };
 
   const add = async (text: string, category: Category, days: number = DEFAULT_DAILY_DAYS): Promise<boolean> => {
@@ -221,6 +254,14 @@ export default function App() {
     move: async (id, to) => (await act(() => data.movePoint(id, to))()) as boolean,
     setPrivate: (id, v) => void act(() => data.setPrivate(id, v))(),
     setPace: (id, pace) => void act(() => data.setPace(id, pace))(),
+    // A new recording replaces the old file; removing one deletes it.
+    setVoice: (id, voice) => {
+      const old = points.find((p) => p.id === id)?.voice;
+      void act(async () => {
+        await data.setVoice(id, voice);
+        if (old && old !== voice) deleteRecording(old);
+      })();
+    },
     putAway: (id) => {
       setOpenId(null);
       void act(() => data.putAway(id))();
@@ -232,7 +273,11 @@ export default function App() {
     },
     deleteForGood: (id) => {
       setOpenId(null);
-      void act(() => data.deleteForGood(id))();
+      const voice = points.find((p) => p.id === id)?.voice;
+      void act(async () => {
+        await data.deleteForGood(id);
+        deleteRecording(voice);
+      })();
     },
   };
 
@@ -276,7 +321,8 @@ export default function App() {
             listening={listening}
             onListen={listen}
             onAsleep={(asleep) => changeSettings({ ...settings, asleep })}
-            onLatestMoment={() => lastShown && setMomentIds(lastShown.pointIds)}
+            onLatestMoment={openLatest}
+            latestNew={!!lastShown && lastShown.at !== seenShown}
             skyOpen={skyUnlocked(points, remindersPassed, TESTING)}
             batteryTip={Platform.OS === 'android' && perm === 'granted' && !tipSeen}
             onBatteryTip={answerBatteryTip}
@@ -289,7 +335,7 @@ export default function App() {
             onTurnOn={turnOn}
           />
         )}
-        <PointSheet point={points.find((p) => p.id === openId) ?? null} t={t} theme={theme} actions={actions} onClose={() => setOpenId(null)} />
+        <PointSheet everyCount={points.filter((p) => !p.archived && p.category === 'daily' && p.pace === 'every').length} point={points.find((p) => p.id === openId) ?? null} t={t} theme={theme} actions={actions} onClose={() => setOpenId(null)} />
         <PermissionSheet visible={askNow} t={t} theme={theme} from={settings.from} to={settings.to} onYes={() => answerPermission(true)} onLater={() => answerPermission(false)} />
       </SafeAreaView>
     </SafeAreaProvider>

@@ -130,7 +130,13 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
       )}
 
       {section(t.sectionPrivacy, toggle(t.privateMode, t.privateModeHint, s.privateMode, (v) => set({ privateMode: v })))}
-      {section(t.sectionVoice, toggle(t.readAloudSetting, t.readAloudHint, s.readAloud, (v) => set({ readAloud: v })))}
+      {section(
+        t.sectionVoice,
+        <>
+          {toggle(t.soundSetting, t.soundHint, s.sound, (v) => set({ sound: v }))}
+          {toggle(t.readAloudSetting, t.readAloudHint, s.readAloud, (v) => set({ readAloud: v }))}
+        </>,
+      )}
 
       {section(
         t.language,

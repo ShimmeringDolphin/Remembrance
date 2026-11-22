@@ -12,9 +12,13 @@ import { strings } from '../i18n/strings';
 import { categoryColour } from '../theme/calmStudy';
 
 const CHANNEL = 'points';
+/** Android fixes a channel's sound when it is created, so the chime needs a channel of its own. */
+const SOUND_CHANNEL = 'points-gentle';
+/** Bundled by the expo-notifications plugin (app.json "sounds"). */
+const SOUND_FILE = 'gentle.wav';
 
 /** Shows reminders quietly even while the app is open. Call once at start-up. */
-export async function initNotifications(channelName: string): Promise<void> {
+export async function initNotifications(channelName: string, soundChannelName: string): Promise<void> {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
   });
@@ -24,6 +28,13 @@ export async function initNotifications(channelName: string): Promise<void> {
         name: channelName,
         importance: Notifications.AndroidImportance.DEFAULT,
         sound: null,
+        vibrationPattern: null,
+        enableVibrate: false,
+      });
+      await Notifications.setNotificationChannelAsync(SOUND_CHANNEL, {
+        name: soundChannelName,
+        importance: Notifications.AndroidImportance.DEFAULT,
+        sound: SOUND_FILE,
         vibrationPattern: null,
         enableVibrate: false,
       });
@@ -101,8 +112,8 @@ async function rebook(settings: Settings): Promise<void> {
       try {
         await Notifications.scheduleNotificationAsync({
           // Only ids travel with the notification, never point text beyond what the body already shows.
-          content: { title: content.title, body: content.body, sound: false, color: categoryColour(content.category), data: { pointIds: slot.pointIds } },
-          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: slot.at, channelId: CHANNEL },
+          content: { title: content.title, body: content.body, sound: settings.sound ? SOUND_FILE : false, color: categoryColour(content.category), data: { pointIds: slot.pointIds } },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: slot.at, channelId: settings.sound ? SOUND_CHANNEL : CHANNEL },
         });
         future.push({ at: slot.at.toISOString(), pointIds: slot.pointIds });
       } catch {

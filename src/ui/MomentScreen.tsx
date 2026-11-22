@@ -7,7 +7,7 @@ import { starGrowth } from '../core/moment';
 import { layoutSky } from '../core/sky';
 import type { Language, Point } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
-import { speak, stopSpeaking } from '../notify/voice';
+import { say, stopAll } from '../notify/voice';
 import { tint, tintSoft, type Theme } from '../theme/calmStudy';
 
 interface Props {
@@ -21,16 +21,28 @@ interface Props {
   onClose: () => void;
 }
 
+/** How long Done stays unavailable on the last point of a moment. */
+const DONE_DELAY_MS = 5000;
+
 export function MomentScreen(props: Props) {
   const { t, theme, moment } = props;
   const [i, setI] = useState(0);
   const done = i >= moment.length;
   const p = moment[Math.min(i, moment.length - 1)];
+  const last = i === moment.length - 1;
+  // Done waits a few seconds on the last point, so a reminder is not closed before it is read.
+  const [doneReady, setDoneReady] = useState(false);
+  useEffect(() => {
+    if (!last) return;
+    setDoneReady(false);
+    const timer = setTimeout(() => setDoneReady(true), DONE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [last, i]);
 
   // Read the current card when "read aloud" is on. Private points are only read from a tap.
   useEffect(() => {
-    if (!done && p && props.readAloud && !p.private) speak(p.text, props.language);
-    return stopSpeaking;
+    if (!done && p && props.readAloud && !p.private) say(p, props.language);
+    return stopAll;
   }, [i, done, props.readAloud]);
 
   if (moment.length === 0) return null;
@@ -38,14 +50,15 @@ export function MomentScreen(props: Props) {
 
   const colour = tint(theme, p.category);
   const next = () => {
-    stopSpeaking();
+    if (last && !doneReady) return;
+    stopAll();
     setI((n) => n + 1);
   };
   const toggleVoice = () => {
     const on = !props.readAloud;
     props.onReadAloud(on);
-    if (on) speak(p.text, props.language);
-    else stopSpeaking();
+    if (on) say(p, props.language);
+    else stopAll();
   };
 
   return (
@@ -74,11 +87,18 @@ export function MomentScreen(props: Props) {
         >
           <Text style={[styles.btnText, { color: props.readAloud ? theme.onAccent : colour }]}>{props.readAloud ? t.reading : t.readAloud}</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={i < moment.length - 1 ? t.next : t.done} onPress={next} style={[styles.btn, { backgroundColor: theme.cardText, borderColor: theme.cardText }]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={last ? t.done : t.next}
+          accessibilityState={{ disabled: last && !doneReady }}
+          disabled={last && !doneReady}
+          onPress={next}
+          style={[styles.btn, { backgroundColor: theme.cardText, borderColor: theme.cardText, opacity: last && !doneReady ? 0.35 : 1 }]}
+        >
           <Text style={[styles.btnText, { color: tintSoft(theme, p.category) }]}>{i < moment.length - 1 ? t.next : t.done}</Text>
         </Pressable>
       </View>
-      <Text style={[styles.small, { color: theme.cardText }]}>{t.tapNext}</Text>
+      <Text style={[styles.small, { color: theme.cardText }]}>{last && !doneReady ? t.doneWait : t.tapNext}</Text>
     </View>
   );
 }

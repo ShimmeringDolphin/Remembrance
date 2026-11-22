@@ -11,6 +11,8 @@ import { formatTime, parseTime, shiftTime, windowLength } from './time.ts';
 import { activeAt, expiryFor, lastDayOf, resolveDays } from './expiry.ts';
 import { addQuiet, inQuiet, MAX_QUIET, removeQuiet, setQuiet } from './quiet.ts';
 import { isPace, paceWindows } from './pace.ts';
+import { listenSteps } from './moment.ts';
+import { widgetSlot } from './widget.ts';
 import { freshIds, listenQueue, momentPoints, starGrowth } from './moment.ts';
 import type { Point, Settings } from './types.ts';
 
@@ -23,7 +25,7 @@ function point(id: string, o: Partial<Point> = {}): Point {
   return {
     id, kind: 'note', text: `text ${id}`, answer: null, category: 'daily', private: false, archived: false,
     createdAt: `2026-01-01T00:${String(Math.floor(seq / 60) % 60).padStart(2, '0')}:${String(seq % 60).padStart(2, '0')}.000Z`,
-    updatedAt: '2026-01-01T00:00:00.000Z', appearances: 0, lastAppearedAt: null, expiresAt: null, pace: 'normal', ...o,
+    updatedAt: '2026-01-01T00:00:00.000Z', appearances: 0, lastAppearedAt: null, expiresAt: null, pace: 'normal', voice: null, ...o,
   };
 }
 
@@ -39,8 +41,10 @@ test('times parse, format, shift across midnight and measure windows', () => {
   assert.equal(windowLength('08:00', '08:00'), 0);
 });
 
-test('defaults are hourly 07:00 to 22:00, awake, not private, not read aloud', () => {
-  assert.deepEqual(defaultSettings('hi'), { from: '07:00', to: '22:00', every: 60, asleep: false, mode: 'hours', quiet: [], privateMode: false, language: 'hi', readAloud: false });
+test('defaults are hourly 07:00 to 22:00, awake, not private, not read aloud, silent', () => {
+  assert.deepEqual(defaultSettings('hi'), { from: '07:00', to: '22:00', every: 60, asleep: false, mode: 'hours', quiet: [], privateMode: false, language: 'hi', readAloud: false, sound: false });
+  assert.equal(mergeSettings({ sound: true }, 'en').sound, true);
+  assert.equal(mergeSettings({ sound: 'yes' }, 'en').sound, false);
 });
 
 test('stored settings keep valid values and fall back on junk', () => {
@@ -324,28 +328,50 @@ test('turns stay fair in half-hour and quarter-hour time zones, and with a :30 s
   }
 });
 
-test('a point set to Often comes back about twice as much as Normal, Rarely about half', () => {
-  const pts = [point('often', { pace: 'often' }), ...Array.from({ length: 5 }, (_, i) => point(`n${i}`)), point('rarely', { pace: 'rarely' })];
+test('a Daily point set to Often comes back about twice as much as Normal', () => {
+  const pts = [point('often', { pace: 'often' }), ...Array.from({ length: 6 }, (_, i) => point(`n${i}`))];
   const s = { ...settings, mode: 'button' as const, every: 15 };
   const seen = new Map<string, number>();
   for (const slot of fillTimes(planTimes(s, at(5, 0), 400), pts, s)) {
     assert.equal(new Set(slot.pointIds).size, slot.pointIds.length, 'a point twice in one reminder');
     for (const id of slot.pointIds) seen.set(id, (seen.get(id) ?? 0) + 1);
   }
-  const normal = [0, 1, 2, 3, 4].map((i) => seen.get(`n${i}`) ?? 0);
+  const normal = [0, 1, 2, 3, 4, 5].map((i) => seen.get(`n${i}`) ?? 0);
   const avg = normal.reduce((a, b) => a + b, 0) / normal.length;
   assert.ok(Math.max(...normal) - Math.min(...normal) <= 2, `normal unfair: ${normal}`);
   const often = (seen.get('often') ?? 0) / avg;
-  const rarely = (seen.get('rarely') ?? 0) / avg;
   assert.ok(often > 1.6 && often < 2.4, `often ${often}`);
-  assert.ok(rarely > 0.35 && rarely < 0.65, `rarely ${rarely}`);
+});
+
+test('Every reminder: up to two Daily points in every Daily reminder, the rest still take turns', () => {
+  const pts = [point('e1', { pace: 'every' }), point('e2', { pace: 'every' }), point('e3', { pace: 'every' }), ...Array.from({ length: 4 }, (_, i) => point(`r${i}`)), point('lt', { category: 'long_term' })];
+  const slots = fillTimes(planTimes(settings, at(5, 0), 60), pts, settings);
+  const seen = new Map<string, number>();
+  for (const slot of slots) {
+    assert.ok(slot.pointIds.length <= HANDFUL);
+    assert.equal(new Set(slot.pointIds).size, slot.pointIds.length);
+    assert.ok(slot.pointIds.includes('e1') && slot.pointIds.includes('e2'), `missing every point: ${slot.pointIds}`);
+    for (const id of slot.pointIds) seen.set(id, (seen.get(id) ?? 0) + 1);
+  }
+  // The third "every" point is past the limit and takes turns; so do the others and Long-term.
+  for (const id of ['e3', 'r0', 'r1', 'r2', 'r3']) assert.ok((seen.get(id) ?? 0) > 0, id);
+  assert.ok((seen.get('lt') ?? 0) > 0);
+});
+
+test('Long-term points ignore pace; old "rarely" values read as Normal', () => {
+  const base = [point('a', { category: 'long_term' }), point('b', { category: 'long_term' }), point('c', { category: 'long_term' }), point('d', { category: 'long_term' })];
+  const times = planTimes(settings, at(5, 0), 40);
+  const plain = fillTimes(times, base, settings);
+  const paced = fillTimes(times, base.map((p, i) => (i === 0 ? { ...p, pace: 'every' as const } : p)), settings);
+  assert.deepEqual(paced, plain);
+  assert.equal(isPace('rarely'), false);
 });
 
 test('when every point has the same pace, turns are exactly as before', () => {
   const base = Array.from({ length: 5 }, (_, i) => point(`p${i}`));
   const times = planTimes(settings, at(5, 0), 60);
   const normal = fillTimes(times, base, settings);
-  for (const pace of ['often', 'rarely'] as const) {
+  for (const pace of ['often'] as const) {
     assert.deepEqual(fillTimes(times, base.map((p) => ({ ...p, pace })), settings), normal);
   }
   // Plain round-robin in age order, three to a reminder.
@@ -353,4 +379,21 @@ test('when every point has the same pace, turns are exactly as before', () => {
   assert.deepEqual(order.slice(0, 10), ['p0', 'p1', 'p2', 'p3', 'p4', 'p0', 'p1', 'p2', 'p3', 'p4']);
   assert.equal(isPace('often'), true);
   assert.equal(isPace('fast'), false);
+});
+
+test('listen hands runs of points to the phone voice and plays own recordings one by one', () => {
+  const a = point('a'), b = point('b'), c = point('c', { voice: 'c.m4a' }), d = point('d'), e = point('e', { voice: 'e.m4a' });
+  const steps = listenSteps([a, b, c, d, e]);
+  assert.deepEqual(steps.map((s) => (s.kind === 'own' ? `own:${s.point.id}` : `phone:${s.points.map((p) => p.id).join('')}`)), ['phone:ab', 'own:c', 'phone:d', 'own:e']);
+  assert.deepEqual(listenSteps([]), []);
+});
+
+test('the widget shows the reminder that came last, else the next one', () => {
+  const now = at(5, 12);
+  const b = (h: number, id: string) => ({ at: at(5, h).toISOString(), pointIds: [id] });
+  assert.equal(widgetSlot([b(10, 'a'), b(11, 'b'), b(13, 'c')], null, now)?.pointIds[0], 'b');
+  assert.equal(widgetSlot([b(13, 'c'), b(14, 'd')], b(9, 'old'), now)?.pointIds[0], 'old');
+  assert.equal(widgetSlot([b(14, 'd'), b(13, 'c')], null, now)?.pointIds[0], 'c');
+  assert.equal(widgetSlot([], null, now), null);
+  assert.equal(widgetSlot([{ at: 'junk', pointIds: ['x'] }], null, now), null);
 });

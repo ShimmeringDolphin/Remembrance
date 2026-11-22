@@ -4,8 +4,11 @@ export type Language = 'en' | 'hi' | 'gu';
 export type Category = 'daily' | 'long_term';
 /** `note` today. `qa` is reserved for question-and-answer points (a later, opt-in mode). */
 export type PointKind = 'note' | 'qa';
-/** How often a point comes back compared with the others: `often` about twice as much as `normal`, `rarely` about half. */
-export type Pace = 'often' | 'normal' | 'rarely';
+/**
+ * How often a Daily point comes back: `every` reminder (at most MAX_EVERY points), `often` (about
+ * twice as much as `normal`) or `normal`. Long-term points always take normal turns.
+ */
+export type Pace = 'every' | 'often' | 'normal';
 
 export interface Point {
   id: string;
@@ -28,6 +31,8 @@ export interface Point {
   expiresAt: string | null;
   /** Share of the turns. `normal` unless the user changes it; How often in Settings sets the base for all. */
   pace: Pace;
+  /** File name of the user's own recording of this point (in the app's documents), or null. */
+  voice: string | null;
 }
 
 /** A daily time range, "HH:mm" to "HH:mm"; may cross midnight. */
@@ -56,4 +61,6 @@ export interface Settings {
   language: Language;
   /** Read each point aloud in a moment (the phone's own voice). */
   readAloud: boolean;
+  /** A soft chime with each reminder. Off by default: reminders are silent. */
+  sound: boolean;
 }
