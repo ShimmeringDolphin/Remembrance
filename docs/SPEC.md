@@ -56,6 +56,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - After notifications are allowed on Android, Home shows a one-time card suggesting "Unrestricted" battery use, with a button to the phone's battery page (`android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS`, falling back to the app's settings).
 - A Help page answers: late or bundled reminders (Android) or bundled ones (iPhone: Focus, Scheduled Summary), no reminders, no words on the lock screen, battery use, and where points are kept.
 - Each answer shows two lines, and a longer one ends its second line with "... Read more", which opens it; "See less" below closes it. Answers that fit in two lines show no link.
+- Test builds only: Settings ends with a TEST PANEL showing how many reminders the phone holds, the next three due times (never point text), and whether the app is Asleep, with a Refresh button. It reads on open and on Refresh; no timers.
 - Every page has a ⋮ menu at the top right: Home shows Help and Settings, Help shows Home and Settings, Settings shows Home and Help. The Sky page keeps only its Back button.
 - Once the sky exists, a round Sky button (three stars: bright five-point, dimmer four-point, dimmest three-point; still, never animated) sits beside the ⋮ on Home. It replaces the old Sky card. Uses `react-native-svg`, bundled with the Expo SDK, no network.
 - The Gujarati Awake and Asleep buttons read "જાગું છું" and "સૂઉં છું".

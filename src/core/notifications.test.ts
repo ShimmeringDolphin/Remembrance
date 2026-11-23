@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { parseBooked, type Booked } from './appearances.ts';
+import { bookedTimes } from './diagnostics.ts';
 import { bookReminders, type BookingDeps, type Reminder } from './booking.ts';
 import { arrivals, judgeTiming, LATE_MINUTES, reminderData, showTimingTip, TIP_PAUSE_DAYS, type Presented } from './lateness.ts';
 import { MAX_BOOKED, MAX_BOOKED_ANDROID } from './planner.ts';
@@ -358,4 +359,10 @@ test('timing: a phone model that holds alarms, one that drifts and an exact one 
   assert.equal(d.together, false);
   assert.equal(h.late, true);
   assert.equal(h.together, true);
+});
+
+test('test panel: due times come back soonest first; junk is ignored', () => {
+  const out = bookedTimes(['2026-01-05T10:00:00.000Z', 'nonsense', 5, null, undefined, '2026-01-05T08:00:00.000Z']);
+  assert.deepEqual(out.map((d) => d.toISOString()), ['2026-01-05T08:00:00.000Z', '2026-01-05T10:00:00.000Z']);
+  assert.deepEqual(bookedTimes([]), []);
 });

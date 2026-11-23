@@ -316,7 +316,7 @@ export default function App() {
         ) : showWelcome ? (
           <Welcome t={t} theme={theme} onKeep={keepFirst} />
         ) : screen === 'settings' ? (
-          <SettingsScreen t={t} theme={theme} settings={settings} onChange={changeSettings} onBack={() => setScreen('home')} onGo={setScreen} />
+          <SettingsScreen t={t} theme={theme} settings={settings} onChange={changeSettings} onBack={() => setScreen('home')} onGo={setScreen} testing={TESTING} />
         ) : screen === 'help' ? (
           <HelpScreen t={t} theme={theme} onBack={() => setScreen('home')} onGo={setScreen} />
         ) : screen === 'sky' ? (

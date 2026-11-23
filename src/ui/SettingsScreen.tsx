@@ -1,5 +1,5 @@
 // Settings: when, how often, privacy, voice and language. Each in its own card, with a plain summary.
-import type { ReactNode } from 'react';
+import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { addQuiet, MAX_QUIET, removeQuiet, setQuiet } from '../core/quiet';
@@ -7,6 +7,7 @@ import { EVERY_CHOICES, remindersPerDay } from '../core/settings';
 import { shiftTime, windowLength } from '../core/time';
 import type { Language, Settings } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
+import { readBooked } from '../notify/diagnostics';
 import type { Theme } from '../theme/calmStudy';
 import { Button, Choice } from './parts';
 import { OverflowMenu } from './OverflowMenu';
@@ -15,7 +16,35 @@ import { TimeField } from './TimeField';
 
 const STEP = 30;
 
-export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Settings; onChange: (s: Settings) => void; onBack: () => void; onGo: (to: 'home' | 'help') => void }) {
+/** Test builds only: what the phone really has booked, readable without waiting. */
+function TestPanel(props: { t: Strings; theme: Theme; asleep: boolean }) {
+  const { t, theme } = props;
+  const [info, setInfo] = useState<{ count: number; next: Date[] } | null>(null);
+  const [failed, setFailed] = useState(false);
+  const load = useCallback(async () => {
+    try {
+      setInfo(await readBooked());
+      setFailed(false);
+    } catch {
+      setFailed(true);
+    }
+  }, []);
+  useEffect(() => {
+    void load();
+  }, [load, props.asleep]);
+  const when = (d: Date) => d.toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+  return (
+    <View style={[styles.card, { borderColor: theme.line, backgroundColor: theme.surface }]}>
+      <Text style={[styles.section, { color: theme.muted }]}>{t.diagTitle}</Text>
+      <Text style={[styles.label, { color: theme.text }]}>{failed || !info ? t.diagUnknown : fill(t.diagBooked, { n: info.count })}</Text>
+      {info && info.next.length > 0 && <Text style={[styles.hint, { color: theme.muted }]}>{fill(t.diagNext, { times: info.next.map(when).join(', ') })}</Text>}
+      <Text style={[styles.hint, { color: theme.muted }]}>{props.asleep ? t.diagAsleep : t.diagAwake}</Text>
+      <Button label={t.diagRefresh} theme={theme} kind="plain" onPress={() => void load()} />
+    </View>
+  );
+}
+
+export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Settings; onChange: (s: Settings) => void; onBack: () => void; onGo: (to: 'home' | 'help') => void; testing?: boolean }) {
   const { t, theme, settings: s, onChange } = props;
   const set = (patch: Partial<Settings>) => onChange({ ...s, ...patch });
   // From and until can never meet: an empty window would quietly stop every reminder.
@@ -147,6 +176,8 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
           {langs.map(([l, label]) => <Choice key={l} label={label} selected={s.language === l} theme={theme} onPress={() => set({ language: l })} />)}
         </View>,
       )}
+
+      {props.testing && <TestPanel t={t} theme={theme} asleep={s.asleep} />}
 
       <Text style={[styles.hint, { color: theme.muted, textAlign: 'center' }]}>{t.storedNote}</Text>
     </ScrollView>
