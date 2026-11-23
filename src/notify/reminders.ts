@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
 import { bookReminders } from '../core/booking';
 import { reminderData } from '../core/lateness';
 import { MAX_BOOKED, MAX_BOOKED_ANDROID } from '../core/planner';
+import { serialLatest } from '../core/serialLatest';
 import type { Settings } from '../core/types';
 import { getValue, listPoints, putAwayExpired, recordAppearances } from '../data/db';
 import { strings } from '../i18n/strings';
@@ -64,33 +65,8 @@ export async function askPermission(): Promise<Permission> {
   }
 }
 
-let running: Promise<void> | null = null;
-let again = false;
-
-/** Rebooks every reminder. Calls that arrive while one is running are folded into one more run. */
-export function syncReminders(settings: Settings): Promise<void> {
-  if (running) {
-    again = true;
-    return running;
-  }
-  running = (async () => {
-    let s = settings;
-    do {
-      again = false;
-      await rebook(s);
-      s = latest ?? s;
-    } while (again);
-  })().finally(() => {
-    running = null;
-  });
-  return running;
-}
-
-let latest: Settings | null = null;
-/** Lets a run in progress pick up settings that changed while it ran. */
-export const noteSettings = (s: Settings) => {
-  latest = s;
-};
+/** Rebooks every reminder. One run at a time; a call that arrives during a run makes one more run with the newest settings. */
+export const syncReminders = serialLatest<Settings>((settings) => rebook(settings));
 
 async function rebook(settings: Settings): Promise<void> {
   const t = strings(settings.language);
