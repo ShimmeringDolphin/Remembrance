@@ -32,6 +32,8 @@ class FakePhone {
   permission: boolean | 'throws' = true;
   listThrows = false;
   failSchedule = (_n: number) => false;
+  /** The first cancel does not take, as if the phone ignored it. */
+  stubbornCancels = 0;
   points: Point[];
   private n = 0;
   constructor(points: Point[]) {
@@ -51,8 +53,13 @@ class FakePhone {
       },
       cancelAll: async () => {
         this.cancelCalls++;
+        if (this.stubbornCancels > 0) {
+          this.stubbornCancels--;
+          return;
+        }
         this.scheduled = [];
       },
+      countBooked: async () => this.scheduled.length,
       schedule: async (r) => {
         if (this.failSchedule(this.n++)) throw new Error('refused');
         this.scheduled.push(r);
@@ -123,6 +130,20 @@ test('booking: a failing step before the cancel leaves the old reminders in plac
     assert.deepEqual(phone.scheduled.map((s) => s.at.getTime()), before, `${fail}: bookings were wiped`);
     assert.equal(phone.recorded, recordedBefore, `${fail}: stored list was replaced`);
     assert.equal(phone.kvBooked, bookedJson);
+  }
+});
+
+test('asleep always wins: nothing stays booked even if reading points or permission fails, or the first cancel does not take', async () => {
+  const asleep = { ...defaultSettings('en'), asleep: true };
+  for (const fail of ['permission', 'list', 'stubborn'] as const) {
+    const phone = new FakePhone(twoPoints());
+    await phone.run(defaultSettings('en'), at(5, 6));
+    assert.ok(phone.scheduled.length > 0, `${fail}: setup`);
+    if (fail === 'permission') phone.permission = 'throws';
+    else if (fail === 'list') phone.listThrows = true;
+    else phone.stubbornCancels = 1;
+    await phone.run(asleep, at(5, 6, 5));
+    assert.equal(phone.scheduled.length, 0, `${fail}: reminders still booked while asleep`);
   }
 });
 

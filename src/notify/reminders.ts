@@ -103,6 +103,7 @@ async function rebook(settings: Settings): Promise<void> {
       putAwayExpired,
       permissionGranted: async () => (await Notifications.getPermissionsAsync()).granted,
       cancelAll: () => Notifications.cancelAllScheduledNotificationsAsync(),
+      countBooked: async () => (await Notifications.getAllScheduledNotificationsAsync()).length,
       schedule: async (r) => {
         await Notifications.scheduleNotificationAsync({
           // Only ids and the due time travel with the notification, never point text beyond what the body already shows.
