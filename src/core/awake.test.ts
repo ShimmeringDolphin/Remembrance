@@ -2,7 +2,7 @@
 // Awake, Asleep and the hours: the rules of docs "Awake, Asleep and hours: final draft".
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { awakeAction, fullyAsleepDays, goAsleep, goAwake, greetingFor, inWindow, nextStart, planPrompts, sessionTimes, shiftExpiry, statusFor } from './awake.ts';
+import { awakeAction, startSession, tapAwake, fullyAsleepDays, goAsleep, goAwake, greetingFor, inWindow, nextStart, planPrompts, sessionTimes, shiftExpiry, statusFor } from './awake.ts';
 import { bookReminders, type BookingDeps, type Reminder } from './booking.ts';
 import { planTimes } from './planner.ts';
 import { defaultSettings, mergeSettings } from './settings.ts';
@@ -249,4 +249,26 @@ test('booking while Asleep: a rebook after a restart gives the same three, never
   await bookReminders(p.deps, s, at(5, 23, 30), 60, text, promptText);
   await bookReminders(p.deps, s, at(6, 7, 30), 60, text, promptText);
   assert.deepEqual(p.scheduled.map((x) => hm(x.at)), ['6 08:00', '6 09:00']);
+});
+
+test('Awake outside the hours changes nothing until a span is chosen: "Not now" leaves an Asleep phone Asleep with its prompts', () => {
+  const asleep = asleepAt(at(5, 22, 0));
+  const tap = tapAwake(asleep, at(5, 23, 0));
+  assert.ok(tap.ask);
+  assert.equal(tap.settings, asleep);
+  assert.equal(tap.settings.asleep, true);
+  assert.equal(planPrompts(tap.settings, at(5, 23, 0)).length, 3);
+  const chosen = startSession(asleep, tap.ask.sessions[2]);
+  assert.equal(chosen.asleep, false);
+  assert.equal(chosen.asleepSince, null);
+  assert.ok(planTimes(chosen, at(5, 23, 0)).length > 0);
+  // Inside the hours and in the grace hour, Awake happens at once.
+  assert.equal(tapAwake(asleep, at(6, 12, 0)).settings.asleep, false);
+  const grace = tapAwake(asleep, at(6, 6, 30));
+  assert.equal(grace.ask, null);
+  assert.equal(grace.settings.asleep, false);
+  assert.ok(grace.settings.session);
+  // Already Awake outside the hours: the pop-up opens, nothing else changes.
+  const awake = base();
+  assert.equal(tapAwake(awake, at(5, 23, 0)).settings, awake);
 });

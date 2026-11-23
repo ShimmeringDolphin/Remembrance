@@ -8,7 +8,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import type { Booked } from './src/core/appearances';
 import { DEFAULT_DAILY_DAYS, expiryFor, resolveDays } from './src/core/expiry';
 import { freshIds, idsFromData, listenQueue, listenSteps, momentPoints, parseShown } from './src/core/moment';
-import { awakeAction, goAsleep, goAwake, statusFor, type AwakeAction } from './src/core/awake';
+import { goAsleep, startSession, statusFor, tapAwake, type AwakeAction } from './src/core/awake';
 import { mergeSettings } from './src/core/settings';
 import { skyUnlocked } from './src/core/sky';
 import type { Category, Point, Settings } from './src/core/types';
@@ -223,23 +223,33 @@ export default function App() {
       if (!prev.asleep) await changeSettings(goAsleep(prev, now));
       return;
     }
-    const action = awakeAction(prev, now);
-    if (prev.asleep && prev.asleepSince) {
-      try {
-        await data.shiftDailyExpiry(prev, new Date(prev.asleepSince), now);
-      } catch {
-        // Points keep their dates; nothing is lost, they may just end sooner.
-      }
+    const tap = tapAwake(prev, now);
+    // Outside the hours, and not in the hour before the start: nothing changes until a span is chosen.
+    if (tap.ask) {
+      setAsking(tap.ask);
+      return;
     }
-    await changeSettings(goAwake(prev, now));
-    // Outside the hours, and not in the hour before the start: ask how long.
-    if (action.kind === 'ask') setAsking(action);
+    await wake(prev, now);
+    await changeSettings(tap.settings);
+  };
+
+  /** Gives Daily points back the whole days spent Asleep. Called when Awake really happens. */
+  const wake = async (prev: Settings, now: Date) => {
+    if (!prev.asleep || !prev.asleepSince) return;
+    try {
+      await data.shiftDailyExpiry(prev, new Date(prev.asleepSince), now);
+    } catch {
+      // Points keep their dates; nothing is lost, they may just end sooner.
+    }
   };
 
   const chooseSession = async (hours: number) => {
     const chosen = asking?.sessions[hours];
     setAsking(null);
-    if (chosen) await changeSettings({ ...settingsRef.current, asleep: false, session: chosen });
+    if (!chosen) return;
+    const prev = settingsRef.current;
+    await wake(prev, new Date());
+    await changeSettings(startSession(prev, chosen));
   };
 
   const add = async (text: string, category: Category, days: number = DEFAULT_DAILY_DAYS): Promise<boolean> => {

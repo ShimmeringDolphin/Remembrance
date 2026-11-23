@@ -154,6 +154,19 @@ export function goAwake(settings: Settings, now: Date): Settings {
   return { ...settings, asleep: false, asleepSince: null, session: action.kind === 'grace' ? action.session : running };
 }
 
+/**
+ * What tapping Awake does. Outside the hours (and not in the grace hour) nothing changes until the user
+ * chooses a span in the pop-up, so "Not now" leaves an Asleep phone Asleep with its prompts.
+ */
+export function tapAwake(settings: Settings, now: Date): { settings: Settings; ask: Extract<AwakeAction, { kind: 'ask' }> | null } {
+  const action = awakeAction(settings, now);
+  if (action.kind === 'ask') return { settings, ask: action };
+  return { settings: goAwake(settings, now), ask: null };
+}
+
+/** The user chose a span in the pop-up: Awake, with that session. */
+export const startSession = (settings: Settings, session: { start: string; end: string }): Settings => ({ ...settings, asleep: false, asleepSince: null, session });
+
 /** Today's whole-day count of reminder windows asleep, for shifting Daily points' last day. */
 export function fullyAsleepDays(settings: Settings, since: Date, wakeAt: Date, createdAt: Date): number {
   const from = new Date(Math.max(since.getTime(), createdAt.getTime()));
