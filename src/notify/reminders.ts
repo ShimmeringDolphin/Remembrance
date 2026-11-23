@@ -83,7 +83,8 @@ async function rebook(settings: Settings): Promise<void> {
       schedule: async (r) => {
         await Notifications.scheduleNotificationAsync({
           // Only ids and the due time travel with the notification, never point text beyond what the body already shows.
-          content: { title: r.title, body: r.body, sound: settings.sound ? SOUND_FILE : false, color: categoryColour(r.category), data: reminderData(r) },
+          // A wake-up prompt carries no `at` or ids, so it never counts as a late reminder or an appearance.
+          content: { title: r.title, body: r.body, sound: settings.sound ? SOUND_FILE : false, color: categoryColour(r.category), data: r.prompt ? { prompt: true, promptAt: r.at.toISOString() } : reminderData(r) },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: r.at, channelId: settings.sound ? SOUND_CHANNEL : CHANNEL },
         });
       },
@@ -93,5 +94,6 @@ async function rebook(settings: Settings): Promise<void> {
     new Date(),
     limit,
     text,
+    { morning: t.promptMorning, afternoon: t.promptAfternoon, evening: t.promptEvening, body: t.promptBody },
   );
 }

@@ -3,9 +3,10 @@
 import * as SQLite from 'expo-sqlite';
 
 import type { Booked } from '../core/appearances';
+import { fullyAsleepDays, shiftExpiry } from '../core/awake';
 import { MAX_PER_CATEGORY } from '../core/limits';
 import { isPace } from '../core/pace';
-import type { Category, Pace, Point } from '../core/types';
+import type { Category, Pace, Point, Settings } from '../core/types';
 
 let opened: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -174,6 +175,23 @@ export async function putAwayExpired(now: Date): Promise<void> {
     'UPDATE points SET archived = 1, updated_at = ? WHERE archived = 0 AND expires_at IS NOT NULL AND expires_at <= ?',
     now.toISOString(), now.toISOString(),
   );
+}
+
+/**
+ * When the user wakes: each live Daily point's last day moves later by the whole reminder windows spent
+ * Asleep (counted from the later of the Asleep tap and the point's creation). One transaction.
+ */
+export async function shiftDailyExpiry(settings: Settings, since: Date, wakeAt: Date): Promise<void> {
+  const d = await db();
+  await d.withExclusiveTransactionAsync(async (tx) => {
+    const rows = await tx.getAllAsync<{ id: string; created_at: string; expires_at: string }>(
+      "SELECT id, created_at, expires_at FROM points WHERE archived = 0 AND category = 'daily' AND expires_at IS NOT NULL",
+    );
+    for (const r of rows) {
+      const days = fullyAsleepDays(settings, since, wakeAt, new Date(r.created_at));
+      if (days > 0) await tx.runAsync('UPDATE points SET expires_at = ? WHERE id = ?', shiftExpiry(r.expires_at, days), r.id);
+    }
+  });
 }
 
 /** Only a put-away point can be deleted for good. */

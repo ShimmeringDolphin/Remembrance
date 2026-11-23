@@ -2,6 +2,7 @@
 //
 // Each reminder shows a small handful of points, taking turns, so every notification can be read
 // at a glance and every point gets its fair share. Long-term points join every third reminder.
+import { sessionTimes } from './awake.ts';
 import { activeAt } from './expiry.ts';
 import { asLongTerm, paceWindows, splitDaily } from './pace.ts';
 import { inQuiet } from './quiet.ts';
@@ -34,7 +35,7 @@ function hash(text: string): number {
   return h >>> 0;
 }
 
-/** Reminder times after `now`, soonest first: every `every` minutes inside the from-to window. Nothing while asleep. */
+/** Reminder times after `now`, soonest first: every `every` minutes inside the from-to window, plus a chosen late-Awake session. Nothing while asleep. */
 export function planTimes(settings: Settings, now: Date, limit: number = MAX_BOOKED): Date[] {
   if (settings.asleep || limit <= 0) return [];
   // Button mode: all day while Awake. Hours mode: only From to Until.
@@ -59,6 +60,8 @@ export function planTimes(settings: Settings, now: Date, limit: number = MAX_BOO
       out.push(at);
     }
   }
+  // A late-Awake session adds its own times (outside the hours, before the next start time).
+  out.push(...sessionTimes(settings, now, limit));
   out.sort((a, b) => a.getTime() - b.getTime());
   return out.slice(0, limit);
 }

@@ -8,6 +8,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import type { Booked } from './src/core/appearances';
 import { DEFAULT_DAILY_DAYS, expiryFor, resolveDays } from './src/core/expiry';
 import { freshIds, idsFromData, listenQueue, listenSteps, momentPoints, parseShown } from './src/core/moment';
+import { awakeAction, goAsleep, goAwake, statusFor, type AwakeAction } from './src/core/awake';
 import { mergeSettings } from './src/core/settings';
 import { skyUnlocked } from './src/core/sky';
 import type { Category, Point, Settings } from './src/core/types';
@@ -24,6 +25,7 @@ import { HelpScreen } from './src/ui/HelpScreen';
 import { MomentScreen } from './src/ui/MomentScreen';
 import { Home } from './src/ui/Home';
 import { PermissionSheet } from './src/ui/PermissionSheet';
+import { SessionSheet, StartSheet } from './src/ui/SessionSheet';
 import { PointSheet, type PointActions } from './src/ui/PointSheet';
 import { SettingsScreen } from './src/ui/SettingsScreen';
 import { SkyScreen } from './src/ui/SkyScreen';
@@ -64,6 +66,9 @@ export default function App() {
   const listenRun = useRef(0);
   const handled = useRef(new Set<string>());
   const response = Notifications.useLastNotificationResponse();
+  // The pop-up for Awake outside the hours, and the start button a wake-up prompt opens.
+  const [asking, setAsking] = useState<Extract<AwakeAction, { kind: 'ask' }> | null>(null);
+  const [startOpen, setStartOpen] = useState(false);
   const settingsRef = useRef(settings);
   // Reminders are booked only after the saved settings have been read. Before that, settingsRef holds the
   // defaults (Awake), and booking with them would wake a phone that was put to sleep.
@@ -95,7 +100,12 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const s = readSettings(await data.getValue('settings'));
+        let s = readSettings(await data.getValue('settings'));
+        // A phone that was put to sleep before prompts existed has no Asleep time: start counting now and keep it.
+        if (s.asleep && !s.asleepSince) {
+          s = { ...s, asleepSince: new Date().toISOString() };
+          await data.setValue('settings', JSON.stringify(s));
+        }
         settingsRef.current = s;
         loadedRef.current = true;
         setSettings(s);
@@ -120,7 +130,10 @@ export default function App() {
     const key = response.notification.request.identifier;
     if (handled.current.has(key)) return;
     handled.current.add(key);
-    const ids = idsFromData(response.notification.request.content.data);
+    const content = response.notification.request.content.data;
+    // A wake-up prompt only opens the start button; it never changes settings by itself.
+    if ((content as { prompt?: unknown } | null)?.prompt === true) setStartOpen(true);
+    const ids = idsFromData(content);
     if (ids.length > 0) setMomentIds(ids);
     try {
       Notifications.clearLastNotificationResponse();
@@ -198,6 +211,35 @@ export default function App() {
     await data.setValue('settings', JSON.stringify(s));
     // Turning read aloud on or off changes no reminder, so skip the rebook; anything else rebooks.
     if (JSON.stringify({ ...before, readAloud: s.readAloud }) !== JSON.stringify(s)) await rebook(s);
+  };
+
+  /** Awake and Asleep. Asleep ends any session. Awake gives Daily points back the whole days spent Asleep. */
+  const sleepOrWake = async (asleep: boolean) => {
+    const now = new Date();
+    const prev = settingsRef.current;
+    setStartOpen(false);
+    if (asleep) {
+      setAsking(null);
+      if (!prev.asleep) await changeSettings(goAsleep(prev, now));
+      return;
+    }
+    const action = awakeAction(prev, now);
+    if (prev.asleep && prev.asleepSince) {
+      try {
+        await data.shiftDailyExpiry(prev, new Date(prev.asleepSince), now);
+      } catch {
+        // Points keep their dates; nothing is lost, they may just end sooner.
+      }
+    }
+    await changeSettings(goAwake(prev, now));
+    // Outside the hours, and not in the hour before the start: ask how long.
+    if (action.kind === 'ask') setAsking(action);
+  };
+
+  const chooseSession = async (hours: number) => {
+    const chosen = asking?.sessions[hours];
+    setAsking(null);
+    if (chosen) await changeSettings({ ...settingsRef.current, asleep: false, session: chosen });
   };
 
   const add = async (text: string, category: Category, days: number = DEFAULT_DAILY_DAYS): Promise<boolean> => {
@@ -335,7 +377,8 @@ export default function App() {
             fresh={fresh}
             listening={listening}
             onListen={listen}
-            onAsleep={(asleep) => changeSettings({ ...settings, asleep })}
+            onAsleep={(asleep) => void sleepOrWake(asleep)}
+            status={statusFor(settings, new Date())}
             onLatestMoment={openLatest}
             latestNew={!!lastShown && lastShown.at !== seenShown}
             skyOpen={skyUnlocked(points, remindersPassed, TESTING)}
@@ -354,6 +397,8 @@ export default function App() {
           />
         )}
         <PointSheet everyCount={points.filter((p) => !p.archived && p.category === 'daily' && p.pace === 'every').length} point={points.find((p) => p.id === openId) ?? null} t={t} theme={theme} actions={actions} onClose={() => setOpenId(null)} />
+        <SessionSheet asking={asking} t={t} theme={theme} from={settings.from} onChoose={(h) => void chooseSession(h)} onClose={() => setAsking(null)} />
+        <StartSheet visible={startOpen && settings.asleep} t={t} theme={theme} onStart={() => void sleepOrWake(false)} onClose={() => setStartOpen(false)} />
         <PermissionSheet visible={askNow} t={t} theme={theme} from={settings.from} to={settings.to} onYes={() => answerPermission(true)} onLater={() => answerPermission(false)} />
       </SafeAreaView>
     </SafeAreaProvider>
