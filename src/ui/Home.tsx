@@ -12,6 +12,8 @@ import type { Permission } from '../notify/reminders';
 import { tint, tintSoft, type Theme } from '../theme/calmStudy';
 import { OverflowMenu } from './OverflowMenu';
 import { SkyMark } from './SkyMark';
+import type { Status } from '../core/awake';
+import { clock } from './clock';
 import { Button, Card, Choice } from './parts';
 
 interface Props {
@@ -30,6 +32,8 @@ interface Props {
   onHelp: () => void;
   onSky: () => void;
   onAsleep: (asleep: boolean) => void;
+  /** What reminders are doing right now, for the line under the buttons. */
+  status: Status;
   onTurnOn: () => void;
   onBatteryTip: (open: boolean) => void;
   /** Reminders were seen arriving late: say what to change. */
@@ -101,6 +105,15 @@ export function Home(props: Props) {
     return <Text style={[styles.tag, { color: tint(theme, 'daily') }]}>{text}</Text>;
   };
 
+  const st = props.status;
+  const statusLine =
+    st.kind === 'asleepPrompt' ? fill(t.statusAsleepPrompt, { time: clock(st.at) })
+    : st.kind === 'asleepNone' ? t.asleepNote
+    : st.kind === 'inHours' ? fill(t.statusInHours, { time: clock(st.until) })
+    : st.kind === 'session' ? fill(t.statusSession, { time: clock(st.until) })
+    : st.kind === 'waiting' ? fill(t.statusWaiting, { time: clock(st.at) })
+    : null;
+
   const header = (
     <View style={styles.header}>
       <View style={styles.topRow}>
@@ -141,7 +154,7 @@ export function Home(props: Props) {
           );
         })}
       </View>
-      {props.asleep && <Text style={[styles.note, { color: theme.muted }]}>{t.asleepNote}</Text>}
+      {statusLine && <Text style={[styles.note, { color: theme.muted }]}>{statusLine}</Text>}
 
       {props.permission !== 'granted' && (
         <Card theme={theme}>

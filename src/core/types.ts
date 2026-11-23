@@ -63,4 +63,15 @@ export interface Settings {
   readAloud: boolean;
   /** A soft chime with each reminder. Off by default: reminders are silent. */
   sound: boolean;
+  /** When Asleep was tapped (ISO), or null while Awake. The morning prompts are tied to the first start time after it. */
+  asleepSince: string | null;
+  /** A late-Awake session the user chose outside the hours: reminders from `start` to `end` (ISO), or null. */
+  session: Session | null;
+  /** While Asleep (Hours mode), book up to three silent prompts for the next start time. */
+  morningPrompt: boolean;
+}
+
+export interface Session {
+  start: string;
+  end: string;
 }

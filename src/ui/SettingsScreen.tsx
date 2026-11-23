@@ -19,7 +19,7 @@ const STEP = 30;
 /** Test builds only: what the phone really has booked, readable without waiting. */
 function TestPanel(props: { t: Strings; theme: Theme; asleep: boolean }) {
   const { t, theme } = props;
-  const [info, setInfo] = useState<{ count: number; next: Date[] } | null>(null);
+  const [info, setInfo] = useState<{ count: number; prompts: number; next: Date[] } | null>(null);
   const [failed, setFailed] = useState(false);
   const load = useCallback(async () => {
     try {
@@ -37,6 +37,7 @@ function TestPanel(props: { t: Strings; theme: Theme; asleep: boolean }) {
     <View style={[styles.card, { borderColor: theme.line, backgroundColor: theme.surface }]}>
       <Text style={[styles.section, { color: theme.muted }]}>{t.diagTitle}</Text>
       <Text style={[styles.label, { color: theme.text }]}>{failed || !info ? t.diagUnknown : fill(t.diagBooked, { n: info.count })}</Text>
+      {info && info.prompts > 0 && <Text style={[styles.hint, { color: theme.muted }]}>{fill(t.diagPrompts, { n: info.prompts })}</Text>}
       {info && info.next.length > 0 && <Text style={[styles.hint, { color: theme.muted }]}>{fill(t.diagNext, { times: info.next.map(when).join(', ') })}</Text>}
       <Text style={[styles.hint, { color: theme.muted }]}>{props.asleep ? t.diagAsleep : t.diagAwake}</Text>
       <Button label={t.diagRefresh} theme={theme} kind="plain" onPress={() => void load()} />
@@ -158,6 +159,7 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
           </View>
           <Text style={[styles.hint, { color: theme.muted }]}>{fill(t.perDay, { n: perDay, from: s.mode === 'button' ? '00:00' : s.from, to: s.mode === 'button' ? '24:00' : s.to })}</Text>
           {s.every <= 30 && <Text style={[styles.hint, { color: theme.muted }]}>{t.openDaily}</Text>}
+          {s.mode === 'hours' && toggle(t.morningPromptLabel, t.morningPromptHint, s.morningPrompt, (v) => set({ morningPrompt: v }))}
         </>,
       )}
 

@@ -4,8 +4,9 @@ import * as Notifications from 'expo-notifications';
 
 import { bookedTimes } from '../core/diagnostics';
 
-export async function readBooked(): Promise<{ count: number; next: Date[] }> {
+export async function readBooked(): Promise<{ count: number; prompts: number; next: Date[] }> {
   const all = await Notifications.getAllScheduledNotificationsAsync();
-  const dues = all.map((n) => (n.content.data as { at?: unknown } | null)?.at);
-  return { count: all.length, next: bookedTimes(dues).slice(0, 3) };
+  const data = all.map((n) => (n.content.data ?? {}) as { at?: unknown; prompt?: unknown; promptAt?: unknown });
+  const dues = data.map((d) => d.at ?? d.promptAt);
+  return { count: all.length, prompts: data.filter((d) => d.prompt === true).length, next: bookedTimes(dues).slice(0, 3) };
 }

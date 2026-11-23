@@ -87,6 +87,7 @@ export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void
     ...(android ? [] : [{ q: t.q4, a: t.a4, action: { label: t.openNotifications, run: () => void openAppSettings() } }]),
     { q: t.q5, a: t.a5 },
     { q: t.q6, a: t.a6 },
+    { q: t.q7, a: t.a7 },
   ];
   return (
     <ScrollView contentContainerStyle={styles.wrap}>

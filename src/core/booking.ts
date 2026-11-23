@@ -5,6 +5,7 @@
 // The order matters. Everything that can fail (reading points, the permission check, planning) runs
 // BEFORE the existing reminders are cancelled, so a failure there leaves the old bookings in place
 // instead of wiping them and booking nothing.
+import { greetingFor, planPrompts, type PromptText } from './awake.ts';
 import { countAppearances, parseBooked, type Booked } from './appearances.ts';
 import { buildContent, type ContentText } from './content.ts';
 import { planSlots } from './planner.ts';
@@ -18,6 +19,8 @@ export interface Reminder {
   category: Category;
   /** Ids only: the words are in `body` (and follow the privacy rules); this lets a tap open the moment. */
   pointIds: string[];
+  /** A wake-up prompt while Asleep: holds no point text and is never counted as an appearance. */
+  prompt?: boolean;
 }
 
 export interface BookingDeps {
@@ -40,11 +43,13 @@ export interface BookingResult {
   booked: number;
   /** Reminders the phone refused (the next run tries again). */
   failed: number;
+  /** Wake-up prompts the phone accepted (not counted in `booked`). */
+  prompts: number;
   /** A step before cancelling failed, so the old bookings were left as they were. */
   aborted: boolean;
 }
 
-export async function bookReminders(deps: BookingDeps, settings: Settings, now: Date, limit: number, text: ContentText): Promise<BookingResult> {
+export async function bookReminders(deps: BookingDeps, settings: Settings, now: Date, limit: number, text: ContentText, promptText?: PromptText): Promise<BookingResult> {
   // Asleep always wins. The owner asked for silence, so clear every reminder first, before anything that
   // could fail (database, permission), and check that the phone really let go of them.
   if (settings.asleep) {
@@ -55,15 +60,19 @@ export async function bookReminders(deps: BookingDeps, settings: Settings, now: 
   let granted: boolean;
   let counted: ReturnType<typeof countAppearances>;
   let slots: ReturnType<typeof planSlots>;
+  let prompts: Date[] = [];
   try {
     counted = countAppearances(parseBooked(await deps.readBooked()), now);
-    await deps.putAwayExpired(now);
+    // Daily points are not put away while Asleep: their days are given back when the user wakes.
+    if (!settings.asleep) await deps.putAwayExpired(now);
     points = await deps.listPoints();
     granted = await deps.permissionGranted();
     slots = granted ? planSlots(points, settings, now, limit) : [];
+    // Prompts only when there is something to remind about and the phone allows notifications.
+    if (granted && promptText && points.some((p) => !p.archived)) prompts = planPrompts(settings, now);
   } catch {
     // Keep what is booked; the next rebook tries again. Never put point text in an error.
-    return { booked: 0, failed: 0, aborted: true };
+    return { booked: 0, prompts: 0, failed: 0, aborted: true };
   }
 
   await deps.cancelAll();
@@ -80,6 +89,17 @@ export async function bookReminders(deps: BookingDeps, settings: Settings, now: 
       failed++;
     }
   }
+  let promptsBooked = 0;
+  if (promptText) {
+    for (const at of prompts) {
+      try {
+        await deps.schedule({ at, title: promptText[greetingFor(at)], body: promptText.body, category: 'daily', pointIds: [], prompt: true });
+        promptsBooked++;
+      } catch {
+        failed++;
+      }
+    }
+  }
   await deps.record(counted.counts, counted.lastAt, counted.passed, counted.latest, future);
-  return { booked: future.length, failed, aborted: false };
+  return { booked: future.length, prompts: promptsBooked, failed, aborted: false };
 }
