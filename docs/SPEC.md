@@ -30,7 +30,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - Notifications are silent by default (no sound, no vibration on the Android channel `points`). Settings > Voice > **Gentle sound** (`sound`, off by default) books them on the channel `points-gentle` with a soft generated chime (`assets/sounds/gentle.wav`, about 1.6 s, no vibration); on iPhone the same file is the notification sound.
 - Any settings change except read aloud rebooks.
 - **Latest reminder**: recorded on every rebook and whenever a reminder arrives while the app is open. "Go through the latest reminder" rebooks first, then opens it, and hides once gone through until a newer reminder comes (`seenShown` in kv). The glow lasts 90 minutes.
-- Rebooking happens only when the app opens or returns to the front, and after a point or setting changes. It cancels everything and books again. Runs never overlap; changes during a run trigger one more run. Everything that can fail (reading the points, the permission check, planning) runs before the cancel, so a failure leaves the old reminders booked instead of wiping them (`src/core/booking.ts`, tested with a fake phone). Each reminder's data carries only `{pointIds, at}`, `at` being the time it is due.
+- Rebooking happens only when the app opens or returns to the front, and after a point or setting changes. It cancels everything and books again. Runs never overlap; changes during a run trigger one more run. Everything that can fail (reading the points, the permission check, planning) runs before the cancel, so a failure leaves the old reminders booked instead of wiping them (`src/core/booking.ts`, tested with a fake phone). The one exception is Asleep, which always wins: it cancels first, before any read that could fail, and then checks that nothing is left booked, cancelling again if the phone kept any. Each reminder's data carries only `{pointIds, at}`, `at` being the time it is due.
 - **Runway:** reminders are booked ahead only, and the app rebooks when opened, so a phone left unopened runs out: about 7.6 days with the defaults on Android (3.6 on iPhone), 1.7 days at every 15 minutes between 07:00 and 22:00, 1.2 days (Android) or 0.6 days (iPhone) at every 15 minutes all day.
 
 ## Moments, colour and voice
@@ -56,7 +56,9 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - After notifications are allowed on Android, Home shows a one-time card suggesting "Unrestricted" battery use, with a button to the phone's battery page (`android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS`, falling back to the app's settings).
 - A Help page answers: late or bundled reminders (Android) or bundled ones (iPhone: Focus, Scheduled Summary), no reminders, no words on the lock screen, battery use, and where points are kept.
 - Each answer shows two lines, and a longer one ends its second line with "... Read more", which opens it; "See less" below closes it. Answers that fit in two lines show no link.
-- Home has a ⋮ menu at the top right with Help and Settings. The Gujarati Awake and Asleep buttons read "જાગું છું" and "સૂઉં છું".
+- Every page has a ⋮ menu at the top right: Home shows Help and Settings, Help shows Home and Settings, Settings shows Home and Help. The Sky page keeps only its Back button.
+- Once the sky exists, a round Sky button (three stars: bright five-point, dimmer four-point, dimmest three-point; still, never animated) sits beside the ⋮ on Home. It replaces the old Sky card. Uses `react-native-svg`, bundled with the Expo SDK, no network.
+- The Gujarati Awake and Asleep buttons read "જાગું છું" and "સૂઉં છું".
 
 ## Storage
 

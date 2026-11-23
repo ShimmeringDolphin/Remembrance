@@ -5,6 +5,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-n
 import type { Strings } from '../i18n/strings';
 import { openAppSettings, openBatterySettings } from '../notify/phoneSettings';
 import type { Theme } from '../theme/calmStudy';
+import { OverflowMenu } from './OverflowMenu';
 import { Button, Card } from './parts';
 
 // An answer shows two lines. When it is longer, "... Read more" ends the second line and opens the rest;
@@ -76,7 +77,7 @@ function Answer(props: { text: string; theme: Theme; t: Strings }) {
   );
 }
 
-export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void }) {
+export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void; onGo: (to: 'home' | 'settings') => void }) {
   const { t, theme } = props;
   const android = Platform.OS === 'android';
   const items: { q: string; a: string; action?: { label: string; run: () => void } }[] = [
@@ -92,6 +93,8 @@ export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void
       <View style={styles.top}>
         <Button label={t.back} theme={theme} kind="quiet" onPress={props.onBack} />
         <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>{t.helpTitle}</Text>
+        <View style={styles.spacer} />
+        <OverflowMenu label={t.menu} theme={theme} items={[{ label: t.home, run: () => props.onGo('home') }, { label: t.settings, run: () => props.onGo('settings') }]} />
       </View>
       {items.map((item) => (
         <Card key={item.q} theme={theme}>
@@ -108,6 +111,7 @@ const styles = StyleSheet.create({
   wrap: { padding: 16, gap: 14, paddingBottom: 48 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 22, fontWeight: '700', flexShrink: 1 },
+  spacer: { flex: 1 },
   q: { fontSize: 17, fontWeight: '700', lineHeight: 24 },
   a: { fontSize: 16, lineHeight: 24 },
   measure: { position: 'absolute', left: 0, right: 0, opacity: 0 },

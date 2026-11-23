@@ -9,12 +9,13 @@ import type { Language, Settings } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import type { Theme } from '../theme/calmStudy';
 import { Button, Choice } from './parts';
+import { OverflowMenu } from './OverflowMenu';
 import { QuietAdder } from './QuietAdder';
 import { TimeField } from './TimeField';
 
 const STEP = 30;
 
-export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Settings; onChange: (s: Settings) => void; onBack: () => void }) {
+export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Settings; onChange: (s: Settings) => void; onBack: () => void; onGo: (to: 'home' | 'help') => void }) {
   const { t, theme, settings: s, onChange } = props;
   const set = (patch: Partial<Settings>) => onChange({ ...s, ...patch });
   // From and until can never meet: an empty window would quietly stop every reminder.
@@ -81,6 +82,8 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
       <View style={styles.top}>
         <Button label={t.back} theme={theme} kind="quiet" onPress={props.onBack} />
         <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>{t.settings}</Text>
+        <View style={styles.spacer} />
+        <OverflowMenu label={t.menu} theme={theme} items={[{ label: t.home, run: () => props.onGo('home') }, { label: t.help, run: () => props.onGo('help') }]} />
       </View>
 
       {section(
@@ -153,6 +156,7 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
 const styles = StyleSheet.create({
   wrap: { padding: 16, gap: 14, paddingBottom: 48 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  spacer: { flex: 1 },
   title: { fontSize: 24, fontWeight: '700' },
   card: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 12 },
   section: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2 },

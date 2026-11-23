@@ -1,6 +1,7 @@
 // Books the reminders with the phone. Pure orchestration: every side effect is passed in, so the
 // order of steps and the failure handling can be tested under Node without Expo.
 //
+// Asleep: everything is cancelled first, then verified, so Asleep wins even if a later step fails.
 // The order matters. Everything that can fail (reading points, the permission check, planning) runs
 // BEFORE the existing reminders are cancelled, so a failure there leaves the old bookings in place
 // instead of wiping them and booking nothing.
@@ -27,6 +28,8 @@ export interface BookingDeps {
   /** Whether notifications are allowed. May throw. */
   permissionGranted: () => Promise<boolean>;
   cancelAll: () => Promise<void>;
+  /** How many reminders the phone still has booked. */
+  countBooked: () => Promise<number>;
   /** Books one reminder. Throws when the phone refuses it. */
   schedule: (reminder: Reminder) => Promise<void>;
   record: (counts: Map<string, number>, lastAt: Map<string, string>, passed: number, latest: Booked | null, future: Booked[]) => Promise<void>;
@@ -42,6 +45,12 @@ export interface BookingResult {
 }
 
 export async function bookReminders(deps: BookingDeps, settings: Settings, now: Date, limit: number, text: ContentText): Promise<BookingResult> {
+  // Asleep always wins. The owner asked for silence, so clear every reminder first, before anything that
+  // could fail (database, permission), and check that the phone really let go of them.
+  if (settings.asleep) {
+    await deps.cancelAll();
+    if ((await deps.countBooked()) > 0) await deps.cancelAll();
+  }
   let points: Point[];
   let granted: boolean;
   let counted: ReturnType<typeof countAppearances>;

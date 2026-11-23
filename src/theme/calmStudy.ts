@@ -70,3 +70,6 @@ export const tintSoft = (theme: Theme, c: Category) => (c === 'daily' ? theme.da
 
 /** Android notification accent colour for a reminder. */
 export const categoryColour = (c: Category) => (c === 'daily' ? light.daily : light.longTerm);
+
+/** The Sky symbol: three stars that dim with distance. Cream in front, bronze behind, dusky violet furthest back. */
+export const SKY_MARK = { five: '#FFF3C4', four: '#8E6D47', three: '#454377' } as const;
