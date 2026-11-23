@@ -17,7 +17,7 @@ import { isSamsung, openBatterySettings } from './src/notify/phoneSettings';
 import { dismissLateTip, lateTipNow } from './src/notify/timing';
 import { deleteRecording } from './src/notify/ownVoice';
 import { say, speak, stopAll } from './src/notify/voice';
-import { askPermission, initNotifications, noteSettings, permission, syncReminders, type Permission } from './src/notify/reminders';
+import { askPermission, initNotifications, permission, syncReminders, type Permission } from './src/notify/reminders';
 import { themeFor } from './src/theme/calmStudy';
 import { updateWidget } from './src/widget/update';
 import { HelpScreen } from './src/ui/HelpScreen';
@@ -65,10 +65,14 @@ export default function App() {
   const handled = useRef(new Set<string>());
   const response = Notifications.useLastNotificationResponse();
   const settingsRef = useRef(settings);
+  // Reminders are booked only after the saved settings have been read. Before that, settingsRef holds the
+  // defaults (Awake), and booking with them would wake a phone that was put to sleep.
+  const loadedRef = useRef(false);
   const t = strings(settings.language);
 
   /** Books the reminders again and returns the latest reminder that has come. */
   const rebook = useCallback(async (s: Settings = settingsRef.current): Promise<Booked | null> => {
+    if (!loadedRef.current) return null;
     try {
       await syncReminders(s);
     } catch {
@@ -93,6 +97,7 @@ export default function App() {
       try {
         const s = readSettings(await data.getValue('settings'));
         settingsRef.current = s;
+        loadedRef.current = true;
         setSettings(s);
         setWelcomed((await data.getValue('welcomed')) === '1');
         setAsked((await data.getValue('askedPermission')) === '1');
@@ -187,7 +192,7 @@ export default function App() {
   const changeSettings = async (s: Settings) => {
     const prev = settingsRef.current;
     settingsRef.current = s;
-    noteSettings(s);
+    loadedRef.current = true; // a choice made by the user is the newest word
     setSettings(s);
     const before = prev;
     await data.setValue('settings', JSON.stringify(s));

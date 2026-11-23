@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { parseBooked, type Booked } from './appearances.ts';
+import { serialLatest } from './serialLatest.ts';
 import { bookedTimes } from './diagnostics.ts';
 import { bookReminders, type BookingDeps, type Reminder } from './booking.ts';
 import { arrivals, judgeTiming, LATE_MINUTES, reminderData, showTimingTip, TIP_PAUSE_DAYS, type Presented } from './lateness.ts';
@@ -365,4 +366,38 @@ test('test panel: due times come back soonest first; junk is ignored', () => {
   const out = bookedTimes(['2026-01-05T10:00:00.000Z', 'nonsense', 5, null, undefined, '2026-01-05T08:00:00.000Z']);
   assert.deepEqual(out.map((d) => d.toISOString()), ['2026-01-05T08:00:00.000Z', '2026-01-05T10:00:00.000Z']);
   assert.deepEqual(bookedTimes([]), []);
+});
+
+test('rebooking: a run with older settings in progress, then Asleep, ends with nothing booked (the cold-start bug)', async () => {
+  const phone = new FakePhone(twoPoints());
+  const awake = defaultSettings('en');
+  const asleep = { ...awake, asleep: true };
+  const seen: boolean[] = [];
+  const sync = serialLatest<Settings>(async (s) => {
+    seen.push(s.asleep);
+    await new Promise((r) => setTimeout(r, 5)); // the first run is slow, as on a cold start
+    await phone.run(s, at(5, 6));
+  });
+  const first = sync(awake); // started before the saved settings were read
+  const second = sync(asleep); // arrives while the first is running
+  const third = sync(asleep);
+  await Promise.all([first, second, third]);
+  assert.deepEqual(seen, [false, true], 'the newest settings must run last, once');
+  assert.equal(phone.scheduled.length, 0, 'reminders booked while Asleep');
+});
+
+test('rebooking: calls never run at the same time, and every caller waits for the end', async () => {
+  let active = 0;
+  let peak = 0;
+  const order: number[] = [];
+  const sync = serialLatest<number>(async (n) => {
+    active++;
+    peak = Math.max(peak, active);
+    order.push(n);
+    await new Promise((r) => setTimeout(r, 3));
+    active--;
+  });
+  await Promise.all([1, 2, 3, 4].map((n) => sync(n)));
+  assert.equal(peak, 1);
+  assert.deepEqual(order, [1, 4]);
 });
