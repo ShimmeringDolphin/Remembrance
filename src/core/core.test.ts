@@ -13,7 +13,7 @@ import { addQuiet, inQuiet, MAX_QUIET, removeQuiet, setQuiet } from './quiet.ts'
 import { isPace, paceFor, paceWindows } from './pace.ts';
 import { listenSteps } from './moment.ts';
 import { widgetSlot } from './widget.ts';
-import { freshIds, listenQueue, momentPoints, starGrowth } from './moment.ts';
+import { freshIds, listenQueue, momentPoints, shownFor, starGrowth } from './moment.ts';
 import type { Point, Settings } from './types.ts';
 
 const settings: Settings = defaultSettings('en');
@@ -409,4 +409,15 @@ test('the widget shows the reminder that came last, else the next one', () => {
   assert.equal(widgetSlot([b(14, 'd'), b(13, 'c')], null, now)?.pointIds[0], 'c');
   assert.equal(widgetSlot([], null, now), null);
   assert.equal(widgetSlot([{ at: 'junk', pointIds: ['x'] }], null, now), null);
+});
+
+test('shownFor picks the notifications of the reminder just seen in the app, and nothing else', () => {
+  const shown = [
+    { id: 'a', data: { at: '2026-01-05T07:00:00.000Z', pointIds: ['p'] } },
+    { id: 'b', data: { at: '2026-01-05T08:00:00.000Z', pointIds: ['p'] } },
+    { id: 'c', data: { prompt: true } },
+    { id: 'd', data: null },
+  ];
+  assert.deepEqual(shownFor(shown, '2026-01-05T08:00:00.000Z'), ['b']);
+  assert.deepEqual(shownFor(shown, 'nope'), []);
 });

@@ -6,7 +6,7 @@ import type { Strings } from '../i18n/strings';
 import { openAppSettings, openBatterySettings } from '../notify/phoneSettings';
 import type { Theme } from '../theme/calmStudy';
 import { OverflowMenu } from './OverflowMenu';
-import { Button, Card } from './parts';
+import { Button, Card, Header } from './parts';
 
 // An answer shows two lines. When it is longer, "... Read more" ends the second line and opens the rest;
 // "See less" closes it. Hidden copies of the text are measured: the full text to see if it
@@ -91,12 +91,14 @@ export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void
   ];
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
-      <View style={styles.top}>
-        <Button label={t.back} theme={theme} kind="quiet" onPress={props.onBack} />
-        <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>{t.helpTitle}</Text>
-        <View style={styles.spacer} />
-        <OverflowMenu label={t.menu} theme={theme} items={[{ label: t.home, run: () => props.onGo('home') }, { label: t.settings, run: () => props.onGo('settings') }]} />
-      </View>
+      <Header
+        title={t.helpTitle}
+        backLabel={t.back}
+        onBack={props.onBack}
+        color={theme.accent}
+        titleColor={theme.text}
+        right={<OverflowMenu label={t.menu} theme={theme} items={[{ label: t.home, run: () => props.onGo('home') }, { label: t.settings, run: () => props.onGo('settings') }]} />}
+      />
       {items.map((item) => (
         <Card key={item.q} theme={theme}>
           <Text accessibilityRole="header" style={[styles.q, { color: theme.text }]}>{item.q}</Text>

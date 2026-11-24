@@ -69,3 +69,10 @@ export function listenSteps(queue: readonly Point[]): ListenStep[] {
   }
   return out;
 }
+
+/** The ids of shown notifications whose due time (`at`) is the reminder just seen in the app. */
+export function shownFor(shown: readonly { id: string; data: unknown }[], at: string): string[] {
+  return shown
+    .filter((n) => typeof n.data === 'object' && n.data !== null && (n.data as { at?: unknown }).at === at)
+    .map((n) => n.id);
+}

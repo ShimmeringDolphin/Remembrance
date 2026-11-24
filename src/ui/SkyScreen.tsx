@@ -6,7 +6,7 @@ import { layoutSky, totalAppearances } from '../core/sky';
 import type { Point } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import { tint, type Theme } from '../theme/calmStudy';
-import { Button } from './parts';
+import { Header } from './parts';
 
 export function SkyScreen(props: { t: Strings; theme: Theme; points: Point[]; onBack: () => void }) {
   const { t, theme, points } = props;
@@ -18,10 +18,7 @@ export function SkyScreen(props: { t: Strings; theme: Theme; points: Point[]; on
 
   return (
     <View style={[styles.wrap, { backgroundColor: theme.sky }]}>
-      <View style={styles.top}>
-        <Button label={t.back} theme={{ ...theme, accent: theme.star }} kind="quiet" onPress={props.onBack} />
-        <Text accessibilityRole="header" style={[styles.title, { color: theme.star }]}>{t.skyTitle}</Text>
-      </View>
+      <Header title={t.skyTitle} backLabel={t.back} onBack={props.onBack} color={theme.star} titleColor={theme.star} />
       <Text style={styles.body}>{fill(t.skyBody, { n: totalAppearances(points) })}</Text>
       <View style={[styles.field, { width: side, height: side }]}>
         {stars.map((s) => {

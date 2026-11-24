@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 
 import { bookReminders } from '../core/booking';
 import { reminderData } from '../core/lateness';
+import { shownFor } from '../core/moment';
 import { MAX_BOOKED, MAX_BOOKED_ANDROID } from '../core/planner';
 import { serialLatest } from '../core/serialLatest';
 import type { Settings } from '../core/types';
@@ -96,4 +97,15 @@ async function rebook(settings: Settings): Promise<void> {
     text,
     { morning: t.promptMorning, afternoon: t.promptAfternoon, evening: t.promptEvening, body: t.promptBody },
   );
+}
+
+/** The reminder was seen in the app: take its notification out of the shade, as other apps do. Never throws. */
+export async function dismissSeen(at: string): Promise<void> {
+  try {
+    const shown = await Notifications.getPresentedNotificationsAsync();
+    const ids = shownFor(shown.map((n) => ({ id: n.request.identifier, data: n.request.content.data })), at);
+    await Promise.all(ids.map((id) => Notifications.dismissNotificationAsync(id)));
+  } catch {
+    // The notification just stays; nothing else depends on it.
+  }
 }
