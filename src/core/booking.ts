@@ -5,7 +5,7 @@
 // The order matters. Everything that can fail (reading points, the permission check, planning) runs
 // BEFORE the existing reminders are cancelled, so a failure there leaves the old bookings in place
 // instead of wiping them and booking nothing.
-import { greetingFor, planPrompts, type PromptText } from './awake.ts';
+import { greetingFor, planPrompts, RUNWAY_AFTER_HOURS, type PromptText } from './awake.ts';
 import { countAppearances, parseBooked, type Booked } from './appearances.ts';
 import { buildContent, type ContentText } from './content.ts';
 import { planSlots } from './planner.ts';
@@ -106,9 +106,12 @@ export async function bookReminders(deps: BookingDeps, settings: Settings, now: 
       }
     }
   }
-  // After the last booked reminder, one quiet note asks the user to open the app, so reminders never just stop.
+  // One quiet note asks the user to open the app after about two days without opening it, so reminders never
+  // just stop: two minutes after the first reminder due 48 hours from now, or after the last booked one if those end sooner.
+  // Every rebook (every app open) moves it two days further on, so a user who opens the app never sees it.
   let runwayBooked = 0;
-  const last = slots[slots.length - 1];
+  const horizon = now.getTime() + RUNWAY_AFTER_HOURS * 3600000;
+  const last = slots.find((s) => s.at.getTime() >= horizon) ?? slots[slots.length - 1];
   if (promptText && last) {
     const at = new Date(last.at.getTime() + 2 * 60000);
     if (!inQuiet(at.getHours() * 60 + at.getMinutes(), settings.quiet)) {
