@@ -18,7 +18,7 @@ import { isSamsung, openBatterySettings } from './src/notify/phoneSettings';
 import { dismissLateTip, lateTipNow } from './src/notify/timing';
 import { deleteRecording } from './src/notify/ownVoice';
 import { say, speak, stopAll } from './src/notify/voice';
-import { askPermission, dismissSeen, initNotifications, permission, syncReminders, type Permission } from './src/notify/reminders';
+import { askPermission, dismissSeen, tidyShade, initNotifications, permission, syncReminders, type Permission } from './src/notify/reminders';
 import { themeFor } from './src/theme/calmStudy';
 import { updateWidget } from './src/widget/update';
 import { HelpScreen } from './src/ui/HelpScreen';
@@ -121,6 +121,7 @@ export default function App() {
       }
       await rebook();
       setLateTip(await lateTipNow());
+      void tidyShade(); // after the timing check, which reads the notifications still in the shade
     })();
   }, [rebook]);
 
@@ -145,7 +146,10 @@ export default function App() {
   // A reminder that arrives while the app is open: count it and move "latest" on to it.
   // One event listener, no polling; it fires only when a notification is shown.
   useEffect(() => {
-    const sub = Notifications.addNotificationReceivedListener(() => void rebook());
+    const sub = Notifications.addNotificationReceivedListener(() => {
+      void tidyShade();
+      void rebook();
+    });
     return () => sub.remove();
   }, [rebook]);
 
@@ -199,6 +203,7 @@ export default function App() {
       setPerm(await permission());
       await rebook();
       setLateTip(await lateTipNow());
+      void tidyShade();
     });
     return () => sub.remove();
   }, [rebook, stopListening]);

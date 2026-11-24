@@ -76,3 +76,18 @@ export function shownFor(shown: readonly { id: string; data: unknown }[], at: st
     .filter((n) => typeof n.data === 'object' && n.data !== null && (n.data as { at?: unknown }).at === at)
     .map((n) => n.id);
 }
+
+/**
+ * Reminder notifications other than the newest, by due time. Wake-up prompts and the "open the app" note
+ * carry no due time and are left alone. Keeps the shade to one reminder at a time.
+ */
+export function olderShown(shown: readonly { id: string; data: unknown }[]): string[] {
+  const due = (d: unknown): number => {
+    const at = typeof d === 'object' && d !== null ? (d as { at?: unknown }).at : undefined;
+    return typeof at === 'string' ? Date.parse(at) : NaN;
+  };
+  const reminders = shown.filter((n) => Number.isFinite(due(n.data)));
+  if (reminders.length <= 1) return [];
+  const newest = reminders.reduce((a, b) => (due(b.data) > due(a.data) ? b : a));
+  return reminders.filter((n) => n !== newest).map((n) => n.id);
+}

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { awakeAction, startSession, tapAwake, fullyAsleepDays, goAsleep, goAwake, greetingFor, inWindow, nextStart, planPrompts, sessionTimes, shiftExpiry, statusFor } from './awake.ts';
 import { bookReminders, type BookingDeps, type Reminder } from './booking.ts';
+import { olderShown } from './moment.ts';
 import { planTimes } from './planner.ts';
 import { defaultSettings, mergeSettings } from './settings.ts';
 import type { Point, Settings } from './types.ts';
@@ -192,7 +193,7 @@ test('settings: new fields default, validate, and an old Asleep phone stays Asle
 });
 
 // ---- booking while Asleep ----
-const promptText = { morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening', body: "Tap to start today's reminders." };
+const promptText = { morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening', body: "Tap to start today's reminders.", runwayTitle: 'Keep your reminders coming', runwayBody: 'Open the app once.' };
 const text = { title: 'T', privateOne: '1', privateMany: '{n}', privateExtra: '+{n}' };
 function point(id: string): Point {
   return { id, kind: 'note', text: `words of ${id}`, answer: null, category: 'daily', private: false, archived: false, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', appearances: 0, lastAppearedAt: null, expiresAt: null, pace: 'normal', voice: null };
@@ -271,4 +272,72 @@ test('Awake outside the hours changes nothing until a span is chosen: "Not now" 
   // Already Awake outside the hours: the pop-up opens, nothing else changes.
   const awake = base();
   assert.equal(tapAwake(awake, at(5, 23, 0)).settings, awake);
+});
+
+test('runway: one note about two days after the app was last opened; the cap still holds; it holds no point text', async () => {
+  const p = phone([point('a')]);
+  const s = base({ every: 30 }); // 48 reminders a day, so 120 last about 2.5 days
+  const now = at(5, 9, 0);
+  const r = await bookReminders(p.deps, s, now, 120, text, promptText);
+  assert.equal(r.runway, 1);
+  assert.equal(r.booked, 119);
+  assert.equal(p.scheduled.length, 120); // reminders plus the note stay within the limit
+  const note = p.scheduled.find((x) => x.runway);
+  assert.ok(note);
+  assert.equal(note.title, 'Keep your reminders coming');
+  assert.equal(note.pointIds.length, 0);
+  const reminders = p.scheduled.filter((x) => !x.runway);
+  const first48 = reminders.find((x) => x.at.getTime() >= now.getTime() + 48 * 3600000);
+  assert.ok(first48);
+  assert.equal(note.at.getTime() - first48.at.getTime(), 2 * 60000);
+  assert.ok(note.at.getTime() - now.getTime() >= 48 * 3600000);
+  assert.equal(p.recorded()?.future, 119); // the note is not an appearance
+  // Reminders that end before two days (every 15 minutes, 120 of them): the note follows the last one.
+  const short = phone([point('a')]);
+  const fast = base({ every: 15, mode: 'button' });
+  await bookReminders(short.deps, fast, now, 120, text, promptText);
+  const shortNote = short.scheduled.find((x) => x.runway);
+  const shortReminders = short.scheduled.filter((x) => !x.runway);
+  assert.ok(shortNote);
+  assert.equal(shortNote.at.getTime() - shortReminders[shortReminders.length - 1].at.getTime(), 2 * 60000);
+  const small = phone([point('a')]);
+  await bookReminders(small.deps, s, now, 60, text, promptText);
+  assert.equal(small.scheduled.length, 60);
+  // Opening the app again moves the note two days further on.
+  const later = at(6, 9, 0);
+  await bookReminders(p.deps, s, later, 120, text, promptText);
+  const moved = p.scheduled.find((x) => x.runway);
+  assert.ok(moved && moved.at.getTime() > note.at.getTime());
+});
+
+test('runway: none while Asleep, with no points, or when it would fall in a quiet hour; without prompt text the old limit applies', async () => {
+  const asleep = phone([point('a')]);
+  assert.equal((await bookReminders(asleep.deps, asleepAt(at(5, 23)), at(5, 23), 60, text, promptText)).runway, 0);
+  assert.equal((await bookReminders(phone([]).deps, base(), at(5, 9), 60, text, promptText)).runway, 0);
+  const plain = phone([point('a')]);
+  const r = await bookReminders(plain.deps, base({ every: 30 }), at(5, 9, 0), 60, text);
+  assert.equal(r.runway, 0);
+  assert.equal(r.booked, 60);
+  // A quiet range that covers just the minute where the note would fall: it is skipped.
+  const probe = phone([point('a')]);
+  await bookReminders(probe.deps, base({ every: 30 }), at(5, 9, 0), 5, text, promptText);
+  const note = probe.scheduled.find((x) => x.runway)!.at;
+  const m = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const q = phone([point('a')]);
+  const res = await bookReminders(q.deps, base({ every: 30, quiet: [{ start: m(new Date(note.getTime() - 60000)), end: m(new Date(note.getTime() + 60000)) }] }), at(5, 9, 0), 5, text, promptText);
+  assert.equal(res.runway, 0);
+});
+
+test('olderShown keeps only the newest reminder and leaves prompts and the runway note alone', () => {
+  const shown = [
+    { id: 'a', data: { at: '2026-01-05T07:00:00.000Z' } },
+    { id: 'b', data: { at: '2026-01-05T09:00:00.000Z' } },
+    { id: 'c', data: { at: '2026-01-05T08:00:00.000Z' } },
+    { id: 'p', data: { prompt: true } },
+    { id: 'r', data: { runway: true } },
+    { id: 'n', data: null },
+  ];
+  assert.deepEqual(olderShown(shown).sort(), ['a', 'c']);
+  assert.deepEqual(olderShown([shown[0]]), []);
+  assert.deepEqual(olderShown([]), []);
 });

@@ -15,6 +15,8 @@ export const PROMPT_MIN_GAP_MINUTES = 30;
 export const GRACE_MINUTES = 60;
 /** The spans the pop-up offers, in hours. */
 export const SESSION_HOURS = [1, 2, 4] as const;
+/** The "open the app" note comes after the first reminder at least this long after the app was last opened (a rebook), or after the last booked one if they end sooner. */
+export const RUNWAY_AFTER_HOURS = 48;
 /** The first reminder of a session comes this long after the tap. */
 export const SESSION_FIRST_MINUTES = 1;
 
@@ -24,6 +26,9 @@ export interface PromptText {
   afternoon: string;
   evening: string;
   body: string;
+  /** The last booked notification: asks the user to open the app so reminders keep coming. */
+  runwayTitle: string;
+  runwayBody: string;
 }
 
 const MINUTE = 60000;
