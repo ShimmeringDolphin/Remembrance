@@ -9,7 +9,7 @@ import type { Language, Settings } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import { readBooked } from '../notify/diagnostics';
 import type { Theme } from '../theme/calmStudy';
-import { Button, Choice } from './parts';
+import { Button, Choice, Header } from './parts';
 import { OverflowMenu } from './OverflowMenu';
 import { QuietAdder } from './QuietAdder';
 import { TimeField } from './TimeField';
@@ -109,12 +109,14 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
 
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
-      <View style={styles.top}>
-        <Button label={t.back} theme={theme} kind="quiet" onPress={props.onBack} />
-        <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>{t.settings}</Text>
-        <View style={styles.spacer} />
-        <OverflowMenu label={t.menu} theme={theme} items={[{ label: t.home, run: () => props.onGo('home') }, { label: t.help, run: () => props.onGo('help') }]} />
-      </View>
+      <Header
+        title={t.settings}
+        backLabel={t.back}
+        onBack={props.onBack}
+        color={theme.accent}
+        titleColor={theme.text}
+        right={<OverflowMenu label={t.menu} theme={theme} items={[{ label: t.home, run: () => props.onGo('home') }, { label: t.help, run: () => props.onGo('help') }]} />}
+      />
 
       {section(
         t.sectionWhen,

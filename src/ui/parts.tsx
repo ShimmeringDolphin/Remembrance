@@ -28,6 +28,24 @@ export function Button(props: { label: string; onPress: () => void; theme: Theme
   );
 }
 
+/**
+ * The top of a page: a back arrow on the left, the title centred, and optional controls on the right.
+ * The two side slots are the same width, so the title stays in the middle and apart from the arrow.
+ */
+export function Header(props: { title: string; backLabel: string; onBack: () => void; color: string; titleColor: string; right?: ReactNode }) {
+  return (
+    <View style={styles.header}>
+      <View style={styles.slotLeft}>
+        <Pressable accessibilityRole="button" accessibilityLabel={props.backLabel} onPress={props.onBack} hitSlop={6} style={({ pressed }) => [styles.backHit, pressed && { opacity: 0.7 }]}>
+          <Text style={[styles.backArrow, { color: props.color }]}>{'‹'}</Text>
+        </Pressable>
+      </View>
+      <Text accessibilityRole="header" numberOfLines={1} style={[styles.headerTitle, { color: props.titleColor }]}>{props.title}</Text>
+      <View style={styles.slotRight}>{props.right}</View>
+    </View>
+  );
+}
+
 /** One of a few choices; the chosen one is filled so it is clear which is picked. */
 export function Choice(props: { label: string; selected: boolean; onPress: () => void; theme: Theme }) {
   const t = props.theme;
@@ -53,6 +71,12 @@ export function Card(props: { children: ReactNode; theme: Theme }) {
 }
 
 const styles = StyleSheet.create({
+  header: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', gap: 8 },
+  slotLeft: { width: 56, alignItems: 'flex-start' },
+  slotRight: { width: 56, alignItems: 'flex-end' },
+  backHit: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  backArrow: { fontSize: 38, lineHeight: 42, fontWeight: '400' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 22, fontWeight: '700' },
   button: { minHeight: 48, paddingHorizontal: 18, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   quiet: { paddingHorizontal: 8 },
   buttonText: { fontSize: 16, fontWeight: '600' },
