@@ -9,6 +9,7 @@ import { greetingFor, planPrompts, type PromptText } from './awake.ts';
 import { countAppearances, parseBooked, type Booked } from './appearances.ts';
 import { buildContent, type ContentText } from './content.ts';
 import { planSlots } from './planner.ts';
+import { inQuiet } from './quiet.ts';
 import type { Category, Point, Settings } from './types';
 
 /** One reminder, ready for the phone's scheduler. */
@@ -21,6 +22,8 @@ export interface Reminder {
   pointIds: string[];
   /** A wake-up prompt while Asleep: holds no point text and is never counted as an appearance. */
   prompt?: boolean;
+  /** The last booked notification: "open the app to keep reminders coming". No point text, never an appearance. */
+  runway?: boolean;
 }
 
 export interface BookingDeps {
@@ -45,6 +48,8 @@ export interface BookingResult {
   failed: number;
   /** Wake-up prompts the phone accepted (not counted in `booked`). */
   prompts: number;
+  /** 1 when the "open the app" note was booked after the last reminder (not counted in `booked`). */
+  runway: number;
   /** A step before cancelling failed, so the old bookings were left as they were. */
   aborted: boolean;
 }
@@ -67,12 +72,13 @@ export async function bookReminders(deps: BookingDeps, settings: Settings, now: 
     if (!settings.asleep) await deps.putAwayExpired(now);
     points = await deps.listPoints();
     granted = await deps.permissionGranted();
-    slots = granted ? planSlots(points, settings, now, limit) : [];
+    // One place in the cap is kept for the "open the app" note after the last reminder.
+    slots = granted ? planSlots(points, settings, now, promptText ? limit - 1 : limit) : [];
     // Prompts only when there is something to remind about and the phone allows notifications.
     if (granted && promptText && points.some((p) => !p.archived)) prompts = planPrompts(settings, now);
   } catch {
     // Keep what is booked; the next rebook tries again. Never put point text in an error.
-    return { booked: 0, prompts: 0, failed: 0, aborted: true };
+    return { booked: 0, prompts: 0, runway: 0, failed: 0, aborted: true };
   }
 
   await deps.cancelAll();
@@ -100,6 +106,20 @@ export async function bookReminders(deps: BookingDeps, settings: Settings, now: 
       }
     }
   }
+  // After the last booked reminder, one quiet note asks the user to open the app, so reminders never just stop.
+  let runwayBooked = 0;
+  const last = slots[slots.length - 1];
+  if (promptText && last) {
+    const at = new Date(last.at.getTime() + 2 * 60000);
+    if (!inQuiet(at.getHours() * 60 + at.getMinutes(), settings.quiet)) {
+      try {
+        await deps.schedule({ at, title: promptText.runwayTitle, body: promptText.runwayBody, category: 'daily', pointIds: [], runway: true });
+        runwayBooked = 1;
+      } catch {
+        failed++;
+      }
+    }
+  }
   await deps.record(counted.counts, counted.lastAt, counted.passed, counted.latest, future);
-  return { booked: future.length, prompts: promptsBooked, failed, aborted: false };
+  return { booked: future.length, prompts: promptsBooked, runway: runwayBooked, failed, aborted: false };
 }

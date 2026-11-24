@@ -24,6 +24,9 @@ export interface PromptText {
   afternoon: string;
   evening: string;
   body: string;
+  /** The last booked notification: asks the user to open the app so reminders keep coming. */
+  runwayTitle: string;
+  runwayBody: string;
 }
 
 const MINUTE = 60000;

@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 
 import { bookReminders } from '../core/booking';
 import { reminderData } from '../core/lateness';
-import { shownFor } from '../core/moment';
+import { olderShown, shownFor } from '../core/moment';
 import { MAX_BOOKED, MAX_BOOKED_ANDROID } from '../core/planner';
 import { serialLatest } from '../core/serialLatest';
 import type { Settings } from '../core/types';
@@ -85,7 +85,15 @@ async function rebook(settings: Settings): Promise<void> {
         await Notifications.scheduleNotificationAsync({
           // Only ids and the due time travel with the notification, never point text beyond what the body already shows.
           // A wake-up prompt carries no `at` or ids, so it never counts as a late reminder or an appearance.
-          content: { title: r.title, body: r.body, sound: settings.sound ? SOUND_FILE : false, color: categoryColour(r.category), data: r.prompt ? { prompt: true, promptAt: r.at.toISOString() } : reminderData(r) },
+          content: {
+            title: r.title,
+            body: r.body,
+            sound: settings.sound ? SOUND_FILE : false,
+            color: categoryColour(r.category),
+            data: r.prompt ? { prompt: true, promptAt: r.at.toISOString() } : r.runway ? { runway: true, runwayAt: r.at.toISOString() } : reminderData(r),
+            // Reminders stack under one entry in the shade; prompts and the "open the app" note stand alone.
+            ...(r.prompt || r.runway ? {} : { threadIdentifier: 'reminders' }),
+          },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: r.at, channelId: settings.sound ? SOUND_CHANNEL : CHANNEL },
         });
       },
@@ -95,7 +103,7 @@ async function rebook(settings: Settings): Promise<void> {
     new Date(),
     limit,
     text,
-    { morning: t.promptMorning, afternoon: t.promptAfternoon, evening: t.promptEvening, body: t.promptBody },
+    { morning: t.promptMorning, afternoon: t.promptAfternoon, evening: t.promptEvening, body: t.promptBody, runwayTitle: t.runwayTitle, runwayBody: t.runwayBody },
   );
 }
 
@@ -107,5 +115,16 @@ export async function dismissSeen(at: string): Promise<void> {
     await Promise.all(ids.map((id) => Notifications.dismissNotificationAsync(id)));
   } catch {
     // The notification just stays; nothing else depends on it.
+  }
+}
+
+/** Keeps one reminder in the shade: takes out the older ones when a newer one has come. Never throws. */
+export async function tidyShade(): Promise<void> {
+  try {
+    const shown = await Notifications.getPresentedNotificationsAsync();
+    const ids = olderShown(shown.map((n) => ({ id: n.request.identifier, data: n.request.content.data })));
+    await Promise.all(ids.map((id) => Notifications.dismissNotificationAsync(id)));
+  } catch {
+    // They just stay; nothing else depends on it.
   }
 }
