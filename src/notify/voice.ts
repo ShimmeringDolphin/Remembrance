@@ -2,12 +2,13 @@
 // Speech starts only from a tap or a setting the user turned on, and is stopped when not needed.
 import * as Speech from 'expo-speech';
 
+import { languageOf } from '../core/script';
 import type { Language, Point } from '../core/types';
 import { playRecording, stopRecordingPlayback } from './ownVoice';
 
 const VOICE: Record<Language, string> = { en: 'en-IN', hi: 'hi-IN', gu: 'gu-IN' };
 
-/** Speaks `text`; `onEnd` runs when it finishes, is stopped, or fails. */
+/** Speaks `text` in the voice of its own script (Hindi, Gujarati or English); `language` is used only when the text has no letters. `onEnd` runs when it finishes, is stopped, or fails. */
 export function speak(text: string, language: Language, onEnd?: () => void): void {
   let ended = false;
   const end = () => {
@@ -17,7 +18,7 @@ export function speak(text: string, language: Language, onEnd?: () => void): voi
     }
   };
   try {
-    Speech.speak(text, { language: VOICE[language], rate: 0.9, onDone: end, onStopped: end, onError: end });
+    Speech.speak(text, { language: VOICE[languageOf(text, language)], rate: 0.9, onDone: end, onStopped: end, onError: end });
   } catch {
     end();
   }
