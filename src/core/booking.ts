@@ -5,11 +5,10 @@
 // The order matters. Everything that can fail (reading points, the permission check, planning) runs
 // BEFORE the existing reminders are cancelled, so a failure there leaves the old bookings in place
 // instead of wiping them and booking nothing.
-import { greetingFor, planPrompts, RUNWAY_AFTER_HOURS, type PromptText } from './awake.ts';
+import { greetingFor, noteTime, planPrompts, RUNWAY_AFTER_HOURS, type PromptText } from './awake.ts';
 import { countAppearances, parseBooked, type Booked } from './appearances.ts';
 import { buildContent, type ContentText } from './content.ts';
 import { planSlots } from './planner.ts';
-import { inQuiet } from './quiet.ts';
 import type { Category, Point, Settings } from './types';
 
 /** One reminder, ready for the phone's scheduler. */
@@ -113,8 +112,9 @@ export async function bookReminders(deps: BookingDeps, settings: Settings, now: 
   const horizon = now.getTime() + RUNWAY_AFTER_HOURS * 3600000;
   const last = slots.find((s) => s.at.getTime() >= horizon) ?? slots[slots.length - 1];
   if (promptText && last) {
-    const at = new Date(last.at.getTime() + 2 * 60000);
-    if (!inQuiet(at.getHours() * 60 + at.getMinutes(), settings.quiet)) {
+    // At night or in a quiet hour the note waits for the morning (From, or the end of the quiet hour).
+    const at = noteTime(settings, new Date(last.at.getTime() + 2 * 60000));
+    if (at) {
       try {
         await deps.schedule({ at, title: promptText.runwayTitle, body: promptText.runwayBody, category: 'daily', pointIds: [], runway: true });
         runwayBooked = 1;

@@ -17,6 +17,8 @@ export const GRACE_MINUTES = 60;
 export const SESSION_HOURS = [1, 2, 4] as const;
 /** The "open the app" note comes after the first reminder at least this long after the app was last opened (a rebook), or after the last booked one if they end sooner. */
 export const RUNWAY_AFTER_HOURS = 48;
+/** In All-day mode, "night" runs from 11:00 PM until the From time (7:00 AM unless changed). */
+export const ALL_DAY_NIGHT_START = 23 * 60;
 /** The first reminder of a session comes this long after the tap. */
 export const SESSION_FIRST_MINUTES = 1;
 
@@ -219,4 +221,25 @@ export function statusFor(settings: Settings, now: Date): Status {
     return end.getTime() === nextStart(settings, new Date(s.start)).getTime() ? { kind: 'inHours', until: settings.to } : { kind: 'session', until: end };
   }
   return { kind: 'waiting', at: nextStart(settings, now) };
+}
+
+/** Is this a night minute for the "open the app" note? Outside From-Until (Hours mode), or 11 PM to From (All day). */
+export function isNight(settings: Settings, at: Date): boolean {
+  if (settings.mode === 'hours') return !inWindow(settings, at);
+  const m = minuteOfDay(at);
+  const end = parseTime(settings.from);
+  return ALL_DAY_NIGHT_START <= end ? m >= ALL_DAY_NIGHT_START && m < end : m >= ALL_DAY_NIGHT_START || m < end;
+}
+
+/**
+ * When the "open the app" note may show: `at` itself, or, if that is at night or in a quiet hour, the first
+ * minute after that is neither (your From time, or the end of the quiet hour). Null if none within two days.
+ */
+export function noteTime(settings: Settings, at: Date): Date | null {
+  let t = at;
+  for (let i = 0; i <= 2 * DAY_MINUTES; i++) {
+    if (!isNight(settings, t) && !inQuiet(minuteOfDay(t), settings.quiet)) return t;
+    t = new Date(t.getTime() + MINUTE);
+  }
+  return null;
 }

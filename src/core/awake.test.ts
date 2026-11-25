@@ -318,14 +318,50 @@ test('runway: none while Asleep, with no points, or when it would fall in a quie
   const r = await bookReminders(plain.deps, base({ every: 30 }), at(5, 9, 0), 60, text);
   assert.equal(r.runway, 0);
   assert.equal(r.booked, 60);
-  // A quiet range that covers just the minute where the note would fall: it is skipped.
+  // A quiet range that covers just the minute where the note would fall: the note waits for the quiet hour to end.
   const probe = phone([point('a')]);
   await bookReminders(probe.deps, base({ every: 30 }), at(5, 9, 0), 5, text, promptText);
   const note = probe.scheduled.find((x) => x.runway)!.at;
   const m = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   const q = phone([point('a')]);
-  const res = await bookReminders(q.deps, base({ every: 30, quiet: [{ start: m(new Date(note.getTime() - 60000)), end: m(new Date(note.getTime() + 60000)) }] }), at(5, 9, 0), 5, text, promptText);
-  assert.equal(res.runway, 0);
+  const quietEnd = new Date(note.getTime() + 60000);
+  const res = await bookReminders(q.deps, base({ every: 30, quiet: [{ start: m(new Date(note.getTime() - 60000)), end: m(quietEnd) }] }), at(5, 9, 0), 5, text, promptText);
+  assert.equal(res.runway, 1);
+  assert.equal(q.scheduled.find((x) => x.runway)!.at.getTime(), quietEnd.getTime());
+});
+
+test('runway at night waits for the morning: All day every 15 min opened at 10 PM (note would be 3:34 AM) comes at 7:00 AM', async () => {
+  const p = phone([point('a')]);
+  const s = base({ every: 15, mode: 'button' });
+  const now = at(5, 22, 0);
+  await bookReminders(p.deps, s, now, 120, text, promptText);
+  const reminders = p.scheduled.filter((x) => !x.runway);
+  const lastAt = reminders[reminders.length - 1].at;
+  assert.equal(hm(lastAt).slice(-5) <= '04:00' && hm(lastAt).slice(-5) >= '02:00', true); // runs out in the small hours
+  const note = p.scheduled.find((x) => x.runway)!;
+  assert.equal(hm(note.at), '7 07:00');
+  // A different From time is the morning time.
+  const p2 = phone([point('a')]);
+  await bookReminders(p2.deps, { ...s, from: '06:30' }, now, 120, text, promptText);
+  assert.equal(hm(p2.scheduled.find((x) => x.runway)!.at), '7 06:30');
+});
+
+test('runway in Hours mode: during the day it comes two minutes after the last reminder; after Until it waits for From', async () => {
+  const day = phone([point('a')]);
+  // Hours 7-22, every 60: 12 reminders from 9:00 on the 5th run to the 5th evening at most; limit 4 keeps it in the day.
+  await bookReminders(day.deps, base({ every: 60 }), at(5, 9, 0), 4, text, promptText);
+  const dayReminders = day.scheduled.filter((x) => !x.runway);
+  const dayNote = day.scheduled.find((x) => x.runway)!;
+  assert.equal(dayNote.at.getTime() - dayReminders[dayReminders.length - 1].at.getTime(), 2 * 60000);
+  // A window ending 20:01: the last reminder is near 20:00, so +2 minutes is after Until, and the note waits for From.
+  const night = phone([point('a')]);
+  const tight = base({ from: '19:00', to: '20:01', every: 60 });
+  // Limit 3 books two reminders (19:00 and 20:00 on the 5th) and leaves one slot for the note.
+  await bookReminders(night.deps, tight, at(5, 6, 0), 3, text, promptText);
+  const nightNote = night.scheduled.find((x) => x.runway);
+  assert.ok(nightNote);
+  assert.equal(nightNote.at.getDate(), 6);
+  assert.equal(nightNote.at.getHours() * 60 + nightNote.at.getMinutes(), 19 * 60);
 });
 
 test('olderShown keeps only the newest reminder and leaves prompts and the runway note alone', () => {
