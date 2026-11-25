@@ -8,7 +8,7 @@ import { shiftTime, windowLength } from '../core/time';
 import type { Language, Settings } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import { readBooked } from '../notify/diagnostics';
-import { voiceCounts } from '../notify/voice';
+import { chosenVoices, voiceCounts } from '../notify/voice';
 import type { Theme } from '../theme/calmStudy';
 import { Button, Choice, Header } from './parts';
 import { OverflowMenu } from './OverflowMenu';
@@ -23,10 +23,13 @@ function TestPanel(props: { t: Strings; theme: Theme; asleep: boolean; onSamples
   const [info, setInfo] = useState<{ count: number; prompts: number; next: Date[] } | null>(null);
   const [failed, setFailed] = useState(false);
   const [voices, setVoices] = useState<{ en: number; hi: number; gu: number } | null>(null);
+  const [used, setUsed] = useState<{ en: string; hi: string; gu: string } | null>(null);
   const load = useCallback(async () => {
     try {
       setInfo(await readBooked());
       setVoices(await voiceCounts());
+      const c = await chosenVoices();
+      setUsed({ en: c.en ?? '-', hi: c.hi ?? '-', gu: c.gu ?? '-' });
       setFailed(false);
     } catch {
       setFailed(true);
@@ -42,6 +45,7 @@ function TestPanel(props: { t: Strings; theme: Theme; asleep: boolean; onSamples
       <Text style={[styles.label, { color: theme.text }]}>{failed || !info ? t.diagUnknown : fill(t.diagBooked, { n: info.count })}</Text>
       {info && info.prompts > 0 && <Text style={[styles.hint, { color: theme.muted }]}>{fill(t.diagPrompts, { n: info.prompts })}</Text>}
       {info && info.next.length > 0 && <Text style={[styles.hint, { color: theme.muted }]}>{fill(t.diagNext, { times: info.next.map(when).join(', ') })}</Text>}
+      {used && <Text style={[styles.hint, { color: theme.muted }]}>{fill(t.diagVoiceUsed, used)}</Text>}
       {voices && <Text style={[styles.hint, { color: theme.muted }]}>{fill(t.diagVoices, voices)}</Text>}
       <Text style={[styles.hint, { color: theme.muted }]}>{props.asleep ? t.diagAsleep : t.diagAwake}</Text>
       <Button label={t.diagRefresh} theme={theme} kind="plain" onPress={() => void load()} />

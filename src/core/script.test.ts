@@ -55,3 +55,22 @@ test('playRuns goes on after a run that fails or reports twice, and stops when t
   assert.deepEqual(stopped, ['en']);
   assert.equal(ended, 2);
 });
+
+import { pickVoice } from './voicePick.ts';
+
+test('pickVoice prefers offline, then Indian voices, and ignores other languages', () => {
+  const voices = [
+    { identifier: 'hi-in-x-hia-network', name: 'hi-in-x-hia-network', language: 'hi-IN' },
+    { identifier: 'hi-in-x-hic-local', name: 'hi-in-x-hic-local', language: 'hi-IN' },
+    { identifier: 'en-gb-x-gba-local', name: 'en-gb-x-gba-local', language: 'en-GB' },
+    { identifier: 'en-in-x-ene-network', name: 'en-in-x-ene-network', language: 'en-IN' },
+    { identifier: 'en-us-x-iom-local', name: 'en-us-x-iom-local', language: 'en-US' },
+    { identifier: 'gu-in-x-gua-network', name: 'gu-in-x-gua-network', language: 'gu-IN' },
+  ];
+  assert.equal(pickVoice(voices, 'hi'), 'hi-in-x-hic-local');
+  assert.equal(pickVoice(voices, 'en'), 'en-gb-x-gba-local');
+  // Only a network voice exists for Gujarati: it is still used rather than none.
+  assert.equal(pickVoice(voices, 'gu'), 'gu-in-x-gua-network');
+  assert.equal(pickVoice(voices, 'fr'), undefined);
+  assert.equal(pickVoice([], 'hi'), undefined);
+});

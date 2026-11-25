@@ -3,6 +3,7 @@
 import * as Speech from 'expo-speech';
 
 import { playRuns, scriptRuns } from '../core/script';
+import { pickVoice, type VoiceInfo } from '../core/voicePick';
 import type { Language, Point } from '../core/types';
 import { playRecording, stopRecordingPlayback } from './ownVoice';
 
@@ -20,12 +21,31 @@ let generation = 0;
 export function speakAll(texts: readonly string[], language: Language, onEnd?: () => void): void {
   const mine = generation;
   const runs = texts.flatMap((t) => scriptRuns(t, language));
-  playRuns(
-    runs,
-    (run, done) => Speech.speak(run.text, { language: VOICE[run.language], rate: 0.9, onDone: done, onStopped: done, onError: done }),
-    () => mine === generation,
-    onEnd,
-  );
+  void phoneVoices().then((voices) => {
+    if (mine !== generation) return onEnd?.();
+    const chosen: Record<Language, string | undefined> = { en: pickVoice(voices, 'en'), hi: pickVoice(voices, 'hi'), gu: pickVoice(voices, 'gu') };
+    playRuns(
+      runs,
+      (run, done) => Speech.speak(run.text, { language: VOICE[run.language], voice: chosen[run.language], rate: 0.9, onDone: done, onStopped: done, onError: done }),
+      () => mine === generation,
+      onEnd,
+    );
+  });
+}
+
+/** The phone engine's voices (empty if it cannot say). Asked each time, because the user can change the engine. */
+async function phoneVoices(): Promise<VoiceInfo[]> {
+  try {
+    return await Speech.getAvailableVoicesAsync();
+  } catch {
+    return [];
+  }
+}
+
+/** The voice chosen for each language, for the test panel (undefined: none listed, the engine decides). */
+export async function chosenVoices(): Promise<Record<Language, string | undefined>> {
+  const voices = await phoneVoices();
+  return { en: pickVoice(voices, 'en'), hi: pickVoice(voices, 'hi'), gu: pickVoice(voices, 'gu') };
 }
 
 /** Speaks one text; see `speakAll`. */
