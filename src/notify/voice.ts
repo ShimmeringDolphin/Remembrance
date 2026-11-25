@@ -2,39 +2,35 @@
 // Speech starts only from a tap or a setting the user turned on, and is stopped when not needed.
 import * as Speech from 'expo-speech';
 
-import { scriptRuns } from '../core/script';
+import { playRuns, scriptRuns } from '../core/script';
 import type { Language, Point } from '../core/types';
 import { playRecording, stopRecordingPlayback } from './ownVoice';
 
 // expo-speech on Android accepts only a bare language code here; a region such as "hi-IN" is rejected and the phone's default language is used instead.
 const VOICE: Record<Language, string> = { en: 'en', hi: 'hi', gu: 'gu' };
 
+// Only stopping bumps this, so a line being read is never cut off by the next one being queued.
 let generation = 0;
 
 /**
- * Speaks `text`, each part in the voice of its own script (English, Hindi, Gujarati), one after another, so a
- * line that mixes them is read properly whatever the app language is. `language` is used only when the text has
- * no letters. `onEnd` runs when it finishes, is stopped, or fails.
+ * Speaks every text in turn, each part in the voice of its own script (English, Hindi, Gujarati), so lines that mix
+ * them are read properly whatever the app language is. `language` is used only for text with no letters. The whole
+ * list is one chain: each part waits for the one before it. `onEnd` runs when it finishes, is stopped, or fails.
  */
+export function speakAll(texts: readonly string[], language: Language, onEnd?: () => void): void {
+  const mine = generation;
+  const runs = texts.flatMap((t) => scriptRuns(t, language));
+  playRuns(
+    runs,
+    (run, done) => Speech.speak(run.text, { language: VOICE[run.language], rate: 0.9, onDone: done, onStopped: done, onError: done }),
+    () => mine === generation,
+    onEnd,
+  );
+}
+
+/** Speaks one text; see `speakAll`. */
 export function speak(text: string, language: Language, onEnd?: () => void): void {
-  const mine = ++generation;
-  const runs = scriptRuns(text, language);
-  let ended = false;
-  const end = () => {
-    if (!ended) {
-      ended = true;
-      onEnd?.();
-    }
-  };
-  const next = (i: number) => {
-    if (mine !== generation || i >= runs.length) return end();
-    try {
-      Speech.speak(runs[i].text, { language: VOICE[runs[i].language], rate: 0.9, onDone: () => next(i + 1), onStopped: end, onError: end });
-    } catch {
-      end();
-    }
-  };
-  next(0);
+  speakAll([text], language, onEnd);
 }
 
 export function stopSpeaking(): void {

@@ -18,7 +18,7 @@ import { TimeField } from './TimeField';
 const STEP = 30;
 
 /** Test builds only: what the phone really has booked, readable without waiting. */
-function TestPanel(props: { t: Strings; theme: Theme; asleep: boolean }) {
+function TestPanel(props: { t: Strings; theme: Theme; asleep: boolean; onSamples?: () => Promise<void> }) {
   const { t, theme } = props;
   const [info, setInfo] = useState<{ count: number; prompts: number; next: Date[] } | null>(null);
   const [failed, setFailed] = useState(false);
@@ -45,11 +45,12 @@ function TestPanel(props: { t: Strings; theme: Theme; asleep: boolean }) {
       {voices && <Text style={[styles.hint, { color: theme.muted }]}>{fill(t.diagVoices, voices)}</Text>}
       <Text style={[styles.hint, { color: theme.muted }]}>{props.asleep ? t.diagAsleep : t.diagAwake}</Text>
       <Button label={t.diagRefresh} theme={theme} kind="plain" onPress={() => void load()} />
+      {props.onSamples && <Button label={t.diagSamples} theme={theme} kind="plain" onPress={() => void props.onSamples?.()} />}
     </View>
   );
 }
 
-export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Settings; onChange: (s: Settings) => void; onBack: () => void; onGo: (to: 'home' | 'help') => void; testing?: boolean }) {
+export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Settings; onChange: (s: Settings) => void; onBack: () => void; onGo: (to: 'home' | 'help') => void; testing?: boolean; onSamples?: () => Promise<void> }) {
   const { t, theme, settings: s, onChange } = props;
   const set = (patch: Partial<Settings>) => onChange({ ...s, ...patch });
   // From and until can never meet: an empty window would quietly stop every reminder.
@@ -185,7 +186,7 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
         </View>,
       )}
 
-      {props.testing && <TestPanel t={t} theme={theme} asleep={s.asleep} />}
+      {props.testing && <TestPanel t={t} theme={theme} asleep={s.asleep} onSamples={props.onSamples} />}
 
       <Text style={[styles.hint, { color: theme.muted, textAlign: 'center' }]}>{t.storedNote}</Text>
     </ScrollView>
