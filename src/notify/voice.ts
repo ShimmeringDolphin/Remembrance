@@ -52,6 +52,25 @@ export function say(p: Pick<Point, 'text' | 'voice'>, language: Language, onEnd?
   else speak(p.text, language, onEnd);
 }
 
+/** How many voices the phone's current speech engine offers for each language (null if it cannot say). */
+export async function voiceCounts(): Promise<Record<Language, number> | null> {
+  try {
+    const voices = await Speech.getAvailableVoicesAsync();
+    const count = (code: string) => voices.filter((v) => v.language.toLowerCase().startsWith(code)).length;
+    return { en: count('en'), hi: count('hi'), gu: count('gu') };
+  } catch {
+    return null;
+  }
+}
+
+/** The languages in `text` that the phone has no voice for (empty if all are there or the phone cannot say). */
+export async function missingVoices(text: string, language: Language): Promise<Language[]> {
+  const counts = await voiceCounts();
+  if (!counts) return [];
+  const used = new Set(scriptRuns(text, language).map((r) => r.language));
+  return [...used].filter((l) => counts[l] === 0);
+}
+
 /** Stops both the phone's voice and any recording. */
 export function stopAll(): void {
   stopSpeaking();

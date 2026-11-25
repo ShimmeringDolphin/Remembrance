@@ -7,7 +7,7 @@ import { starGrowth } from '../core/moment';
 import { layoutSky } from '../core/sky';
 import type { Language, Point } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
-import { say, stopAll } from '../notify/voice';
+import { missingVoices, say, stopAll } from '../notify/voice';
 import { tint, tintSoft, type Theme } from '../theme/calmStudy';
 
 interface Props {
@@ -27,6 +27,7 @@ const READ_DELAY_MS = 5000;
 export function MomentScreen(props: Props) {
   const { t, theme, moment } = props;
   const [i, setI] = useState(0);
+  const [spoke, setSpoke] = useState(false);
   const done = i >= moment.length;
   const p = moment[Math.min(i, moment.length - 1)];
   const last = i === moment.length - 1;
@@ -45,6 +46,19 @@ export function MomentScreen(props: Props) {
     return stopAll;
   }, [i, done, props.readAloud]);
 
+  // Tell the user once per card, in the card itself, when the phone has no voice for a language in it.
+  const [missing, setMissing] = useState<Language[]>([]);
+  useEffect(() => {
+    let alive = true;
+    setMissing([]);
+    if (!done && p && (props.readAloud || spoke) && !p.private && !p.voice) {
+      void missingVoices(p.text, props.language).then((m) => alive && setMissing(m));
+    }
+    return () => {
+      alive = false;
+    };
+  }, [i, done, props.readAloud, spoke]);
+
   if (moment.length === 0) return null;
   if (done) return <Grew {...props} />;
 
@@ -57,8 +71,10 @@ export function MomentScreen(props: Props) {
   const toggleVoice = () => {
     const on = !props.readAloud;
     props.onReadAloud(on);
-    if (on) say(p, props.language);
-    else stopAll();
+    if (on) {
+      setSpoke(true);
+      say(p, props.language);
+    } else stopAll();
   };
 
   return (
@@ -98,6 +114,11 @@ export function MomentScreen(props: Props) {
           <Text style={[styles.btnText, { color: tintSoft(theme, p.category) }]}>{i < moment.length - 1 ? t.next : t.done}</Text>
         </Pressable>
       </View>
+      {missing.length > 0 && (
+        <Text style={[styles.small, { color: theme.cardText }]} accessibilityLiveRegion="polite">
+          {fill(t.voiceMissing, { lang: missing.map((l) => (l === 'hi' ? t.langHindi : l === 'gu' ? t.langGujarati : t.langEnglish)).join(', ') })}
+        </Text>
+      )}
       <Text style={[styles.small, { color: theme.cardText }]}>{ready ? t.tapNext : t.readWait}</Text>
     </View>
   );
