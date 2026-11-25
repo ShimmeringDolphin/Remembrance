@@ -6,7 +6,8 @@ import { scriptRuns } from '../core/script';
 import type { Language, Point } from '../core/types';
 import { playRecording, stopRecordingPlayback } from './ownVoice';
 
-const VOICE: Record<Language, string> = { en: 'en-IN', hi: 'hi-IN', gu: 'gu-IN' };
+// expo-speech on Android accepts only a bare language code here; a region such as "hi-IN" is rejected and the phone's default language is used instead.
+const VOICE: Record<Language, string> = { en: 'en', hi: 'hi', gu: 'gu' };
 
 let generation = 0;
 
