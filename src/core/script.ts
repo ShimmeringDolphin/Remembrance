@@ -1,19 +1,33 @@
-// Which voice should read a point? Chosen from the letters in the point itself, so a Hindi or Gujarati point
-// is read in Hindi or Gujarati even when the app is in English. Pure: no I/O.
+// Which voice reads which part of a point? Decided by the letters themselves, so Hindi and Gujarati are read
+// in their own voice even when the app is in English. Pure: no I/O.
 import type { Language } from './types';
 
-const DEVANAGARI = /[ऀ-ॿ]/g;
-const GUJARATI = /[઀-૿]/g;
-const LATIN = /[A-Za-z]/g;
+export interface Run {
+  text: string;
+  language: Language;
+}
 
-/** The language of a point's text by its letters: the script with the most letters wins, `fallback` if there are none. */
-export function languageOf(text: string, fallback: Language): Language {
-  const hi = (text.match(DEVANAGARI) ?? []).length;
-  const gu = (text.match(GUJARATI) ?? []).length;
-  const en = (text.match(LATIN) ?? []).length;
-  if (hi === 0 && gu === 0 && en === 0) return fallback;
-  if (hi > gu && hi > en) return 'hi';
-  if (gu > hi && gu > en) return 'gu';
-  if (en > hi && en > gu) return 'en';
-  return fallback;
+/**
+ * Splits a point into runs by script, so a line that mixes English, Hindi and Gujarati is read in each voice
+ * in turn. Letters decide the voice; spaces, digits and punctuation stay with the run they follow (or, at the
+ * start, the run that comes next). With no letters at all the whole text is one run in `fallback`.
+ */
+export function scriptRuns(text: string, fallback: Language): Run[] {
+  const scriptOf = (ch: string): Language | null => (/[ऀ-ॿ]/.test(ch) ? 'hi' : /[઀-૿]/.test(ch) ? 'gu' : /[A-Za-z]/.test(ch) ? 'en' : null);
+  const runs: Run[] = [];
+  let lead = '';
+  for (const ch of text) {
+    const sc = scriptOf(ch);
+    const last = runs[runs.length - 1];
+    if (sc === null) {
+      if (last) last.text += ch;
+      else lead += ch;
+    } else if (last && last.language === sc) {
+      last.text += ch;
+    } else {
+      runs.push({ text: (runs.length === 0 ? lead : '') + ch, language: sc });
+    }
+  }
+  if (runs.length === 0) return text.trim() === '' ? [] : [{ text, language: fallback }];
+  return runs.map((r) => ({ ...r, text: r.text.trim() })).filter((r) => r.text !== '');
 }

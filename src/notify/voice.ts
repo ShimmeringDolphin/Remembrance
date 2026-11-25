@@ -2,14 +2,22 @@
 // Speech starts only from a tap or a setting the user turned on, and is stopped when not needed.
 import * as Speech from 'expo-speech';
 
-import { languageOf } from '../core/script';
+import { scriptRuns } from '../core/script';
 import type { Language, Point } from '../core/types';
 import { playRecording, stopRecordingPlayback } from './ownVoice';
 
 const VOICE: Record<Language, string> = { en: 'en-IN', hi: 'hi-IN', gu: 'gu-IN' };
 
-/** Speaks `text` in the voice of its own script (Hindi, Gujarati or English); `language` is used only when the text has no letters. `onEnd` runs when it finishes, is stopped, or fails. */
+let generation = 0;
+
+/**
+ * Speaks `text`, each part in the voice of its own script (English, Hindi, Gujarati), one after another, so a
+ * line that mixes them is read properly whatever the app language is. `language` is used only when the text has
+ * no letters. `onEnd` runs when it finishes, is stopped, or fails.
+ */
 export function speak(text: string, language: Language, onEnd?: () => void): void {
+  const mine = ++generation;
+  const runs = scriptRuns(text, language);
   let ended = false;
   const end = () => {
     if (!ended) {
@@ -17,14 +25,19 @@ export function speak(text: string, language: Language, onEnd?: () => void): voi
       onEnd?.();
     }
   };
-  try {
-    Speech.speak(text, { language: VOICE[languageOf(text, language)], rate: 0.9, onDone: end, onStopped: end, onError: end });
-  } catch {
-    end();
-  }
+  const next = (i: number) => {
+    if (mine !== generation || i >= runs.length) return end();
+    try {
+      Speech.speak(runs[i].text, { language: VOICE[runs[i].language], rate: 0.9, onDone: () => next(i + 1), onStopped: end, onError: end });
+    } catch {
+      end();
+    }
+  };
+  next(0);
 }
 
 export function stopSpeaking(): void {
+  generation++;
   try {
     void Speech.stop();
   } catch {
