@@ -2,39 +2,55 @@
 // Speech starts only from a tap or a setting the user turned on, and is stopped when not needed.
 import * as Speech from 'expo-speech';
 
-import { scriptRuns } from '../core/script';
+import { playRuns, scriptRuns } from '../core/script';
+import { pickVoice, type VoiceInfo } from '../core/voicePick';
 import type { Language, Point } from '../core/types';
 import { playRecording, stopRecordingPlayback } from './ownVoice';
 
 // expo-speech on Android accepts only a bare language code here; a region such as "hi-IN" is rejected and the phone's default language is used instead.
 const VOICE: Record<Language, string> = { en: 'en', hi: 'hi', gu: 'gu' };
 
+// Only stopping bumps this, so a line being read is never cut off by the next one being queued.
 let generation = 0;
 
 /**
- * Speaks `text`, each part in the voice of its own script (English, Hindi, Gujarati), one after another, so a
- * line that mixes them is read properly whatever the app language is. `language` is used only when the text has
- * no letters. `onEnd` runs when it finishes, is stopped, or fails.
+ * Speaks every text in turn, each part in the voice of its own script (English, Hindi, Gujarati), so lines that mix
+ * them are read properly whatever the app language is. `language` is used only for text with no letters. The whole
+ * list is one chain: each part waits for the one before it. `onEnd` runs when it finishes, is stopped, or fails.
  */
+export function speakAll(texts: readonly string[], language: Language, onEnd?: () => void): void {
+  const mine = generation;
+  const runs = texts.flatMap((t) => scriptRuns(t, language));
+  void phoneVoices().then((voices) => {
+    if (mine !== generation) return onEnd?.();
+    const chosen: Record<Language, string | undefined> = { en: pickVoice(voices, 'en'), hi: pickVoice(voices, 'hi'), gu: pickVoice(voices, 'gu') };
+    playRuns(
+      runs,
+      (run, done) => Speech.speak(run.text, { language: VOICE[run.language], voice: chosen[run.language], rate: 0.9, onDone: done, onStopped: done, onError: done }),
+      () => mine === generation,
+      onEnd,
+    );
+  });
+}
+
+/** The phone engine's voices (empty if it cannot say). Asked each time, because the user can change the engine. */
+async function phoneVoices(): Promise<VoiceInfo[]> {
+  try {
+    return await Speech.getAvailableVoicesAsync();
+  } catch {
+    return [];
+  }
+}
+
+/** The voice chosen for each language, for the test panel (undefined: none listed, the engine decides). */
+export async function chosenVoices(): Promise<Record<Language, string | undefined>> {
+  const voices = await phoneVoices();
+  return { en: pickVoice(voices, 'en'), hi: pickVoice(voices, 'hi'), gu: pickVoice(voices, 'gu') };
+}
+
+/** Speaks one text; see `speakAll`. */
 export function speak(text: string, language: Language, onEnd?: () => void): void {
-  const mine = ++generation;
-  const runs = scriptRuns(text, language);
-  let ended = false;
-  const end = () => {
-    if (!ended) {
-      ended = true;
-      onEnd?.();
-    }
-  };
-  const next = (i: number) => {
-    if (mine !== generation || i >= runs.length) return end();
-    try {
-      Speech.speak(runs[i].text, { language: VOICE[runs[i].language], rate: 0.9, onDone: () => next(i + 1), onStopped: end, onError: end });
-    } catch {
-      end();
-    }
-  };
-  next(0);
+  speakAll([text], language, onEnd);
 }
 
 export function stopSpeaking(): void {
@@ -50,6 +66,25 @@ export function stopSpeaking(): void {
 export function say(p: Pick<Point, 'text' | 'voice'>, language: Language, onEnd?: () => void): void {
   if (p.voice) playRecording(p.voice, onEnd);
   else speak(p.text, language, onEnd);
+}
+
+/** How many voices the phone's current speech engine offers for each language (null if it cannot say). */
+export async function voiceCounts(): Promise<Record<Language, number> | null> {
+  try {
+    const voices = await Speech.getAvailableVoicesAsync();
+    const count = (code: string) => voices.filter((v) => v.language.toLowerCase().startsWith(code)).length;
+    return { en: count('en'), hi: count('hi'), gu: count('gu') };
+  } catch {
+    return null;
+  }
+}
+
+/** The languages in `text` that the phone has no voice for (empty if all are there or the phone cannot say). */
+export async function missingVoices(text: string, language: Language): Promise<Language[]> {
+  const counts = await voiceCounts();
+  if (!counts) return [];
+  const used = new Set(scriptRuns(text, language).map((r) => r.language));
+  return [...used].filter((l) => counts[l] === 0);
 }
 
 /** Stops both the phone's voice and any recording. */

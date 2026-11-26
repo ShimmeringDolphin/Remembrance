@@ -8,6 +8,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import type { Booked } from './src/core/appearances';
 import { DEFAULT_DAILY_DAYS, expiryFor, resolveDays } from './src/core/expiry';
 import { freshIds, idsFromData, listenQueue, listenSteps, momentPoints, parseShown } from './src/core/moment';
+import { VOICE_SAMPLES } from './src/core/voiceSamples';
 import { goAsleep, startSession, statusFor, tapAwake, type AwakeAction } from './src/core/awake';
 import { mergeSettings } from './src/core/settings';
 import { skyUnlocked } from './src/core/sky';
@@ -17,7 +18,7 @@ import { deviceLanguage, strings } from './src/i18n/strings';
 import { isSamsung, openBatterySettings } from './src/notify/phoneSettings';
 import { dismissLateTip, lateTipNow } from './src/notify/timing';
 import { deleteRecording } from './src/notify/ownVoice';
-import { say, speak, stopAll } from './src/notify/voice';
+import { say, speakAll, stopAll } from './src/notify/voice';
 import { askPermission, dismissSeen, tidyShade, initNotifications, permission, syncReminders, type Permission } from './src/notify/reminders';
 import { themeFor } from './src/theme/calmStudy';
 import { updateWidget } from './src/widget/update';
@@ -184,10 +185,7 @@ export default function App() {
       if (i >= steps.length) return stopListening();
       const step = steps[i];
       if (step.kind === 'own') return say(step.point, settingsRef.current.language, () => next(i + 1));
-      step.points.forEach((p, k) => {
-        const last = k === step.points.length - 1;
-        speak(p.text, settingsRef.current.language, last ? () => next(i + 1) : undefined);
-      });
+      speakAll(step.points.map((p) => p.text), settingsRef.current.language, () => next(i + 1));
     };
     next(0);
   };
@@ -270,6 +268,13 @@ export default function App() {
       await rebook();
     }
     return ok;
+  };
+
+  // Test builds only: adds one Long-term point for each language combination, to hear the voices.
+  const addVoiceSamples = async () => {
+    for (const text of VOICE_SAMPLES) await data.addPoint(text, 'long_term');
+    await refresh();
+    await rebook();
   };
 
   const keepFirst = async (text: string) => {
@@ -373,13 +378,12 @@ export default function App() {
             moment={moment}
             allPoints={points}
             readAloud={settings.readAloud}
-            onReadAloud={(on) => changeSettings({ ...settings, readAloud: on })}
             onClose={() => setMomentIds(null)}
           />
         ) : showWelcome ? (
           <Welcome t={t} theme={theme} onKeep={keepFirst} />
         ) : screen === 'settings' ? (
-          <SettingsScreen t={t} theme={theme} settings={settings} onChange={changeSettings} onBack={() => setScreen('home')} onGo={setScreen} testing={TESTING} />
+          <SettingsScreen t={t} theme={theme} settings={settings} onChange={changeSettings} onBack={() => setScreen('home')} onGo={setScreen} testing={TESTING} onSamples={TESTING ? addVoiceSamples : undefined} />
         ) : screen === 'help' ? (
           <HelpScreen t={t} theme={theme} onBack={() => setScreen('home')} onGo={setScreen} />
         ) : screen === 'sky' ? (
