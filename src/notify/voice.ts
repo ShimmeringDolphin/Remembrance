@@ -18,18 +18,23 @@ let generation = 0;
  * them are read properly whatever the app language is. `language` is used only for text with no letters. The whole
  * list is one chain: each part waits for the one before it. `onEnd` runs when it finishes, is stopped, or fails.
  */
-export function speakAll(texts: readonly string[], language: Language, onEnd?: () => void): void {
+export function speakAll(texts: readonly string[], language: Language, onEnd?: () => void, gapMs = 0): void {
   const mine = generation;
-  const runs = texts.flatMap((t) => scriptRuns(t, language));
   void phoneVoices().then((voices) => {
     if (mine !== generation) return onEnd?.();
     const chosen: Record<Language, string | undefined> = { en: pickVoice(voices, 'en'), hi: pickVoice(voices, 'hi'), gu: pickVoice(voices, 'gu') };
-    playRuns(
-      runs,
-      (run, done) => Speech.speak(run.text, { language: VOICE[run.language], voice: chosen[run.language], rate: 0.9, onDone: done, onStopped: done, onError: done }),
-      () => mine === generation,
-      onEnd,
-    );
+    const alive = () => mine === generation;
+    // `gapMs` of quiet between two texts (one short timeout, only while reading; stopping makes it do nothing).
+    const playText = (k: number) => {
+      if (!alive() || k >= texts.length) return onEnd?.();
+      playRuns(
+        scriptRuns(texts[k], language),
+        (run, done) => Speech.speak(run.text, { language: VOICE[run.language], voice: chosen[run.language], rate: 0.9, onDone: done, onStopped: done, onError: done }),
+        alive,
+        () => (gapMs > 0 && k + 1 < texts.length ? void setTimeout(() => playText(k + 1), gapMs) : playText(k + 1)),
+      );
+    };
+    playText(0);
   });
 }
 

@@ -20,7 +20,7 @@ interface Props {
   onClose: () => void;
 }
 
-/** How long Next and Done stay unavailable on each point of a moment. */
+/** How long Next and Done stay unavailable on each point of a moment (longer if the voice is still reading it). */
 const READ_DELAY_MS = 5000;
 
 export function MomentScreen(props: Props) {
@@ -79,8 +79,10 @@ export function MomentScreen(props: Props) {
   if (done) return <Grew {...props} />;
 
   const colour = tint(theme, p.category);
+  // Next waits for both: the few seconds, and the voice finishing if it is reading this card.
+  const canNext = ready && !speaking;
   const next = () => {
-    if (!ready) return;
+    if (!canNext) return;
     stopAll();
     setI((n) => n + 1);
   };
@@ -122,10 +124,10 @@ export function MomentScreen(props: Props) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={last ? t.done : t.next}
-          accessibilityState={{ disabled: !ready }}
-          disabled={!ready}
+          accessibilityState={{ disabled: !canNext }}
+          disabled={!canNext}
           onPress={next}
-          style={[styles.btn, { backgroundColor: theme.cardText, borderColor: theme.cardText, opacity: ready ? 1 : 0.35 }]}
+          style={[styles.btn, { backgroundColor: theme.cardText, borderColor: theme.cardText, opacity: canNext ? 1 : 0.35 }]}
         >
           <Text style={[styles.btnText, { color: tintSoft(theme, p.category) }]}>{i < moment.length - 1 ? t.next : t.done}</Text>
         </Pressable>
@@ -135,7 +137,7 @@ export function MomentScreen(props: Props) {
           {fill(t.voiceMissing, { lang: missing.map((l) => (l === 'hi' ? t.langHindi : l === 'gu' ? t.langGujarati : t.langEnglish)).join(', ') })}
         </Text>
       )}
-      <Text style={[styles.small, { color: theme.cardText }]}>{ready ? t.tapNext : t.readWait}</Text>
+      <Text style={[styles.small, { color: theme.cardText }]}>{canNext ? t.tapNext : t.readWait}</Text>
     </View>
   );
 }
