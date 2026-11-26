@@ -190,6 +190,7 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
         <>
           {toggle(t.soundSetting, t.soundHint, s.sound, (v) => set({ sound: v }))}
           {toggle(t.readAloudSetting, t.readAloudHint, s.readAloud, (v) => set({ readAloud: v }))}
+          {toggle(t.englishInIndianSetting, t.englishInIndianHint, s.englishInIndian, (v) => set({ englishInIndian: v }))}
         </>,
       )}
 

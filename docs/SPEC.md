@@ -15,7 +15,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - Expired points are put away whenever reminders are rebooked (app open, return to the front, any change). The planner never books a point at or after its expiry.
 - Bringing a point back or moving it to Long-term clears its expiry. Points written before this change never expire (migration 2 adds `expires_at`).
 - Cards show "Last day: today" or the date.
-- In a moment, **Next** and **Done** (and tapping the card) are unavailable for 5 seconds on every point (dimmed, with a short note), so no point is skipped before it is read.
+- In a moment, **Next** and **Done** (and tapping the card) are unavailable for 5 seconds on every point, or until the voice has finished reading it if that takes longer (dimmed, with a short note; tapping "Reading aloud" stops the voice and frees them), so no point is skipped before it is read. "Listen to all my points" leaves 1 second of quiet between points. Settings > Voice has "Read English parts with the Hindi/Gujarati voice" (off by default): in a point that mixes English with Hindi or Gujarati, English runs are read by the neighbouring Indian-language voice (the one before, else after), because the engine takes 2.4 to 4.2 s to load the English voice mid-line. English-only points keep the English voice; Hindi and Gujarati still switch.
 
 ## Reminders
 
