@@ -2,12 +2,13 @@
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Linking, Platform, useColorScheme } from 'react-native';
+import { AppState, Linking, Platform, Share, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import type { Booked } from './src/core/appearances';
 import { DEFAULT_DAILY_DAYS, expiryFor, resolveDays } from './src/core/expiry';
 import { freshIds, idsFromData, listenQueue, listenSteps, momentPoints, parseShown } from './src/core/moment';
+import { makeBackup, parseBackup, planRestore } from './src/core/backup';
 import { markSeen, NO_TIPS_SEEN, parseTips, skipAll, tipsToString, type TipId, type TipState } from './src/core/tips';
 import { VOICE_SAMPLES } from './src/core/voiceSamples';
 import { goAsleep, startSession, statusFor, tapAwake, type AwakeAction } from './src/core/awake';
@@ -15,7 +16,7 @@ import { mergeSettings } from './src/core/settings';
 import { skyUnlocked } from './src/core/sky';
 import type { Category, Point, Settings } from './src/core/types';
 import * as data from './src/data/db';
-import { deviceLanguage, strings } from './src/i18n/strings';
+import { deviceLanguage, fill, strings } from './src/i18n/strings';
 import { isSamsung, openBatterySettings } from './src/notify/phoneSettings';
 import { dismissLateTip, lateTipNow } from './src/notify/timing';
 import { deleteRecording } from './src/notify/ownVoice';
@@ -30,6 +31,7 @@ import { PermissionSheet } from './src/ui/PermissionSheet';
 import { SessionSheet, StartSheet } from './src/ui/SessionSheet';
 import { PointSheet, type PointActions } from './src/ui/PointSheet';
 import { SettingsScreen } from './src/ui/SettingsScreen';
+import type { RestoreOutcome } from './src/ui/RestoreSheet';
 import { SkyScreen } from './src/ui/SkyScreen';
 import { Welcome } from './src/ui/Welcome';
 
@@ -274,6 +276,24 @@ export default function App() {
     return ok;
   };
 
+  // Backup: the user's points as text through the phone's share sheet. Nothing is sent by the app itself.
+  const backUp = async () => {
+    try {
+      await Share.share({ message: makeBackup(await data.listPoints(), new Date()) });
+    } catch {
+      // The share sheet could not open; nothing was shared.
+    }
+  };
+  const restore = async (text: string): Promise<RestoreOutcome> => {
+    const parsed = parseBackup(text);
+    if (!parsed.ok) return { ok: false };
+    const plan = planRestore(await data.listPoints(), parsed.points, new Date());
+    await data.restorePoints(plan.add);
+    await refresh();
+    await rebook();
+    return { ok: true, message: fill(t.restoreDone, { added: plan.add.length, dupes: plan.duplicates + parsed.skipped, full: plan.full }) };
+  };
+
   // Test builds only: adds one Long-term point for each language combination, to hear the voices.
   const addVoiceSamples = async () => {
     for (const text of VOICE_SAMPLES) await data.addPoint(text, 'long_term');
@@ -394,7 +414,7 @@ export default function App() {
         ) : showWelcome ? (
           <Welcome t={t} theme={theme} onKeep={keepFirst} />
         ) : screen === 'settings' ? (
-          <SettingsScreen t={t} theme={theme} settings={settings} onChange={changeSettings} onBack={() => setScreen('home')} onGo={setScreen} testing={TESTING} onSamples={TESTING ? addVoiceSamples : undefined} />
+          <SettingsScreen t={t} theme={theme} settings={settings} onChange={changeSettings} onBack={() => setScreen('home')} onGo={setScreen} onBackup={backUp} onRestore={restore} testing={TESTING} onSamples={TESTING ? addVoiceSamples : undefined} />
         ) : screen === 'help' ? (
           <HelpScreen t={t} theme={theme} onBack={() => setScreen('home')} onGo={setScreen} onTipsAgain={() => { void changeTips(NO_TIPS_SEEN); setScreen('home'); }} />
         ) : screen === 'sky' ? (

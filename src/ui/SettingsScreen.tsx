@@ -1,7 +1,10 @@
 // Settings: when, how often, privacy, voice and language. Each in its own card, with a plain summary.
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
+import { APP_VERSION } from '../appInfo';
+import { FEEDBACK_EMAIL, SURVEY_URL } from '../config';
+import { feedbackMailto } from '../core/feedback';
 import { addQuiet, MAX_QUIET, removeQuiet, setQuiet } from '../core/quiet';
 import { EVERY_CHOICES, remindersPerDay } from '../core/settings';
 import { shiftTime, windowLength } from '../core/time';
@@ -11,6 +14,7 @@ import { readBooked } from '../notify/diagnostics';
 import { chosenVoices, voiceCounts } from '../notify/voice';
 import type { Theme } from '../theme/calmStudy';
 import { Button, Choice, Header } from './parts';
+import { RestoreSheet, type RestoreOutcome } from './RestoreSheet';
 import { OverflowMenu } from './OverflowMenu';
 import { QuietAdder } from './QuietAdder';
 import { TimeField } from './TimeField';
@@ -54,7 +58,7 @@ function TestPanel(props: { t: Strings; theme: Theme; asleep: boolean; onSamples
   );
 }
 
-export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Settings; onChange: (s: Settings) => void; onBack: () => void; onGo: (to: 'home' | 'help') => void; testing?: boolean; onSamples?: () => Promise<void> }) {
+export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Settings; onChange: (s: Settings) => void; onBack: () => void; onGo: (to: 'home' | 'help') => void; testing?: boolean; onSamples?: () => Promise<void>; onBackup: () => Promise<void>; onRestore: (text: string) => Promise<RestoreOutcome> }) {
   const { t, theme, settings: s, onChange } = props;
   const set = (patch: Partial<Settings>) => onChange({ ...s, ...patch });
   // From and until can never meet: an empty window would quietly stop every reminder.
@@ -64,6 +68,12 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
   };
   const everyLabel = (n: number) => (n < 60 ? fill(t.minutes, { n }) : fill(t.hours, { n: n % 60 === 0 ? n / 60 : (n / 60).toFixed(1) }));
   const perDay = remindersPerDay(s, windowLength(s.from, s.to));
+  const [restoring, setRestoring] = useState(false);
+  const sendFeedback = () => {
+    const url = feedbackMailto(FEEDBACK_EMAIL, { version: APP_VERSION, platform: Platform.OS, osVersion: String(Platform.Version), language: s.language });
+    // No email app on the phone: nothing to open, and nothing is lost.
+    Linking.openURL(url).catch(() => undefined);
+  };
   const langs: [Language, string][] = [['en', t.langEn], ['hi', t.langHi], ['gu', t.langGu]];
 
   const section = (title: string, children: ReactNode) => (
@@ -190,9 +200,29 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
         </View>,
       )}
 
+      {section(
+        t.sectionYourPoints,
+        <>
+          <Button label={t.backUp} theme={theme} kind="plain" onPress={() => void props.onBackup()} />
+          <Text style={[styles.hint, { color: theme.muted }]}>{t.backUpHint}</Text>
+          <Button label={t.restore} theme={theme} kind="plain" onPress={() => setRestoring(true)} />
+        </>,
+      )}
+
+      {section(
+        t.sectionFeedback,
+        <>
+          <Button label={t.sendFeedback} theme={theme} kind="plain" onPress={sendFeedback} />
+          <Text style={[styles.hint, { color: theme.muted }]}>{t.feedbackHint}</Text>
+          {SURVEY_URL !== '' && <Button label={t.takeSurvey} theme={theme} kind="plain" onPress={() => void Linking.openURL(SURVEY_URL).catch(() => undefined)} />}
+        </>,
+      )}
+
       {props.testing && <TestPanel t={t} theme={theme} asleep={s.asleep} onSamples={props.onSamples} />}
 
       <Text style={[styles.hint, { color: theme.muted, textAlign: 'center' }]}>{t.storedNote}</Text>
+      <Text style={[styles.hint, { color: theme.muted, textAlign: 'center' }]}>{fill(t.versionLabel, { v: APP_VERSION })}</Text>
+      <RestoreSheet visible={restoring} t={t} theme={theme} onRestore={props.onRestore} onClose={() => setRestoring(false)} />
     </ScrollView>
   );
 }

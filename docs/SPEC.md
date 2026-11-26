@@ -59,6 +59,13 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - After the first point is saved, Home shows up to four short tip cards, one at a time, each beside the control it explains and each once: Awake/Asleep (under the toggle), the latest-reminder button (only when it is on screen), Listen to all my points, and the ⋮ menu that holds Settings. Each card has OK and Skip tips; Skip tips switches them all off. A tip waits while the notification-permission, late-reminder or battery cards are showing. Nothing blocks the screen, there are no timers, and there is no new dependency.
 - What has been seen is one string in the key-value table (`tips`: "off" or a comma list of tip ids). Help has "Show the tips again", which clears it. Text in English, Hindi and Gujarati (Hindi and Gujarati need native review).
 
+## Backup, feedback and version
+
+- **Back up my points** (Settings, Your points) shares the points as JSON text through the phone's share sheet (`Share.share`): the user keeps it in Notes, Drive or an email to themselves. It holds each point's words, category, private flag, put-away flag, pace and Daily end date, plus `app: "yaadom"` and a `version` (1); no ids, counts or voice recordings. The app sends nothing itself.
+- **Restore from a backup** opens a sheet to paste that text. Text around the backup is ignored; anything not a YaadOM backup of a known version is refused. Points already here (same words, same category) are skipped, also within the backup. A live point that would pass the limit of 15 per category, or a Daily point whose last day has passed, is added put away instead, so nothing is lost. The result line says how many were added, already here and put away. Point text is never logged.
+- **Feedback** (Settings): "Send feedback by email" opens the user's email app with a prefilled message (`src/config.ts` holds the address, a temporary one to change before the final build) carrying only the app version, OS and version, and language. "Take the short survey" shows only when `SURVEY_URL` is set and opens it in the browser. The app makes no network call itself.
+- Settings ends with the app version, read from `app.json`.
+
 ## Help and late reminders
 
 - Android without the exact-alarm permission (we do not ask for it) books reminders with `setAndAllowWhileIdle`. While the phone sleeps (Doze) or under maker battery savers, they can be held and shown together on unlock.
