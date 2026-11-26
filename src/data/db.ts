@@ -5,6 +5,7 @@ import * as SQLite from 'expo-sqlite';
 import type { Booked } from '../core/appearances';
 import { fullyAsleepDays, shiftExpiry } from '../core/awake';
 import { MAX_PER_CATEGORY } from '../core/limits';
+import type { BackupPoint } from '../core/backup';
 import { isPace } from '../core/pace';
 import type { Category, Pace, Point, Settings } from '../core/types';
 
@@ -190,6 +191,21 @@ export async function shiftDailyExpiry(settings: Settings, since: Date, wakeAt: 
     for (const r of rows) {
       const days = fullyAsleepDays(settings, since, wakeAt, new Date(r.created_at));
       if (days > 0) await tx.runAsync('UPDATE points SET expires_at = ? WHERE id = ?', shiftExpiry(r.expires_at, days), r.id);
+    }
+  });
+}
+
+/** Adds the points of a backup in one go (the plan already kept each category within its limit). */
+export async function restorePoints(points: readonly BackupPoint[]): Promise<void> {
+  const d = await db();
+  const now = new Date().toISOString();
+  await d.withExclusiveTransactionAsync(async (tx) => {
+    for (const p of points) {
+      await tx.runAsync(
+        `INSERT INTO points (id, kind, text, answer, category, private, archived, created_at, updated_at, expires_at, pace)
+         VALUES (?, 'note', ?, NULL, ?, ?, ?, ?, ?, ?, ?)`,
+        newId(), p.text, p.category, p.private ? 1 : 0, p.archived ? 1 : 0, now, now, p.category === 'daily' ? p.expiresAt : null, p.pace,
+      );
     }
   });
 }

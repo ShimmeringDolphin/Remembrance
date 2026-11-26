@@ -14,6 +14,8 @@ import { OverflowMenu } from './OverflowMenu';
 import { SkyMark } from './SkyMark';
 import type { Status } from '../core/awake';
 import { clock } from './clock';
+import { nextTip, type TipId, type TipState } from '../core/tips';
+import { TipCard } from './TipCard';
 import { Button, Card, Choice } from './parts';
 
 interface Props {
@@ -44,6 +46,9 @@ interface Props {
   /** The latest reminder has not been gone through yet. */
   latestNew: boolean;
   onListen: () => void;
+  /** The first-run tips: what has been seen, and a tap on OK or Skip tips. */
+  tips: TipState;
+  onTip: (action: 'got' | 'skip', id: TipId) => void;
 }
 
 type Section = { key: string; title: string; hint?: string; category?: Category; data: Point[] };
@@ -105,6 +110,14 @@ export function Home(props: Props) {
     return <Text style={[styles.tag, { color: tint(theme, 'daily') }]}>{text}</Text>;
   };
 
+  // One tip at a time, only once there is a point, and never on top of the other notes on this screen.
+  const showLatest = props.fresh.size > 0 && props.latestNew;
+  const quiet = hasLive && props.permission === 'granted' && !props.lateTip && !props.batteryTip;
+  const visibleTips: TipId[] = quiet ? ['awake', ...(showLatest ? (['latest'] as const) : []), 'listen', 'settings'] : [];
+  const tip = nextTip(props.tips, visibleTips);
+  const tipCard = (id: TipId, text: string) =>
+    tip === id ? <TipCard text={text} t={t} theme={theme} onGot={() => props.onTip('got', id)} onSkip={() => props.onTip('skip', id)} /> : null;
+
   const st = props.status;
   const statusLine =
     st.kind === 'asleepPrompt' ? fill(t.statusAsleepPrompt, { time: clock(st.at) })
@@ -134,6 +147,7 @@ export function Home(props: Props) {
         />
         </View>
       </View>
+      {tipCard('settings', t.tipSettings)}
 
       <View style={[styles.toggle, { borderColor: theme.line, backgroundColor: theme.surface }]} accessibilityRole="radiogroup">
         {([false, true] as const).map((sleep) => {
@@ -155,6 +169,7 @@ export function Home(props: Props) {
         })}
       </View>
       {statusLine && <Text style={[styles.note, { color: theme.muted }]}>{statusLine}</Text>}
+      {tipCard('awake', t.tipAwake)}
 
       {props.permission !== 'granted' && (
         <Card theme={theme}>
@@ -223,7 +238,8 @@ export function Home(props: Props) {
         <Button label={t.keep} theme={{ ...theme, accent: tint(theme, category) }} disabled={!clean} onPress={add} />
       </Card>
 
-      {props.fresh.size > 0 && props.latestNew && (
+      {showLatest && tipCard('latest', t.tipLatest)}
+      {showLatest && (
         <Button label={t.latestMoment} theme={theme} kind="plain" onPress={props.onLatestMoment} />
       )}
     </View>
@@ -231,6 +247,7 @@ export function Home(props: Props) {
 
   const footer = hasLive ? (
     <View style={styles.footer}>
+      {tipCard('listen', t.tipListen)}
       <Button label={props.listening ? t.stopListening : t.listen} theme={theme} kind={props.listening ? 'main' : 'plain'} onPress={props.onListen} />
       <Text style={[styles.hint, { color: theme.muted, textAlign: 'center' }]}>{t.listenHint}</Text>
     </View>

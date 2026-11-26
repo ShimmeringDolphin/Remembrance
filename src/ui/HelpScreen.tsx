@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { Strings } from '../i18n/strings';
-import { openAppSettings, openBatterySettings } from '../notify/phoneSettings';
+import { openAppSettings, openBatterySettings, openSpeechSettings, openVoiceDownload } from '../notify/phoneSettings';
 import type { Theme } from '../theme/calmStudy';
 import { OverflowMenu } from './OverflowMenu';
 import { Button, Card, Header } from './parts';
@@ -77,17 +77,23 @@ function Answer(props: { text: string; theme: Theme; t: Strings }) {
   );
 }
 
-export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void; onGo: (to: 'home' | 'settings') => void }) {
+export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void; onGo: (to: 'home' | 'settings') => void; onTipsAgain: () => void }) {
   const { t, theme } = props;
   const android = Platform.OS === 'android';
-  const items: { q: string; a: string; action?: { label: string; run: () => void } }[] = [
-    ...(android ? [{ q: t.q1, a: t.a1, action: { label: t.openBattery, run: () => void openBatterySettings() } }] : []),
-    { q: t.q2, a: t.a2, action: { label: t.openNotifications, run: () => void openAppSettings() } },
+  const items: { q: string; a: string; actions?: { label: string; run: () => void }[] }[] = [
+    ...(android ? [{ q: t.q1, a: t.a1, actions: [{ label: t.openBattery, run: () => void openBatterySettings() }] }] : []),
+    { q: t.q2, a: t.a2, actions: [{ label: t.openNotifications, run: () => void openAppSettings() }] },
     { q: t.q3, a: t.a3 },
-    ...(android ? [] : [{ q: t.q4, a: t.a4, action: { label: t.openNotifications, run: () => void openAppSettings() } }]),
+    ...(android ? [] : [{ q: t.q4, a: t.a4, actions: [{ label: t.openNotifications, run: () => void openAppSettings() }] }]),
     { q: t.q5, a: t.a5 },
     { q: t.q6, a: t.a6 },
     { q: t.q7, a: t.a7 },
+    {
+      q: t.qSpeech,
+      a: t.aSpeech,
+      ...(android ? { actions: [{ label: t.openSpeech, run: () => void openSpeechSettings() }, { label: t.downloadVoices, run: () => void openVoiceDownload() }] } : {}),
+    },
+    { q: t.qTips, a: t.aTips, actions: [{ label: t.tipsAgain, run: props.onTipsAgain }] },
   ];
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
@@ -103,7 +109,7 @@ export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void
         <Card key={item.q} theme={theme}>
           <Text accessibilityRole="header" style={[styles.q, { color: theme.text }]}>{item.q}</Text>
           <Answer text={item.a} theme={theme} t={t} />
-          {item.action && <Button label={item.action.label} theme={theme} kind="plain" onPress={item.action.run} />}
+          {item.actions?.map((a) => <Button key={a.label} label={a.label} theme={theme} kind="plain" onPress={a.run} />)}
         </Card>
       ))}
     </ScrollView>
