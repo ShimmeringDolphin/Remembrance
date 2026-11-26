@@ -378,7 +378,6 @@ export default function App() {
             moment={moment}
             allPoints={points}
             readAloud={settings.readAloud}
-            onReadAloud={(on) => changeSettings({ ...settings, readAloud: on })}
             onClose={() => setMomentIds(null)}
           />
         ) : showWelcome ? (

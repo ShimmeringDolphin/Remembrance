@@ -17,7 +17,6 @@ interface Props {
   moment: Point[];
   allPoints: Point[];
   readAloud: boolean;
-  onReadAloud: (on: boolean) => void;
   onClose: () => void;
 }
 
@@ -40,10 +39,27 @@ export function MomentScreen(props: Props) {
     return () => clearTimeout(timer);
   }, [i]);
 
-  // Read the current card when "read aloud" is on. Private points are only read from a tap.
+  // The button plays the card once. While it plays the button says so, and it goes back to "Read aloud" by itself
+  // when the voice ends or is stopped. A newer play or a new card makes an older ending count for nothing.
+  const [speaking, setSpeaking] = useState(false);
+  const playRun = useRef(0);
+  const play = () => {
+    if (!p) return;
+    const run = ++playRun.current;
+    setSpoke(true);
+    setSpeaking(true);
+    say(p, props.language, () => {
+      if (playRun.current === run) setSpeaking(false);
+    });
+  };
+  // With the Settings switch on, each card is read as it appears. Private points are only read from a tap.
   useEffect(() => {
-    if (!done && p && props.readAloud && !p.private) say(p, props.language);
-    return stopAll;
+    setSpeaking(false);
+    if (!done && p && props.readAloud && !p.private) play();
+    return () => {
+      playRun.current++;
+      stopAll();
+    };
   }, [i, done, props.readAloud]);
 
   // Tell the user once per card, in the card itself, when the phone has no voice for a language in it.
@@ -51,7 +67,7 @@ export function MomentScreen(props: Props) {
   useEffect(() => {
     let alive = true;
     setMissing([]);
-    if (!done && p && (props.readAloud || spoke) && !p.private && !p.voice) {
+    if (!done && p && (props.readAloud || spoke) && !p.voice) {
       void missingVoices(p.text, props.language).then((m) => alive && setMissing(m));
     }
     return () => {
@@ -68,13 +84,13 @@ export function MomentScreen(props: Props) {
     stopAll();
     setI((n) => n + 1);
   };
+  // Tap to read the card; tap again while it is being read to stop.
   const toggleVoice = () => {
-    const on = !props.readAloud;
-    props.onReadAloud(on);
-    if (on) {
-      setSpoke(true);
-      say(p, props.language);
-    } else stopAll();
+    if (speaking) {
+      playRun.current++;
+      setSpeaking(false);
+      stopAll();
+    } else play();
   };
 
   return (
@@ -95,13 +111,13 @@ export function MomentScreen(props: Props) {
       </Pressable>
       <View style={styles.row}>
         <Pressable
-          accessibilityRole="switch"
-          accessibilityLabel={t.readAloud}
-          accessibilityState={{ checked: props.readAloud }}
+          accessibilityRole="button"
+          accessibilityLabel={speaking ? t.reading : t.readAloud}
+          accessibilityState={{ busy: speaking }}
           onPress={toggleVoice}
-          style={[styles.btn, { backgroundColor: props.readAloud ? colour : theme.surface, borderColor: colour }]}
+          style={[styles.btn, { backgroundColor: speaking ? colour : theme.surface, borderColor: colour }]}
         >
-          <Text style={[styles.btnText, { color: props.readAloud ? theme.onAccent : colour }]}>{props.readAloud ? t.reading : t.readAloud}</Text>
+          <Text style={[styles.btnText, { color: speaking ? theme.onAccent : colour }]}>{speaking ? t.reading : t.readAloud}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
