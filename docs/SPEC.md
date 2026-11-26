@@ -54,11 +54,16 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 
 - One screen: a title, a sentence and one box. Keeping the first point (as Daily) asks once whether to turn on reminders, explaining the default times. "Not now" leaves a calm banner on Home with a Turn on button.
 
+## First-run tips
+
+- After the first point is saved, Home shows up to four short tip cards, one at a time, each beside the control it explains and each once: Awake/Asleep (under the toggle), the latest-reminder button (only when it is on screen), Listen to all my points, and the ⋮ menu that holds Settings. Each card has OK and Skip tips; Skip tips switches them all off. A tip waits while the notification-permission, late-reminder or battery cards are showing. Nothing blocks the screen, there are no timers, and there is no new dependency.
+- What has been seen is one string in the key-value table (`tips`: "off" or a comma list of tip ids). Help has "Show the tips again", which clears it. Text in English, Hindi and Gujarati (Hindi and Gujarati need native review).
+
 ## Help and late reminders
 
 - Android without the exact-alarm permission (we do not ask for it) books reminders with `setAndAllowWhileIdle`. While the phone sleeps (Doze) or under maker battery savers, they can be held and shown together on unlock.
 - After notifications are allowed on Android, Home shows a one-time card suggesting "Unrestricted" battery use, with a button to the phone's battery page (`android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS`, falling back to the app's settings).
-- A Help page answers: late or bundled reminders (Android) or bundled ones (iPhone: Focus, Scheduled Summary), no reminders, no words on the lock screen, battery use, and where points are kept.
+- A Help page answers: late or bundled reminders (Android) or bundled ones (iPhone: Focus, Scheduled Summary), no reminders, no words on the lock screen, battery use, where points are kept, how to change the reading voice or add Hindi and Gujarati (Android: buttons that open the phone's text-to-speech page and ask the speech engine for its "install voice data" screen, each falling back to the phone's Settings and then this app's page), and how to see the tips again.
 - Each answer shows two lines, and a longer one ends its second line with "... Read more", which opens it; "See less" below closes it. Answers that fit in two lines show no link.
 - Test builds only: Settings ends with a TEST PANEL showing how many reminders the phone holds, the next three due times (never point text), how many of them are wake-up prompts, and whether the app is Asleep, with a Refresh button. It reads on open and on Refresh; no timers.
 - Every page has a ⋮ menu at the top right: Home shows Help and Settings, Help shows Home and Settings, Settings shows Home and Help. The Sky page keeps only its Back button.

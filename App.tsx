@@ -8,6 +8,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import type { Booked } from './src/core/appearances';
 import { DEFAULT_DAILY_DAYS, expiryFor, resolveDays } from './src/core/expiry';
 import { freshIds, idsFromData, listenQueue, listenSteps, momentPoints, parseShown } from './src/core/moment';
+import { markSeen, NO_TIPS_SEEN, parseTips, skipAll, tipsToString, type TipId, type TipState } from './src/core/tips';
 import { VOICE_SAMPLES } from './src/core/voiceSamples';
 import { goAsleep, startSession, statusFor, tapAwake, type AwakeAction } from './src/core/awake';
 import { mergeSettings } from './src/core/settings';
@@ -58,6 +59,8 @@ export default function App() {
   const [askNow, setAskNow] = useState(false);
   const [remindersPassed, setRemindersPassed] = useState(0);
   const [tipSeen, setTipSeen] = useState(true);
+  // Off until the saved tips are read, so a tip never flashes at start-up.
+  const [tips, setTips] = useState<TipState>(skipAll());
   const [lateTip, setLateTip] = useState(false);
   const [lastShown, setLastShown] = useState<Booked | null>(null);
   const [momentIds, setMomentIds] = useState<string[] | null>(null);
@@ -113,6 +116,7 @@ export default function App() {
         setWelcomed((await data.getValue('welcomed')) === '1');
         setAsked((await data.getValue('askedPermission')) === '1');
         setTipSeen((await data.getValue('batteryTipSeen')) === '1');
+        setTips(parseTips(await data.getValue('tips')));
         setSeenShown(await data.getValue('seenShown'));
         setPoints(await data.listPoints());
         await initNotifications(strings(s.language).appName, strings(s.language).soundChannel);
@@ -300,6 +304,13 @@ export default function App() {
     await rebook();
   };
 
+  // The first-run tips on Home: OK marks one seen, Skip tips switches them all off, Help can bring them back.
+  const changeTips = async (next: TipState) => {
+    setTips(next);
+    await data.setValue('tips', tipsToString(next));
+  };
+  const answerTip = (action: 'got' | 'skip', id: TipId) => void changeTips(action === 'skip' ? skipAll() : markSeen(tips, id));
+
   const answerBatteryTip = async (open: boolean) => {
     setTipSeen(true);
     await data.setValue('batteryTipSeen', '1');
@@ -385,7 +396,7 @@ export default function App() {
         ) : screen === 'settings' ? (
           <SettingsScreen t={t} theme={theme} settings={settings} onChange={changeSettings} onBack={() => setScreen('home')} onGo={setScreen} testing={TESTING} onSamples={TESTING ? addVoiceSamples : undefined} />
         ) : screen === 'help' ? (
-          <HelpScreen t={t} theme={theme} onBack={() => setScreen('home')} onGo={setScreen} />
+          <HelpScreen t={t} theme={theme} onBack={() => setScreen('home')} onGo={setScreen} onTipsAgain={() => { void changeTips(NO_TIPS_SEEN); setScreen('home'); }} />
         ) : screen === 'sky' ? (
           <SkyScreen t={t} theme={theme} points={points} onBack={() => setScreen('home')} />
         ) : (
@@ -408,6 +419,8 @@ export default function App() {
             samsung={isSamsung}
             onLateTip={answerLateTip}
             onHelp={() => setScreen('help')}
+            tips={tips}
+            onTip={answerTip}
             permission={asked || perm !== 'undetermined' ? perm : 'granted'}
             onAdd={add}
             onOpen={setOpenId}

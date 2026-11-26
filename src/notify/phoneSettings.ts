@@ -25,3 +25,24 @@ export async function openAppSettings(): Promise<void> {
     // Nothing more we can do; the Help page explains where to look.
   }
 }
+
+/** Tries each Android settings action in turn and stops at the first that opens; the last resort is this app's page. */
+async function openFirst(actions: readonly string[]): Promise<void> {
+  if (Platform.OS === 'android') {
+    for (const action of actions) {
+      try {
+        await Linking.sendIntent(action);
+        return;
+      } catch {
+        // This phone has no such page; try the next one.
+      }
+    }
+  }
+  await openAppSettings();
+}
+
+/** Android's text-to-speech page (engine, speed, voices); the phone's main Settings if it has no such page. */
+export const openSpeechSettings = (): Promise<void> => openFirst(['com.android.settings.TTS_SETTINGS', 'android.settings.SETTINGS']);
+
+/** Asks the phone's speech engine to show its own "install voice data" screen (a public Android action). */
+export const openVoiceDownload = (): Promise<void> => openFirst(['android.speech.tts.engine.INSTALL_TTS_DATA', 'com.android.settings.TTS_SETTINGS', 'android.settings.SETTINGS']);
