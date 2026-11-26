@@ -33,6 +33,28 @@ export function scriptRuns(text: string, fallback: Language): Run[] {
 }
 
 /**
+ * For lines that mix English with Hindi or Gujarati: gives each English run to the Indian-language run beside it
+ * (the one before, else the one after) and joins runs that then share a language, so the engine never has to load
+ * the English voice in the middle of a line. Lines with no Hindi or Gujarati are returned unchanged.
+ */
+export function englishWithNeighbour(runs: readonly Run[]): Run[] {
+  const indian = runs.filter((r) => r.language !== 'en');
+  if (indian.length === 0) return [...runs];
+  const out: Run[] = [];
+  runs.forEach((r, k) => {
+    let language = r.language;
+    if (language === 'en') {
+      const before = runs.slice(0, k).reverse().find((x) => x.language !== 'en');
+      language = (before ?? indian[0]).language;
+    }
+    const last = out[out.length - 1];
+    if (last && last.language === language) last.text += ' ' + r.text;
+    else out.push({ text: r.text, language });
+  });
+  return out;
+}
+
+/**
  * Plays runs one after another with `speakRun`, which calls `done` when that run is over for any reason (finished,
  * stopped or failed), so one run the engine cannot read never silences the ones after it. `alive` is asked before each
  * run: when it says false (the user stopped or started something else) the line ends. `onEnd` runs once, at the end.

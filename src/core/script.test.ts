@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { scriptRuns } from './script.ts';
+import { englishWithNeighbour, scriptRuns } from './script.ts';
 
 test('scriptRuns splits a mixed line into runs, each in its own voice', () => {
   assert.deepEqual(scriptRuns('You are a Soul. अपने को आत्मा स्वरूप में स्थित करो। આત્મા છું.', 'en'), [
@@ -73,4 +73,19 @@ test('pickVoice prefers offline, then Indian voices, and ignores other languages
   assert.equal(pickVoice(voices, 'gu'), 'gu-in-x-gua-network');
   assert.equal(pickVoice(voices, 'fr'), undefined);
   assert.equal(pickVoice([], 'hi'), undefined);
+});
+
+test('englishWithNeighbour gives English parts to the Indian voice beside them and joins runs', () => {
+  const merge = (t: string) => englishWithNeighbour(scriptRuns(t, 'en'));
+  assert.deepEqual(merge('Be calm. शांत रहो।'), [{ text: 'Be calm. शांत रहो।', language: 'hi' }]);
+  assert.deepEqual(merge('शांत रहो। Be calm.'), [{ text: 'शांत रहो। Be calm.', language: 'hi' }]);
+  // The run before wins; Hindi and Gujarati stay apart.
+  assert.deepEqual(merge('શાંત રહો. Be calm. शांत रहो।').map((r) => r.language), ['gu', 'hi']);
+  assert.deepEqual(merge('Hello. શાંત.'), [{ text: 'Hello. શાંત.', language: 'gu' }]);
+});
+
+test('englishWithNeighbour leaves English-only and Indian-only lines alone', () => {
+  assert.deepEqual(englishWithNeighbour(scriptRuns('Be calm.', 'en')), [{ text: 'Be calm.', language: 'en' }]);
+  assert.deepEqual(englishWithNeighbour(scriptRuns('शांत रहो। શાંત.', 'en')).map((r) => r.language), ['hi', 'gu']);
+  assert.deepEqual(englishWithNeighbour([]), []);
 });

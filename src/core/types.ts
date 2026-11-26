@@ -61,6 +61,8 @@ export interface Settings {
   language: Language;
   /** Read each point aloud in a moment (the phone's own voice). */
   readAloud: boolean;
+  /** In a line that mixes English with Hindi or Gujarati, read the English parts with that Indian voice (no slow voice change). */
+  englishInIndian: boolean;
   /** A soft chime with each reminder. Off by default: reminders are silent. */
   sound: boolean;
   /** When Asleep was tapped (ISO), or null while Awake. The morning prompts are tied to the first start time after it. */

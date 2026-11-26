@@ -2,13 +2,19 @@
 // Speech starts only from a tap or a setting the user turned on, and is stopped when not needed.
 import * as Speech from 'expo-speech';
 
-import { playRuns, scriptRuns } from '../core/script';
+import { englishWithNeighbour, playRuns, scriptRuns } from '../core/script';
 import { pickVoice, type VoiceInfo } from '../core/voicePick';
 import type { Language, Point } from '../core/types';
 import { playRecording, stopRecordingPlayback } from './ownVoice';
 
 // expo-speech on Android accepts only a bare language code here; a region such as "hi-IN" is rejected and the phone's default language is used instead.
 const VOICE: Record<Language, string> = { en: 'en', hi: 'hi', gu: 'gu' };
+
+// From Settings: read English parts of a mixed line with the Indian-language voice beside them (see `englishWithNeighbour`).
+let englishInIndian = false;
+export function setEnglishInIndian(on: boolean): void {
+  englishInIndian = on;
+}
 
 // Only stopping bumps this, so a line being read is never cut off by the next one being queued.
 let generation = 0;
@@ -28,7 +34,7 @@ export function speakAll(texts: readonly string[], language: Language, onEnd?: (
     const playText = (k: number) => {
       if (!alive() || k >= texts.length) return onEnd?.();
       playRuns(
-        scriptRuns(texts[k], language),
+        englishInIndian ? englishWithNeighbour(scriptRuns(texts[k], language)) : scriptRuns(texts[k], language),
         (run, done) => Speech.speak(run.text, { language: VOICE[run.language], voice: chosen[run.language], rate: 0.9, onDone: done, onStopped: done, onError: done }),
         alive,
         () => (gapMs > 0 && k + 1 < texts.length ? void setTimeout(() => playText(k + 1), gapMs) : playText(k + 1)),

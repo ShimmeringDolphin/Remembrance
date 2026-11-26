@@ -20,7 +20,7 @@ import { deviceLanguage, fill, strings } from './src/i18n/strings';
 import { isSamsung, openBatterySettings } from './src/notify/phoneSettings';
 import { dismissLateTip, lateTipNow } from './src/notify/timing';
 import { deleteRecording } from './src/notify/ownVoice';
-import { say, speakAll, stopAll } from './src/notify/voice';
+import { say, setEnglishInIndian, speakAll, stopAll } from './src/notify/voice';
 import { askPermission, dismissSeen, tidyShade, initNotifications, permission, syncReminders, type Permission } from './src/notify/reminders';
 import { themeFor } from './src/theme/calmStudy';
 import { updateWidget } from './src/widget/update';
@@ -104,6 +104,9 @@ export default function App() {
       return null;
     }
   }, []);
+
+  // The voice code reads this choice; no timers or listeners.
+  useEffect(() => setEnglishInIndian(settings.englishInIndian), [settings.englishInIndian]);
 
   // Start-up: open the database, read settings, book reminders.
   useEffect(() => {
@@ -222,8 +225,8 @@ export default function App() {
     setSettings(s);
     const before = prev;
     await data.setValue('settings', JSON.stringify(s));
-    // Turning read aloud on or off changes no reminder, so skip the rebook; anything else rebooks.
-    if (JSON.stringify({ ...before, readAloud: s.readAloud }) !== JSON.stringify(s)) await rebook(s);
+    // Turning read aloud or the English voice choice on or off changes no reminder, so skip the rebook; anything else rebooks.
+    if (JSON.stringify({ ...before, readAloud: s.readAloud, englishInIndian: s.englishInIndian }) !== JSON.stringify(s)) await rebook(s);
   };
 
   /** Awake and Asleep. Asleep ends any session. Awake gives Daily points back the whole days spent Asleep. */
