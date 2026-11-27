@@ -1,8 +1,8 @@
 // The first-run tips on Home. A few short cards, one at a time, each shown once, each pointing at one control.
 // Pure: what has been seen is one short string kept by the app; this decides which tip is next.
 
-/** In the order they are offered. */
-export const TIP_IDS = ['awake', 'latest', 'listen', 'settings'] as const;
+/** In the order they are offered: the order they sit on Home, top to bottom, so a tip never waits behind one that is off screen. */
+export const TIP_IDS = ['settings', 'awake', 'latest', 'listen'] as const;
 export type TipId = (typeof TIP_IDS)[number];
 
 /** What has been seen: tips done one by one, or all of them switched off with "Skip tips". */

@@ -55,9 +55,9 @@ function Answer(props: { text: string; theme: Theme; t: Strings }) {
         </Text>
       )}
       {base === null || open ? (
-        <Text style={body}>{text}</Text>
+        <Text textBreakStrategy="simple" style={body}>{text}</Text>
       ) : (
-        <Text style={body} numberOfLines={2} ellipsizeMode="clip" accessibilityLabel={text}>
+        <Text textBreakStrategy="simple" style={body} numberOfLines={2} ellipsizeMode="clip" accessibilityLabel={text}>
           {fits ? cut : ''}
           {fits ? '… ' : ''}
           {fits && (
@@ -107,7 +107,7 @@ export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void
       />
       {items.map((item) => (
         <Card key={item.q} theme={theme}>
-          <Text accessibilityRole="header" style={[styles.q, { color: theme.text }]}>{item.q}</Text>
+          <Text accessibilityRole="header" textBreakStrategy="simple" style={[styles.q, { color: theme.text }]}>{item.q}</Text>
           <Answer text={item.a} theme={theme} t={t} />
           {item.actions?.map((a) => <Button key={a.label} label={a.label} theme={theme} kind="plain" onPress={a.run} />)}
         </Card>
