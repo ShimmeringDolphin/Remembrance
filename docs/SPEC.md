@@ -54,9 +54,14 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 
 - One screen: a title, a sentence and one box. Keeping the first point (as Daily) asks once whether to turn on reminders, explaining the default times. "Not now" leaves a calm banner on Home with a Turn on button.
 
+## Pages and stale reminders
+
+- Home, Settings and Help keep their title row (name, back arrow, menu) fixed at the top; only the content below scrolls.
+- Deleting or putting away a point also takes out of the notification shade any reminder whose points are all gone (one shade query, no timers). If such a reminder is tapped anyway (for example it was already open), the app says "The points in this reminder were deleted or put away." instead of silently showing Home. A reminder with some points left reviews those.
+
 ## First-run tips
 
-- After the first point is saved, Home shows up to four short tip cards, one at a time, each beside the control it explains and each once: Awake/Asleep (under the toggle), the latest-reminder button (only when it is on screen), Listen to all my points, and the ⋮ menu that holds Settings. Each card has OK and Skip tips; Skip tips switches them all off. A tip waits while the notification-permission, late-reminder or battery cards are showing. Nothing blocks the screen, there are no timers, and there is no new dependency.
+- After the first point is saved, Home shows up to four short tip cards, one at a time, each beside the control it explains and each once, in the order they sit on Home from top to bottom: the ⋮ menu that holds Settings, Awake/Asleep (under the toggle), the latest-reminder button (only when it is on screen), and Listen to all my points. Each card has OK and Skip tips; Skip tips switches them all off. A tip waits while the notification-permission, late-reminder or battery cards are showing. Nothing blocks the screen, there are no timers, and there is no new dependency.
 - What has been seen is one string in the key-value table (`tips`: "off" or a comma list of tip ids). Help has "Show the tips again", which clears it. Text in English, Hindi and Gujarati (Hindi and Gujarati need native review).
 
 ## Backup, feedback and version

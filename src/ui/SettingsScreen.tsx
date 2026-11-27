@@ -127,15 +127,19 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
   );
 
   return (
-    <ScrollView contentContainerStyle={styles.wrap}>
-      <Header
-        title={t.settings}
-        backLabel={t.back}
-        onBack={props.onBack}
-        color={theme.accent}
-        titleColor={theme.text}
-        right={<OverflowMenu label={t.menu} theme={theme} items={[{ label: t.home, run: () => props.onGo('home') }, { label: t.help, run: () => props.onGo('help') }]} />}
-      />
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {/* The title and navigation stay at the top while the page scrolls. */}
+      <View style={styles.pinned}>
+        <Header
+          title={t.settings}
+          backLabel={t.back}
+          onBack={props.onBack}
+          color={theme.accent}
+          titleColor={theme.text}
+          right={<OverflowMenu label={t.menu} theme={theme} items={[{ label: t.home, run: () => props.onGo('home') }, { label: t.help, run: () => props.onGo('help') }]} />}
+        />
+      </View>
+      <ScrollView contentContainerStyle={styles.wrap}>
 
       {section(
         t.sectionWhen,
@@ -224,12 +228,14 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
       <Text style={[styles.hint, { color: theme.muted, textAlign: 'center' }]}>{t.storedNote}</Text>
       <Text style={[styles.hint, { color: theme.muted, textAlign: 'center' }]}>{fill(t.versionLabel, { v: APP_VERSION })}</Text>
       <RestoreSheet visible={restoring} t={t} theme={theme} onRestore={props.onRestore} onClose={() => setRestoring(false)} />
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: 16, gap: 14, paddingBottom: 48 },
+  pinned: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 6 },
+  wrap: { paddingHorizontal: 16, paddingTop: 8, gap: 14, paddingBottom: 48 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   spacer: { flex: 1 },
   title: { fontSize: 24, fontWeight: '700' },

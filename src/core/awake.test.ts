@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { awakeAction, startSession, tapAwake, fullyAsleepDays, goAsleep, goAwake, greetingFor, inWindow, nextStart, planPrompts, sessionTimes, shiftExpiry, statusFor } from './awake.ts';
 import { bookReminders, type BookingDeps, type Reminder } from './booking.ts';
-import { olderShown } from './moment.ts';
+import { emptyShown, olderShown } from './moment.ts';
 import { planTimes } from './planner.ts';
 import { defaultSettings, mergeSettings } from './settings.ts';
 import type { Point, Settings } from './types.ts';
@@ -376,4 +376,17 @@ test('olderShown keeps only the newest reminder and leaves prompts and the runwa
   assert.deepEqual(olderShown(shown).sort(), ['a', 'c']);
   assert.deepEqual(olderShown([shown[0]]), []);
   assert.deepEqual(olderShown([]), []);
+});
+
+test('emptyShown lists notifications whose points are all gone, and leaves partial ones and prompts alone', () => {
+  const pt = (id: string, archived = false) => ({ id, archived }) as unknown as import('./types').Point;
+  const live = [pt('a'), pt('b', true)];
+  const shown = [
+    { id: 'all-gone', data: { pointIds: ['x', 'b'] } },
+    { id: 'partly', data: { pointIds: ['x', 'a'] } },
+    { id: 'prompt', data: { prompt: true } },
+    { id: 'none', data: null },
+  ];
+  assert.deepEqual(emptyShown(shown, live), ['all-gone']);
+  assert.deepEqual(emptyShown(shown, []).sort(), ['all-gone', 'partly']);
 });
