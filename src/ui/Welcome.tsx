@@ -45,7 +45,7 @@ export function Welcome(props: { t: Strings; theme: Theme; language: Language; o
 
 const styles = StyleSheet.create({
   wrap: { flex: 1 },
-  inner: { flex: 1, padding: 24, justifyContent: 'center', gap: 16 },
+  inner: { flex: 1, padding: 24, paddingTop: 48, gap: 16 },
   langs: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 },
   brand: { fontSize: 18, fontWeight: '700', letterSpacing: 1 },
   title: { fontSize: 28, fontWeight: '700', lineHeight: 36 },

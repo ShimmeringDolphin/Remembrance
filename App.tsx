@@ -1,6 +1,6 @@
 // YaadOM: write a short point once; it comes back to you through the day. See docs/PRODUCT.md.
 import * as Notifications from 'expo-notifications';
-import { loadAsync, useFonts } from 'expo-font';
+import { loadAsync } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, BackHandler, Linking, Platform, Share, useColorScheme } from 'react-native';
@@ -22,7 +22,7 @@ import { isSamsung, openBatterySettings } from './src/notify/phoneSettings';
 import { dismissLateTip, lateTipNow } from './src/notify/timing';
 import { deleteRecording } from './src/notify/ownVoice';
 import { FontContext } from './src/ui/AppText';
-import { fontFilesFor, fontFilesForSet } from './src/theme/fontFiles';
+import { fontFilesForSet } from './src/theme/fontFiles';
 import { extraSetsNeeded, type FontSet } from './src/theme/fonts';
 import { say, setEnglishInIndian, speakAll, speechDown, stopAll } from './src/notify/voice';
 import { askPermission, dismissEmpty, dismissSeen, tidyShade, initNotifications, permission, syncReminders, type Permission } from './src/notify/reminders';
@@ -96,24 +96,26 @@ export default function App() {
   // defaults (Awake), and booking with them would wake a phone that was put to sleep.
   const loadedRef = useRef(false);
   const t = strings(settings.language);
-  // Bundled fonts for the app language only; until they load (or if they fail) the phone's own font is used.
-  const [fontsLoaded] = useFonts(fontFilesFor(settings.language));
-  // A point written in a script the app language's fonts lack (Hindi in a Gujarati app, Gujarati elsewhere) needs the other
-  // set. It is loaded once, only when such a point exists, so most phones never hold both.
-  const [extraLoaded, setExtraLoaded] = useState<FontSet[]>([]);
+  // Bundled fonts: the set for the app language, loaded again whenever the language changes (so choosing Gujarati on the
+  // first screen works at once), plus the other set once if a saved point needs it (Hindi in a Gujarati app, Gujarati
+  // elsewhere), so most phones never hold both. Until a set has loaded, the phone's own font is used.
+  const ownSet: FontSet = settings.language === 'gu' ? 'gu' : 'lat';
   const extraWanted = extraSetsNeeded(points.map((p) => p.text), settings.language).join();
+  const [loadedSets, setLoadedSets] = useState<FontSet[]>([]);
   useEffect(() => {
-    setExtraLoaded([]);
-    if (!fontsLoaded || !extraWanted) return;
     let alive = true;
-    const sets = extraWanted.split(',') as FontSet[];
-    void Promise.all(sets.map((set) => loadAsync(fontFilesForSet(set))))
-      .then(() => alive && setExtraLoaded(sets))
-      .catch(() => undefined);
+    const wanted: FontSet[] = [ownSet, ...(extraWanted ? (extraWanted.split(',') as FontSet[]) : [])];
+    for (const set of wanted) {
+      loadAsync(fontFilesForSet(set))
+        .then(() => alive && setLoadedSets((cur) => (cur.includes(set) ? cur : [...cur, set])))
+        .catch(() => undefined);
+    }
     return () => {
       alive = false;
     };
-  }, [fontsLoaded, extraWanted]);
+  }, [ownSet, extraWanted]);
+  const fontsLoaded = loadedSets.includes(ownSet);
+  const extraLoaded = loadedSets.filter((set) => set !== ownSet);
 
   /** Books the reminders again and returns the latest reminder that has come. */
   const rebook = useCallback(async (s: Settings = settingsRef.current): Promise<Booked | null> => {
