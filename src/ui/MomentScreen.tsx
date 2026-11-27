@@ -7,7 +7,7 @@ import { starGrowth } from '../core/moment';
 import { layoutSky } from '../core/sky';
 import type { Language, Point } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
-import { missingVoices, say, stopAll } from '../notify/voice';
+import { missingVoices, say, speechDown, stopAll } from '../notify/voice';
 import { tint, tintSoft, type Theme } from '../theme/calmStudy';
 
 interface Props {
@@ -64,11 +64,17 @@ export function MomentScreen(props: Props) {
 
   // Tell the user once per card, in the card itself, when the phone has no voice for a language in it.
   const [missing, setMissing] = useState<Language[]>([]);
+  const [down, setDown] = useState(false);
   useEffect(() => {
     let alive = true;
     setMissing([]);
+    setDown(false);
     if (!done && p && (props.readAloud || spoke) && !p.voice) {
-      void missingVoices(p.text, props.language).then((m) => alive && setMissing(m));
+      void speechDown().then((d) => {
+        if (!alive) return;
+        setDown(d);
+        if (!d) void missingVoices(p.text, props.language).then((m) => alive && setMissing(m));
+      });
     }
     return () => {
       alive = false;
@@ -132,6 +138,11 @@ export function MomentScreen(props: Props) {
           <Text style={[styles.btnText, { color: tintSoft(theme, p.category) }]}>{i < moment.length - 1 ? t.next : t.done}</Text>
         </Pressable>
       </View>
+      {down && (
+        <Text style={[styles.small, { color: theme.cardText }]} accessibilityLiveRegion="polite">
+          {t.speechDown}
+        </Text>
+      )}
       {missing.length > 0 && (
         <Text style={[styles.small, { color: theme.cardText }]} accessibilityLiveRegion="polite">
           {fill(t.voiceMissing, { lang: missing.map((l) => (l === 'hi' ? t.langHindi : l === 'gu' ? t.langGujarati : t.langEnglish)).join(', ') })}
