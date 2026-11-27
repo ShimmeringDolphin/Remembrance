@@ -20,7 +20,7 @@ function Answer(props: { text: string; theme: Theme; t: Strings }) {
   const [fits, setFits] = useState(false);
 
   const body = [styles.a, { color: theme.muted }];
-  const link = [styles.moreText, { color: theme.accent }];
+  const link = [styles.moreText, { color: theme.text, textDecorationLine: 'underline' as const }];
   const hidden = { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' } as const;
   const cut = base === null ? '' : base.slice(0, keep).trimEnd();
 

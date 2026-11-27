@@ -86,6 +86,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - Each answer shows two lines, and a longer one ends its second line with "... Read more", which opens it; "See less" below closes it. Answers that fit in two lines show no link.
 - Test builds only: Settings ends with a TEST PANEL showing how many reminders the phone holds, the next three due times (never point text), how many of them are wake-up prompts, and whether the app is Asleep, with a Refresh button. It reads on open and on Refresh; no timers.
 - Every page has a ⋮ menu at the top right: Home shows Help and Settings, Help shows Home and Settings, Settings shows Home and Help. The Sky page keeps only its Back button.
+- On Android, the phone's Back button or gesture on Sky, Settings or Help goes to Home (it no longer leaves the app). On Home it works as before.
 - Once the sky exists, a round Sky button (three stars: bright five-point, dimmer four-point, dimmest three-point; still, never animated) sits beside the ⋮ on Home. It replaces the old Sky card. Uses `react-native-svg`, bundled with the Expo SDK, no network.
 - The Gujarati Awake and Asleep buttons read "જાગું છું" and "સૂઉં છું".
 

@@ -165,9 +165,9 @@ export function Home(props: Props) {
               accessibilityLabel={sleep ? t.asleepA11y : t.awakeA11y}
               accessibilityState={{ selected: on, checked: on }}
               onPress={() => props.onAsleep(sleep)}
-              style={[styles.half, on && { backgroundColor: sleep ? theme.sky : theme.accent }]}
+              style={[styles.half, on && { backgroundColor: sleep ? theme.sky : theme.button }]}
             >
-              <Text style={[styles.halfText, { color: on ? (sleep ? theme.star : theme.onAccent) : theme.muted }]}>
+              <Text style={[styles.halfText, { color: on ? (sleep ? theme.star : theme.onButton) : theme.muted }]}>
                 {sleep ? `☾  ${t.asleep}` : `☀  ${t.awake}`}
               </Text>
             </Pressable>

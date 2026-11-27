@@ -24,7 +24,7 @@ export function Button(props: { label: string; onPress: () => void; theme: Theme
         (pressed || props.disabled) && { opacity: props.disabled ? 0.4 : 0.7 },
       ]}
     >
-      <Text style={[styles.buttonText, { color: main ? t.onButton : t.accent }]}>{props.label}</Text>
+      <Text style={[styles.buttonText, { color: main ? t.onButton : t.text }]}>{props.label}</Text>
     </Pressable>
   );
 }

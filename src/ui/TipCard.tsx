@@ -9,7 +9,7 @@ import { Button } from './parts';
 export function TipCard(props: { text: string; t: Strings; theme: Theme; onGot: () => void; onSkip: () => void }) {
   const { t, theme } = props;
   return (
-    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.accent }]}>
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.line }]}>
       <Text accessibilityLiveRegion="polite" style={[styles.text, { color: theme.text }]}>{props.text}</Text>
       <View style={styles.row}>
         <Button label={t.gotIt} theme={theme} kind="plain" onPress={props.onGot} />

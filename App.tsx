@@ -3,7 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { loadAsync, useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, AppState, Linking, Platform, Share, useColorScheme } from 'react-native';
+import { Alert, AppState, BackHandler, Linking, Platform, Share, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import type { Booked } from './src/core/appearances';
@@ -64,6 +64,15 @@ export default function App() {
   const [asked, setAsked] = useState(false);
   const [perm, setPerm] = useState<Permission>('undetermined');
   const [screen, setScreen] = useState<Screen>('home');
+  // The phone's Back button or gesture goes from Sky, Settings or Help to Home instead of leaving the app.
+  useEffect(() => {
+    if (screen === 'home') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setScreen('home');
+      return true;
+    });
+    return () => sub.remove();
+  }, [screen]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [askNow, setAskNow] = useState(false);
   const [remindersPassed, setRemindersPassed] = useState(0);

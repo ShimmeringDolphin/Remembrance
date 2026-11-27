@@ -90,9 +90,9 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
       accessibilityLabel={label}
       onPress={onPress}
       hitSlop={6}
-      style={({ pressed }) => [styles.round, { borderColor: theme.accent, backgroundColor: pressed ? theme.soft : 'transparent' }]}
+      style={({ pressed }) => [styles.round, { borderColor: theme.text, backgroundColor: pressed ? theme.soft : 'transparent' }]}
     >
-      <Text style={[styles.roundText, { color: theme.accent }]}>{text}</Text>
+      <Text style={[styles.roundText, { color: theme.text }]}>{text}</Text>
     </Pressable>
   );
 
@@ -120,7 +120,7 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
         accessibilityHint={hint}
         value={value}
         onValueChange={onValue}
-        trackColor={{ false: theme.chip, true: theme.button }}
+        trackColor={{ false: theme.thread, true: theme.button }}
         thumbColor={value ? theme.onButton : theme.muted}
         ios_backgroundColor={theme.chip}
       />
