@@ -1,6 +1,7 @@
 // Restore points from a backup the user pasted. Nothing is read from anywhere else; nothing is sent anywhere.
 import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from './AppText';
 
 import type { Strings } from '../i18n/strings';
 import type { Theme } from '../theme/calmStudy';

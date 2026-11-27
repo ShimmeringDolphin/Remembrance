@@ -2,7 +2,8 @@
 // most); the recording is kept on the phone and replaces the phone's voice for this point.
 import { RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder } from 'expo-audio';
 import { useEffect, useRef, useState } from 'react';
-import { Linking, StyleSheet, Text, View } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
+import { Text } from './AppText';
 
 import type { Point } from '../core/types';
 import type { Strings } from '../i18n/strings';

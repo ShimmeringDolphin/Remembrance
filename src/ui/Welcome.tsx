@@ -1,13 +1,15 @@
-// First run: one box and nothing else. No setup, no questions; sensible defaults are already in place.
+// First run: one box and a language choice. No setup, no questions; sensible defaults are already in place.
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from './AppText';
 
 import { MAX_TEXT_LENGTH, cleanText } from '../core/limits';
+import type { Language } from '../core/types';
 import type { Strings } from '../i18n/strings';
 import type { Theme } from '../theme/calmStudy';
-import { Button } from './parts';
+import { Button, Choice } from './parts';
 
-export function Welcome(props: { t: Strings; theme: Theme; onKeep: (text: string) => void }) {
+export function Welcome(props: { t: Strings; theme: Theme; language: Language; onLanguage: (l: Language) => void; onKeep: (text: string) => void }) {
   const { t, theme } = props;
   const [text, setText] = useState('');
   // A different example each day, with no timer.
@@ -16,7 +18,12 @@ export function Welcome(props: { t: Strings; theme: Theme; onKeep: (text: string
   return (
     <KeyboardAvoidingView style={styles.wrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.inner}>
-        <Text style={[styles.brand, { color: theme.accent }]}>{t.appName}</Text>
+        <View style={styles.langs} accessibilityRole="radiogroup" accessibilityLabel={t.language}>
+          {([['en', t.langEn], ['hi', t.langHi], ['gu', t.langGu]] as [Language, string][]).map(([l, label]) => (
+            <Choice key={l} label={label} selected={props.language === l} theme={theme} onPress={() => props.onLanguage(l)} />
+          ))}
+        </View>
+        <Text style={[styles.brand, { color: theme.text }]}>{t.appName}</Text>
         <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>{t.welcomeTitle}</Text>
         <Text style={[styles.body, { color: theme.muted }]}>{t.welcomeBody}</Text>
         <TextInput
@@ -38,7 +45,8 @@ export function Welcome(props: { t: Strings; theme: Theme; onKeep: (text: string
 
 const styles = StyleSheet.create({
   wrap: { flex: 1 },
-  inner: { flex: 1, padding: 24, justifyContent: 'center', gap: 16 },
+  inner: { flex: 1, padding: 24, paddingTop: 48, gap: 16 },
+  langs: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 },
   brand: { fontSize: 18, fontWeight: '700', letterSpacing: 1 },
   title: { fontSize: 28, fontWeight: '700', lineHeight: 36 },
   body: { fontSize: 17, lineHeight: 25 },

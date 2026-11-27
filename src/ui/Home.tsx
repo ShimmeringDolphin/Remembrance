@@ -1,7 +1,8 @@
 // The notebook: Awake/Asleep, a box to add a point, then the points in their colours.
 // Nothing to tick off and no counts to keep up. Points from the latest reminder glow for a while.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, SectionList, StyleSheet, View } from 'react-native';
+import { PointText, Text, TextInput } from './AppText';
 
 import { paceFor } from '../core/pace';
 import { DEFAULT_DAILY_DAYS, lastDayOf, MAX_DAILY_DAYS, sameDay } from '../core/expiry';
@@ -9,7 +10,7 @@ import { MAX_TEXT_LENGTH, cleanText } from '../core/limits';
 import type { Category, Point } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import type { Permission } from '../notify/reminders';
-import { tint, tintSoft, type Theme } from '../theme/calmStudy';
+import { onTint, tint, tintInk, tintSoft, type Theme } from '../theme/calmStudy';
 import { OverflowMenu } from './OverflowMenu';
 import { SkyMark } from './SkyMark';
 import type { Status } from '../core/awake';
@@ -107,7 +108,7 @@ export function Home(props: Props) {
     const text = sameDay(d, today)
       ? t.lastDayToday
       : fill(t.lastDayOn, { date: d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) });
-    return <Text style={[styles.tag, { color: tint(theme, 'daily') }]}>{text}</Text>;
+    return <Text style={[styles.tag, { color: tintInk(theme, 'daily') }]}>{text}</Text>;
   };
 
   // One tip at a time, only once there is a point, and never on top of the other notes on this screen.
@@ -130,7 +131,7 @@ export function Home(props: Props) {
   const topBar = (
     <View style={[styles.pinned, { backgroundColor: theme.background }]}>
       <View style={styles.topRow}>
-        <Text accessibilityRole="header" style={[styles.brand, { color: theme.accent }]}>{t.appName}</Text>
+        <Text accessibilityRole="header" style={[styles.brand, { color: theme.text }]}>{t.appName}</Text>
         <View style={styles.menuRow}>
         {props.skyOpen && (
           <Pressable accessibilityRole="button" accessibilityLabel={t.skyOpen} onPress={props.onSky} hitSlop={4} style={[styles.skyButton, { backgroundColor: theme.sky }]}>
@@ -164,9 +165,9 @@ export function Home(props: Props) {
               accessibilityLabel={sleep ? t.asleepA11y : t.awakeA11y}
               accessibilityState={{ selected: on, checked: on }}
               onPress={() => props.onAsleep(sleep)}
-              style={[styles.half, on && { backgroundColor: sleep ? theme.sky : theme.accent }]}
+              style={[styles.half, on && { backgroundColor: sleep ? theme.sky : theme.button }]}
             >
-              <Text style={[styles.halfText, { color: on ? (sleep ? theme.star : theme.onAccent) : theme.muted }]}>
+              <Text style={[styles.halfText, { color: on ? (sleep ? theme.star : theme.onButton) : theme.muted }]}>
                 {sleep ? `☾  ${t.asleep}` : `☀  ${t.awake}`}
               </Text>
             </Pressable>
@@ -221,14 +222,14 @@ export function Home(props: Props) {
         />
         <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={t.saveTo}>
           {(['daily', 'long_term'] as const).map((c) => (
-            <Choice key={c} label={c === 'daily' ? t.daily : t.longTerm} selected={category === c} theme={{ ...theme, accent: tint(theme, c) }} onPress={() => setCategory(c)} />
+            <Choice key={c} label={c === 'daily' ? t.daily : t.longTerm} selected={category === c} theme={{ ...theme, button: tint(theme, c), onButton: onTint(theme, c) }} onPress={() => setCategory(c)} />
           ))}
         </View>
         {category === 'daily' && (
           <View style={styles.row}>
             <Text style={[styles.note, { color: theme.text }]}>{t.repeatFor}</Text>
             <Button label="−" hint={t.fewerDays} theme={theme} kind="plain" disabled={days <= 1} onPress={() => setDays((d) => Math.max(1, d - 1))} />
-            <Text accessibilityLiveRegion="polite" style={[styles.days, { color: tint(theme, 'daily') }]}>
+            <Text accessibilityLiveRegion="polite" style={[styles.days, { color: tintInk(theme, 'daily') }]}>
               {days > MAX_DAILY_DAYS ? t.dayMore : days === 1 ? t.dayOne : fill(t.dayMany, { n: days })}
             </Text>
             <Button label="+" hint={t.moreDays} theme={theme} kind="plain" disabled={days > MAX_DAILY_DAYS} onPress={() => setDays((d) => Math.min(MAX_DAILY_DAYS + 1, d + 1))} />
@@ -240,7 +241,7 @@ export function Home(props: Props) {
             {fill(t.full, { name: category === 'daily' && days <= MAX_DAILY_DAYS ? t.daily : t.longTerm })}
           </Text>
         )}
-        <Button label={t.keep} theme={{ ...theme, accent: tint(theme, category) }} disabled={!clean} onPress={add} />
+        <Button label={t.keep} theme={{ ...theme, button: tint(theme, category), onButton: onTint(theme, category) }} disabled={!clean} onPress={add} />
       </Card>
 
       {showLatest && tipCard('latest', t.tipLatest)}
@@ -308,8 +309,8 @@ export function Home(props: Props) {
               pressed && { opacity: 0.7 },
             ]}
           >
-            {isFresh && <Text style={[styles.freshTag, { backgroundColor: colour, color: theme.onAccent }]}>{t.justCameBack}</Text>}
-            <Text style={[styles.pointText, { color: item.archived ? theme.muted : theme.text }]}>{item.text}</Text>
+            {isFresh && <Text style={[styles.freshTag, { backgroundColor: colour, color: onTint(theme, item.category) }]}>{t.justCameBack}</Text>}
+            <PointText style={[styles.pointText, { color: item.archived ? theme.muted : theme.text }]}>{item.text}</PointText>
             {item.private && <Text style={[styles.tag, { color: theme.muted }]}>{t.privateTag}</Text>}
             {!item.archived && paceFor(item) !== 'normal' && (
               <Text style={[styles.tag, { color: theme.muted }]}>{{ every: t.paceEveryTag, often: t.paceOftenTag, rarely: t.paceRarelyTag, normal: '' }[paceFor(item)]}</Text>

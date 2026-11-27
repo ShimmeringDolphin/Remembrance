@@ -1,6 +1,7 @@
 // Settings: when, how often, privacy, voice and language. Each in its own card, with a plain summary.
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Text } from './AppText';
 
 import { APP_VERSION } from '../appInfo';
 import { FEEDBACK_EMAIL, SURVEY_URL } from '../config';
@@ -89,9 +90,9 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
       accessibilityLabel={label}
       onPress={onPress}
       hitSlop={6}
-      style={({ pressed }) => [styles.round, { borderColor: theme.accent, backgroundColor: pressed ? theme.soft : 'transparent' }]}
+      style={({ pressed }) => [styles.round, { borderColor: theme.text, backgroundColor: pressed ? theme.soft : 'transparent' }]}
     >
-      <Text style={[styles.roundText, { color: theme.accent }]}>{text}</Text>
+      <Text style={[styles.roundText, { color: theme.text }]}>{text}</Text>
     </Pressable>
   );
 
@@ -119,9 +120,9 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
         accessibilityHint={hint}
         value={value}
         onValueChange={onValue}
-        trackColor={{ false: theme.line, true: theme.accent }}
-        thumbColor={theme.surface}
-        ios_backgroundColor={theme.line}
+        trackColor={{ false: theme.thread, true: theme.button }}
+        thumbColor={value ? theme.onButton : theme.muted}
+        ios_backgroundColor={theme.chip}
       />
     </View>
   );
@@ -134,7 +135,7 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
           title={t.settings}
           backLabel={t.back}
           onBack={props.onBack}
-          color={theme.accent}
+          color={theme.text}
           titleColor={theme.text}
           right={<OverflowMenu label={t.menu} theme={theme} items={[{ label: t.home, run: () => props.onGo('home') }, { label: t.help, run: () => props.onGo('help') }]} />}
         />

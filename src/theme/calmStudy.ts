@@ -1,5 +1,5 @@
-// Calm Study: warm paper by day, deep ink by night. Every colour the app uses comes from here.
-// Daily points are marigold and Long-term points are peacock, everywhere they appear.
+// Calm Study, Sky look: mist by day, deep teal-night by night. Every colour the app uses comes from here.
+// Daily points are haldi (turmeric gold) and Long-term points are peacock, everywhere they appear.
 import type { Category } from '../core/types';
 
 export interface Theme {
@@ -19,53 +19,89 @@ export interface Theme {
   dailySoft: string;
   longTerm: string;
   longTermSoft: string;
+  /** Segmented controls and switch tracks. */
+  chip: string;
+  /** The day line and idle strokes. */
+  thread: string;
+  /** Text in the Daily / Long-term colour (the fill colours are too light for text). */
+  dailyInk: string;
+  longInk: string;
+  /** Main buttons are plain ink; `onButton` is the text on them. */
+  button: string;
+  onButton: string;
+  /** Text on a button or chip filled with the Daily / Long-term colour. */
+  onDaily: string;
+  onLong: string;
+  /** A card on the Sky page. */
+  skyCard: string;
   /** Text on a moment card (cards keep a light ground in both themes). */
   cardText: string;
 }
 
 export const light: Theme = {
-  background: '#F7F5EF',
+  background: '#EEF2F1',
   surface: '#FFFFFF',
-  text: '#1F2230',
-  muted: '#5E6372',
-  line: '#E2DED3',
-  accent: '#3B4A9C',
+  text: '#15212B',
+  muted: '#4B5965',
+  line: '#D2DCDA',
+  accent: '#0F6F75',
   onAccent: '#FFFFFF',
-  soft: '#ECEEF8',
+  soft: '#E0E7E5',
   scrim: 'rgba(20, 22, 30, 0.45)',
-  sky: '#121733',
+  sky: '#101A33',
   star: '#F6E7B0',
   skyText: '#D9DCF0',
-  daily: '#BC8236',
-  dailySoft: '#F6EEE0',
-  longTerm: '#1E6B74',
-  longTermSoft: '#DCEFF0',
-  cardText: '#1F2230',
+  daily: '#E0A030',
+  dailySoft: '#FBEFD6',
+  longTerm: '#0F6F75',
+  longTermSoft: '#DCEFEE',
+  chip: '#E0E7E5',
+  thread: '#B9C6C4',
+  dailyInk: '#8A5800',
+  longInk: '#0F6F75',
+  button: '#15212B',
+  onButton: '#FFFFFF',
+  onDaily: '#15212B',
+  onLong: '#FFFFFF',
+  skyCard: '#1C2848',
+  cardText: '#15212B',
 };
 
 export const dark: Theme = {
-  background: '#14161D',
-  surface: '#1D2029',
-  text: '#ECEAE4',
-  muted: '#A4A9B6',
-  line: '#2C303C',
-  accent: '#9AA8F0',
-  onAccent: '#14161D',
-  soft: '#262B3D',
+  background: '#0D1519',
+  surface: '#16222A',
+  text: '#E6EEEC',
+  muted: '#9DACB2',
+  line: '#26343C',
+  accent: '#6CCFD1',
+  onAccent: '#0D1519',
+  soft: '#1C2A32',
   scrim: 'rgba(0, 0, 0, 0.6)',
-  sky: '#0B0F24',
+  sky: '#070C1C',
   star: '#F6E7B0',
   skyText: '#D9DCF0',
-  daily: '#DDA75E',
-  dailySoft: '#352B1C',
-  longTerm: '#4FB3BD',
-  longTermSoft: '#123235',
-  cardText: '#ECEAE4',
+  daily: '#F0B451',
+  dailySoft: '#2E2614',
+  longTerm: '#3DB6B9',
+  longTermSoft: '#10302F',
+  chip: '#1C2A32',
+  thread: '#33454E',
+  dailyInk: '#F3C77A',
+  longInk: '#6CCFD1',
+  button: '#E6EEEC',
+  onButton: '#0D1519',
+  onDaily: '#0D1519',
+  onLong: '#0D1519',
+  skyCard: '#131B33',
+  cardText: '#E6EEEC',
 };
 
 export const themeFor = (scheme: string | null | undefined): Theme => (scheme === 'dark' ? dark : light);
 
 export const tint = (theme: Theme, c: Category) => (c === 'daily' ? theme.daily : theme.longTerm);
+/** Ink for text in a category's colour, and the text colour for a fill of it. */
+export const tintInk = (theme: Theme, c: Category) => (c === 'daily' ? theme.dailyInk : theme.longInk);
+export const onTint = (theme: Theme, c: Category) => (c === 'daily' ? theme.onDaily : theme.onLong);
 export const tintSoft = (theme: Theme, c: Category) => (c === 'daily' ? theme.dailySoft : theme.longTermSoft);
 
 /** Android notification accent colour for a reminder. */

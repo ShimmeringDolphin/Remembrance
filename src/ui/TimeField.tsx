@@ -2,7 +2,8 @@
 // offers typing the time) or the iPhone wheel.
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useState } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './AppText';
 
 import { formatTime, parseTime } from '../core/time';
 import { fill, type Strings } from '../i18n/strings';

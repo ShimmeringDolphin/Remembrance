@@ -1,6 +1,7 @@
 // Everything you can do with one point, in one place.
 import { useEffect, useState } from 'react';
-import { Alert, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Text, TextInput } from './AppText';
 
 import { MAX_TEXT_LENGTH, cleanText } from '../core/limits';
 import { MAX_EVERY, PACES, paceFor } from '../core/pace';
@@ -64,9 +65,9 @@ export function PointSheet(props: { point: Point | null; t: Strings; theme: Them
                 accessibilityHint={t.privateHint}
                 value={p.private}
                 onValueChange={(v) => actions.setPrivate(p.id, v)}
-                trackColor={{ false: theme.line, true: theme.accent }}
-                thumbColor={theme.surface}
-                ios_backgroundColor={theme.line}
+                trackColor={{ false: theme.thread, true: theme.button }}
+                thumbColor={p.private ? theme.onButton : theme.muted}
+                ios_backgroundColor={theme.chip}
               />
             </View>
           )}

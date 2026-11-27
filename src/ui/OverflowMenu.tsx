@@ -1,6 +1,7 @@
 // The ⋮ button: opens a small list under it (Help, Settings). Closes on a tap outside or on a choice.
 import { type ComponentRef, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './AppText';
 
 import type { Theme } from '../theme/calmStudy';
 

@@ -1,6 +1,7 @@
 // Plain answers to the questions people actually ask, with a button where one helps.
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from './AppText';
 
 import type { Strings } from '../i18n/strings';
 import { openAppSettings, openBatterySettings, openSpeechSettings, openVoiceDownload } from '../notify/phoneSettings';
@@ -19,7 +20,7 @@ function Answer(props: { text: string; theme: Theme; t: Strings }) {
   const [fits, setFits] = useState(false);
 
   const body = [styles.a, { color: theme.muted }];
-  const link = [styles.moreText, { color: theme.accent }];
+  const link = [styles.moreText, { color: theme.text, textDecorationLine: 'underline' as const }];
   const hidden = { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' } as const;
   const cut = base === null ? '' : base.slice(0, keep).trimEnd();
 
@@ -103,7 +104,7 @@ export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void
           title={t.helpTitle}
           backLabel={t.back}
           onBack={props.onBack}
-          color={theme.accent}
+          color={theme.text}
           titleColor={theme.text}
           right={<OverflowMenu label={t.menu} theme={theme} items={[{ label: t.home, run: () => props.onGo('home') }, { label: t.settings, run: () => props.onGo('settings') }]} />}
         />

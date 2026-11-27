@@ -1,6 +1,7 @@
 // Small shared pieces. Every button has an accessibility label.
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { PointText, Text } from './AppText';
 
 import type { Theme } from '../theme/calmStudy';
 
@@ -17,13 +18,13 @@ export function Button(props: { label: string; onPress: () => void; theme: Theme
       onPress={props.onPress}
       style={({ pressed }) => [
         styles.button,
-        main && { backgroundColor: t.accent },
+        main && { backgroundColor: t.button },
         kind === 'plain' && { borderColor: t.line, borderWidth: 1, backgroundColor: t.surface },
         kind === 'quiet' && styles.quiet,
         (pressed || props.disabled) && { opacity: props.disabled ? 0.4 : 0.7 },
       ]}
     >
-      <Text style={[styles.buttonText, { color: main ? t.onAccent : t.accent }]}>{props.label}</Text>
+      <Text style={[styles.buttonText, { color: main ? t.onButton : t.text }]}>{props.label}</Text>
     </Pressable>
   );
 }
@@ -57,11 +58,11 @@ export function Choice(props: { label: string; selected: boolean; onPress: () =>
       onPress={props.onPress}
       style={({ pressed }) => [
         styles.choice,
-        { borderColor: props.selected ? t.accent : t.line, backgroundColor: props.selected ? t.accent : t.surface },
+        { borderColor: props.selected ? t.button : t.line, backgroundColor: props.selected ? t.button : t.surface },
         pressed && { opacity: 0.7 },
       ]}
     >
-      <Text style={[styles.choiceText, { color: props.selected ? t.onAccent : t.text }]}>{props.label}</Text>
+      <PointText style={[styles.choiceText, { color: props.selected ? t.onButton : t.text }]}>{props.label}</PointText>
     </Pressable>
   );
 }

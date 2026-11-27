@@ -1,8 +1,9 @@
 // YaadOM: write a short point once; it comes back to you through the day. See docs/PRODUCT.md.
 import * as Notifications from 'expo-notifications';
+import { loadAsync } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, AppState, Linking, Platform, Share, useColorScheme } from 'react-native';
+import { Alert, AppState, BackHandler, Linking, Platform, Share, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import type { Booked } from './src/core/appearances';
@@ -20,6 +21,9 @@ import { deviceLanguage, fill, strings } from './src/i18n/strings';
 import { isSamsung, openBatterySettings } from './src/notify/phoneSettings';
 import { dismissLateTip, lateTipNow } from './src/notify/timing';
 import { deleteRecording } from './src/notify/ownVoice';
+import { FontContext } from './src/ui/AppText';
+import { fontFilesForSet } from './src/theme/fontFiles';
+import { extraSetsNeeded, type FontSet } from './src/theme/fonts';
 import { say, setEnglishInIndian, speakAll, speechDown, stopAll } from './src/notify/voice';
 import { askPermission, dismissEmpty, dismissSeen, tidyShade, initNotifications, permission, syncReminders, type Permission } from './src/notify/reminders';
 import { themeFor } from './src/theme/calmStudy';
@@ -60,6 +64,15 @@ export default function App() {
   const [asked, setAsked] = useState(false);
   const [perm, setPerm] = useState<Permission>('undetermined');
   const [screen, setScreen] = useState<Screen>('home');
+  // The phone's Back button or gesture goes from Sky, Settings or Help to Home instead of leaving the app.
+  useEffect(() => {
+    if (screen === 'home') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setScreen('home');
+      return true;
+    });
+    return () => sub.remove();
+  }, [screen]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [askNow, setAskNow] = useState(false);
   const [remindersPassed, setRemindersPassed] = useState(0);
@@ -83,6 +96,26 @@ export default function App() {
   // defaults (Awake), and booking with them would wake a phone that was put to sleep.
   const loadedRef = useRef(false);
   const t = strings(settings.language);
+  // Bundled fonts: the set for the app language, loaded again whenever the language changes (so choosing Gujarati on the
+  // first screen works at once), plus the other set once if a saved point needs it (Hindi in a Gujarati app, Gujarati
+  // elsewhere), so most phones never hold both. Until a set has loaded, the phone's own font is used.
+  const ownSet: FontSet = settings.language === 'gu' ? 'gu' : 'lat';
+  const extraWanted = extraSetsNeeded(points.map((p) => p.text), settings.language).join();
+  const [loadedSets, setLoadedSets] = useState<FontSet[]>([]);
+  useEffect(() => {
+    let alive = true;
+    const wanted: FontSet[] = [ownSet, ...(extraWanted ? (extraWanted.split(',') as FontSet[]) : [])];
+    for (const set of wanted) {
+      loadAsync(fontFilesForSet(set))
+        .then(() => alive && setLoadedSets((cur) => (cur.includes(set) ? cur : [...cur, set])))
+        .catch(() => undefined);
+    }
+    return () => {
+      alive = false;
+    };
+  }, [ownSet, extraWanted]);
+  const fontsLoaded = loadedSets.includes(ownSet);
+  const extraLoaded = loadedSets.filter((set) => set !== ownSet);
 
   /** Books the reminders again and returns the latest reminder that has come. */
   const rebook = useCallback(async (s: Settings = settingsRef.current): Promise<Booked | null> => {
@@ -413,6 +446,7 @@ export default function App() {
   const inMoment = moment.length > 0;
   const fresh = freshIds(lastShown, new Date());
   return (
+    <FontContext.Provider value={{ language: settings.language, ready: fontsLoaded, extra: extraLoaded }}>
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: screen === 'sky' ? theme.sky : theme.background }}>
         <StatusBar style={screen === 'sky' ? 'light' : 'auto'} />
@@ -428,7 +462,7 @@ export default function App() {
             onClose={() => setMomentIds(null)}
           />
         ) : showWelcome ? (
-          <Welcome t={t} theme={theme} onKeep={keepFirst} />
+          <Welcome t={t} theme={theme} language={settings.language} onLanguage={(language) => void changeSettings({ ...settings, language })} onKeep={keepFirst} />
         ) : screen === 'settings' ? (
           <SettingsScreen t={t} theme={theme} settings={settings} onChange={changeSettings} onBack={() => setScreen('home')} onGo={setScreen} onBackup={backUp} onRestore={restore} testing={TESTING} onSamples={TESTING ? addVoiceSamples : undefined} />
         ) : screen === 'help' ? (
@@ -471,5 +505,6 @@ export default function App() {
         <PermissionSheet visible={askNow} t={t} theme={theme} from={settings.from} to={settings.to} onYes={() => answerPermission(true)} onLater={() => answerPermission(false)} />
       </SafeAreaView>
     </SafeAreaProvider>
+    </FontContext.Provider>
   );
 }

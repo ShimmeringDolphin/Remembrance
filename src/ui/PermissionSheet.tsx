@@ -1,5 +1,6 @@
 // Asked once, right after the first point is kept, so the question makes sense.
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { Modal, StyleSheet, View } from 'react-native';
+import { Text } from './AppText';
 
 import { fill, type Strings } from '../i18n/strings';
 import type { Theme } from '../theme/calmStudy';

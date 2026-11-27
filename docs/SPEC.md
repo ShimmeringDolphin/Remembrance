@@ -52,7 +52,14 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 
 ## First run
 
-- One screen: a title, a sentence and one box. Keeping the first point (as Daily) asks once whether to turn on reminders, explaining the default times. "Not now" leaves a calm banner on Home with a Turn on button.
+- One screen: language chips at the top right (English, हिन्दी, ગુજરાતી; same setting as in Settings), a title, a sentence and one box. No category or days here. Keeping the first point (as Daily) asks once whether to turn on reminders, explaining the default times. "Not now" leaves a calm banner on Home with a Turn on button.
+
+## Look (Sky colours)
+
+- Colours live in `src/theme/calmStudy.ts` (light and dark): mist background by day, teal-night by night; Daily is haldi gold (`daily`, `dailyInk` for text), Long-term is peacock (`longTerm`, `longInk` for text); main buttons are plain ink (`button`, `onButton`); text on a filled category colour is `onDaily` / `onLong`.
+- Fonts: headings Baloo 2, body Hind; Gujarati uses Baloo Bhai 2 and Hind Vadodara (all four cover Latin too; Baloo 2 and Hind cover Devanagari). Bundled files (`@expo-google-fonts/*`, SIL Open Font License), no network at run time; the set for the app language is loaded with `loadAsync` (again whenever the language changes, even on the first screen), and the phone's own font is used until it has loaded. `src/ui/AppText.tsx` provides `Text` and `TextInput` that pick the family from the style's weight (700 and up heading, 600 semibold, else body); all screens use them.
+- Mixed scripts: a point's own text (Home cards, the moment card, choice labels) is split by script and drawn in a font that has its letters (`fontRuns`, `PointText`). The set for the app language is always loaded; the other set (Gujarati, or Latin and Devanagari) is loaded once, only when a saved point needs it, and the phone's font is used until then. Cost: about 1 MB more memory only for users who mix scripts. The language chips' own names (હિન્દી, ગુજરાતી) use the phone's font when the other set is not loaded.
+- `src/core/theme.test.ts` checks that every text and background pair in both themes reaches 4.5:1 (`src/core/contrast.ts`). Non-text contrast (a star against its background) is not checked.
 
 ## Pages and stale reminders
 
@@ -79,6 +86,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - Each answer shows two lines, and a longer one ends its second line with "... Read more", which opens it; "See less" below closes it. Answers that fit in two lines show no link.
 - Test builds only: Settings ends with a TEST PANEL showing how many reminders the phone holds, the next three due times (never point text), how many of them are wake-up prompts, and whether the app is Asleep, with a Refresh button. It reads on open and on Refresh; no timers.
 - Every page has a ⋮ menu at the top right: Home shows Help and Settings, Help shows Home and Settings, Settings shows Home and Help. The Sky page keeps only its Back button.
+- On Android, the phone's Back button or gesture on Sky, Settings or Help goes to Home (it no longer leaves the app). On Home it works as before.
 - Once the sky exists, a round Sky button (three stars: bright five-point, dimmer four-point, dimmest three-point; still, never animated) sits beside the ⋮ on Home. It replaces the old Sky card. Uses `react-native-svg`, bundled with the Expo SDK, no network.
 - The Gujarati Awake and Asleep buttons read "જાગું છું" and "સૂઉં છું".
 

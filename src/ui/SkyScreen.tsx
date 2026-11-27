@@ -1,6 +1,7 @@
 // Your sky: one star per point. It grows each time the point comes back and never dims or shrinks.
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Text } from './AppText';
 
 import { layoutSky, totalAppearances } from '../core/sky';
 import type { Point } from '../core/types';
