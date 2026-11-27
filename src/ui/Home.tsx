@@ -131,7 +131,7 @@ export function Home(props: Props) {
   const topBar = (
     <View style={[styles.pinned, { backgroundColor: theme.background }]}>
       <View style={styles.topRow}>
-        <Text accessibilityRole="header" style={[styles.brand, { color: theme.accent }]}>{t.appName}</Text>
+        <Text accessibilityRole="header" style={[styles.brand, { color: theme.text }]}>{t.appName}</Text>
         <View style={styles.menuRow}>
         {props.skyOpen && (
           <Pressable accessibilityRole="button" accessibilityLabel={t.skyOpen} onPress={props.onSky} hitSlop={4} style={[styles.skyButton, { backgroundColor: theme.sky }]}>
@@ -222,7 +222,7 @@ export function Home(props: Props) {
         />
         <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={t.saveTo}>
           {(['daily', 'long_term'] as const).map((c) => (
-            <Choice key={c} label={c === 'daily' ? t.daily : t.longTerm} selected={category === c} theme={{ ...theme, accent: tint(theme, c), onAccent: onTint(theme, c) }} onPress={() => setCategory(c)} />
+            <Choice key={c} label={c === 'daily' ? t.daily : t.longTerm} selected={category === c} theme={{ ...theme, button: tint(theme, c), onButton: onTint(theme, c) }} onPress={() => setCategory(c)} />
           ))}
         </View>
         {category === 'daily' && (

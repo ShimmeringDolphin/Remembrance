@@ -17,7 +17,7 @@ export function Welcome(props: { t: Strings; theme: Theme; onKeep: (text: string
   return (
     <KeyboardAvoidingView style={styles.wrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.inner}>
-        <Text style={[styles.brand, { color: theme.accent }]}>{t.appName}</Text>
+        <Text style={[styles.brand, { color: theme.text }]}>{t.appName}</Text>
         <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>{t.welcomeTitle}</Text>
         <Text style={[styles.body, { color: theme.muted }]}>{t.welcomeBody}</Text>
         <TextInput

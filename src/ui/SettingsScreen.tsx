@@ -120,9 +120,9 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
         accessibilityHint={hint}
         value={value}
         onValueChange={onValue}
-        trackColor={{ false: theme.line, true: theme.accent }}
-        thumbColor={theme.surface}
-        ios_backgroundColor={theme.line}
+        trackColor={{ false: theme.chip, true: theme.button }}
+        thumbColor={value ? theme.onButton : theme.muted}
+        ios_backgroundColor={theme.chip}
       />
     </View>
   );
@@ -135,7 +135,7 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
           title={t.settings}
           backLabel={t.back}
           onBack={props.onBack}
-          color={theme.accent}
+          color={theme.text}
           titleColor={theme.text}
           right={<OverflowMenu label={t.menu} theme={theme} items={[{ label: t.home, run: () => props.onGo('home') }, { label: t.help, run: () => props.onGo('help') }]} />}
         />

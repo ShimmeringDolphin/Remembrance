@@ -58,11 +58,11 @@ export function Choice(props: { label: string; selected: boolean; onPress: () =>
       onPress={props.onPress}
       style={({ pressed }) => [
         styles.choice,
-        { borderColor: props.selected ? t.accent : t.line, backgroundColor: props.selected ? t.accent : t.surface },
+        { borderColor: props.selected ? t.button : t.line, backgroundColor: props.selected ? t.button : t.surface },
         pressed && { opacity: 0.7 },
       ]}
     >
-      <Text style={[styles.choiceText, { color: props.selected ? t.onAccent : t.text }]}>{props.label}</Text>
+      <Text style={[styles.choiceText, { color: props.selected ? t.onButton : t.text }]}>{props.label}</Text>
     </Pressable>
   );
 }

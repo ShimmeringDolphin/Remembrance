@@ -104,7 +104,7 @@ export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void
           title={t.helpTitle}
           backLabel={t.back}
           onBack={props.onBack}
-          color={theme.accent}
+          color={theme.text}
           titleColor={theme.text}
           right={<OverflowMenu label={t.menu} theme={theme} items={[{ label: t.home, run: () => props.onGo('home') }, { label: t.settings, run: () => props.onGo('settings') }]} />}
         />
