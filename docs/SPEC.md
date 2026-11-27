@@ -52,7 +52,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 
 ## First run
 
-- One screen: a title, a sentence and one box. Keeping the first point (as Daily) asks once whether to turn on reminders, explaining the default times. "Not now" leaves a calm banner on Home with a Turn on button.
+- One screen: language chips at the top right (English, हिन्दी, ગુજરાતી; same setting as in Settings), a title, a sentence and one box. No category or days here. Keeping the first point (as Daily) asks once whether to turn on reminders, explaining the default times. "Not now" leaves a calm banner on Home with a Turn on button.
 
 ## Look (Sky colours)
 

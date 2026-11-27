@@ -434,7 +434,7 @@ export default function App() {
             onClose={() => setMomentIds(null)}
           />
         ) : showWelcome ? (
-          <Welcome t={t} theme={theme} onKeep={keepFirst} />
+          <Welcome t={t} theme={theme} language={settings.language} onLanguage={(language) => void changeSettings({ ...settings, language })} onKeep={keepFirst} />
         ) : screen === 'settings' ? (
           <SettingsScreen t={t} theme={theme} settings={settings} onChange={changeSettings} onBack={() => setScreen('home')} onGo={setScreen} onBackup={backUp} onRestore={restore} testing={TESTING} onSamples={TESTING ? addVoiceSamples : undefined} />
         ) : screen === 'help' ? (
