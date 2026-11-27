@@ -3,7 +3,8 @@
 // iPhone shows both wheels in one sheet.
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useState } from 'react';
-import { Modal, Platform, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, StyleSheet, View } from 'react-native';
+import { Text } from './AppText';
 
 import type { TimeRange } from '../core/types';
 import type { Strings } from '../i18n/strings';

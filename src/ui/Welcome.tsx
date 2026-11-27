@@ -1,6 +1,7 @@
 // First run: one box and nothing else. No setup, no questions; sensible defaults are already in place.
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from './AppText';
 
 import { MAX_TEXT_LENGTH, cleanText } from '../core/limits';
 import type { Strings } from '../i18n/strings';

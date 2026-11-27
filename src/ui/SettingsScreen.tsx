@@ -1,6 +1,7 @@
 // Settings: when, how often, privacy, voice and language. Each in its own card, with a plain summary.
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Text } from './AppText';
 
 import { APP_VERSION } from '../appInfo';
 import { FEEDBACK_EMAIL, SURVEY_URL } from '../config';

@@ -1,6 +1,7 @@
 // Everything you can do with one point, in one place.
 import { useEffect, useState } from 'react';
-import { Alert, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Text, TextInput } from './AppText';
 
 import { MAX_TEXT_LENGTH, cleanText } from '../core/limits';
 import { MAX_EVERY, PACES, paceFor } from '../core/pace';

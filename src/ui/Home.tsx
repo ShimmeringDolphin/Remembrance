@@ -1,7 +1,8 @@
 // The notebook: Awake/Asleep, a box to add a point, then the points in their colours.
 // Nothing to tick off and no counts to keep up. Points from the latest reminder glow for a while.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, SectionList, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from './AppText';
 
 import { paceFor } from '../core/pace';
 import { DEFAULT_DAILY_DAYS, lastDayOf, MAX_DAILY_DAYS, sameDay } from '../core/expiry';

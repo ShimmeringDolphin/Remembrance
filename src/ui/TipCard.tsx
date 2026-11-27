@@ -1,5 +1,6 @@
 // A first-run tip: one short sentence next to the control it explains, with OK and Skip tips. Never blocks the screen.
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from './AppText';
 
 import type { Strings } from '../i18n/strings';
 import type { Theme } from '../theme/calmStudy';

@@ -1,6 +1,7 @@
 // Plain answers to the questions people actually ask, with a button where one helps.
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from './AppText';
 
 import type { Strings } from '../i18n/strings';
 import { openAppSettings, openBatterySettings, openSpeechSettings, openVoiceDownload } from '../notify/phoneSettings';

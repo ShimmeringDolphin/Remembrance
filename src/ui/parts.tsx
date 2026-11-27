@@ -1,6 +1,7 @@
 // Small shared pieces. Every button has an accessibility label.
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './AppText';
 
 import type { Theme } from '../theme/calmStudy';
 

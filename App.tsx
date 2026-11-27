@@ -1,5 +1,6 @@
 // YaadOM: write a short point once; it comes back to you through the day. See docs/PRODUCT.md.
 import * as Notifications from 'expo-notifications';
+import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, Linking, Platform, Share, useColorScheme } from 'react-native';
@@ -20,6 +21,8 @@ import { deviceLanguage, fill, strings } from './src/i18n/strings';
 import { isSamsung, openBatterySettings } from './src/notify/phoneSettings';
 import { dismissLateTip, lateTipNow } from './src/notify/timing';
 import { deleteRecording } from './src/notify/ownVoice';
+import { FontContext } from './src/ui/AppText';
+import { fontFilesFor } from './src/theme/fontFiles';
 import { say, setEnglishInIndian, speakAll, speechDown, stopAll } from './src/notify/voice';
 import { askPermission, dismissEmpty, dismissSeen, tidyShade, initNotifications, permission, syncReminders, type Permission } from './src/notify/reminders';
 import { themeFor } from './src/theme/calmStudy';
@@ -83,6 +86,8 @@ export default function App() {
   // defaults (Awake), and booking with them would wake a phone that was put to sleep.
   const loadedRef = useRef(false);
   const t = strings(settings.language);
+  // Bundled fonts for the app language only; until they load (or if they fail) the phone's own font is used.
+  const [fontsLoaded] = useFonts(fontFilesFor(settings.language));
 
   /** Books the reminders again and returns the latest reminder that has come. */
   const rebook = useCallback(async (s: Settings = settingsRef.current): Promise<Booked | null> => {
@@ -413,6 +418,7 @@ export default function App() {
   const inMoment = moment.length > 0;
   const fresh = freshIds(lastShown, new Date());
   return (
+    <FontContext.Provider value={{ language: settings.language, ready: fontsLoaded }}>
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: screen === 'sky' ? theme.sky : theme.background }}>
         <StatusBar style={screen === 'sky' ? 'light' : 'auto'} />
@@ -471,5 +477,6 @@ export default function App() {
         <PermissionSheet visible={askNow} t={t} theme={theme} from={settings.from} to={settings.to} onYes={() => answerPermission(true)} onLater={() => answerPermission(false)} />
       </SafeAreaView>
     </SafeAreaProvider>
+    </FontContext.Provider>
   );
 }

@@ -1,6 +1,7 @@
 // Two small sheets for Awake and Asleep: how long to remind when Awake is tapped outside your hours,
 // and the start button a wake-up prompt opens.
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { Modal, StyleSheet, View } from 'react-native';
+import { Text } from './AppText';
 
 import type { AwakeAction } from '../core/awake';
 import { fill, type Strings } from '../i18n/strings';

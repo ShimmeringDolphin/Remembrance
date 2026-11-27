@@ -57,6 +57,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 ## Look (Sky colours)
 
 - Colours live in `src/theme/calmStudy.ts` (light and dark): mist background by day, teal-night by night; Daily is haldi gold (`daily`, `dailyInk` for text), Long-term is peacock (`longTerm`, `longInk` for text); main buttons are plain ink (`button`, `onButton`); text on a filled category colour is `onDaily` / `onLong`.
+- Fonts: headings Baloo 2, body Hind; Gujarati uses Baloo Bhai 2 and Hind Vadodara (all four cover Latin too; Baloo 2 and Hind cover Devanagari). Bundled files (`@expo-google-fonts/*`, SIL Open Font License), no network at run time; only the set for the app language is loaded (`useFonts`), and the phone's own font is used until it has loaded. `src/ui/AppText.tsx` provides `Text` and `TextInput` that pick the family from the style's weight (700 and up heading, 600 semibold, else body); all screens use them.
 - `src/core/theme.test.ts` checks that every text and background pair in both themes reaches 4.5:1 (`src/core/contrast.ts`). Non-text contrast (a star against its background) is not checked.
 
 ## Pages and stale reminders

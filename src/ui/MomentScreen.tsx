@@ -1,7 +1,8 @@
 // A moment: the points of one reminder, one at a time, in their category's colour.
 // Nothing to mark or answer. The last view shows those points' stars growing a little.
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, Animated, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Text } from './AppText';
 
 import { starGrowth } from '../core/moment';
 import { layoutSky } from '../core/sky';
