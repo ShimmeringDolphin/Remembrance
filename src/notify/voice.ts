@@ -10,6 +10,9 @@ import { playRecording, stopRecordingPlayback } from './ownVoice';
 // expo-speech on Android accepts only a bare language code here; a region such as "hi-IN" is rejected and the phone's default language is used instead.
 const VOICE: Record<Language, string> = { en: 'en', hi: 'hi', gu: 'gu' };
 
+// English is left to the phone's own choice (Text-to-speech settings), so the voice the user picked there is the one heard.
+// Only Hindi and Gujarati get a chosen (offline) voice.
+
 // From Settings: read English parts of a mixed line with the Indian-language voice beside them (see `englishWithNeighbour`).
 let englishInIndian = false;
 export function setEnglishInIndian(on: boolean): void {
@@ -28,7 +31,7 @@ export function speakAll(texts: readonly string[], language: Language, onEnd?: (
   const mine = generation;
   void phoneVoices().then((voices) => {
     if (mine !== generation) return onEnd?.();
-    const chosen: Record<Language, string | undefined> = { en: pickVoice(voices, 'en'), hi: pickVoice(voices, 'hi'), gu: pickVoice(voices, 'gu') };
+    const chosen: Record<Language, string | undefined> = { en: undefined, hi: pickVoice(voices, 'hi'), gu: pickVoice(voices, 'gu') };
     const alive = () => mine === generation;
     // `gapMs` of quiet between two texts (one short timeout, only while reading; stopping makes it do nothing).
     const playText = (k: number) => {
@@ -56,7 +59,7 @@ async function phoneVoices(): Promise<VoiceInfo[]> {
 /** The voice chosen for each language, for the test panel (undefined: none listed, the engine decides). */
 export async function chosenVoices(): Promise<Record<Language, string | undefined>> {
   const voices = await phoneVoices();
-  return { en: pickVoice(voices, 'en'), hi: pickVoice(voices, 'hi'), gu: pickVoice(voices, 'gu') };
+  return { en: undefined, hi: pickVoice(voices, 'hi'), gu: pickVoice(voices, 'gu') };
 }
 
 /** Speaks one text; see `speakAll`. */
