@@ -111,7 +111,7 @@ const en = {
   a5: "No. It does not run in the background. Your phone shows the reminders YaadOM booked the last time it was open.",
   q6: "Where are my points kept?",
   a6: "Only on this phone. Nothing is sent anywhere. They are not encrypted yet.",
-  q7: "What is the \"Good morning\" notification?",
+  q7: "What's the \"Good morning\" notification?",
   a7: "While you are Asleep, three silent prompts come at your start time and the two hours after it. Tap one, then \"I'm awake, start\", and reminders resume. You can turn them off in Settings. If your phone puts the app into deep sleep or you force stop it, the prompts may not come.",
   openBattery: "Open battery settings",
   lateTipTitle: "Some reminders came late",
