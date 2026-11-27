@@ -78,6 +78,17 @@ export function shownFor(shown: readonly { id: string; data: unknown }[], at: st
 }
 
 /**
+ * Notifications in the shade that carry points, none of which is live any more (deleted or put away).
+ * Prompts and other notes carry no points and are left alone.
+ */
+export function emptyShown(shown: readonly { id: string; data: unknown }[], points: readonly Point[]): string[] {
+  return shown.filter((n) => {
+    const ids = idsFromData(n.data);
+    return ids.length > 0 && momentPoints(ids, points).length === 0;
+  }).map((n) => n.id);
+}
+
+/**
  * Reminder notifications other than the newest, by due time. Wake-up prompts and the "open the app" note
  * carry no due time and are left alone. Keeps the shade to one reminder at a time.
  */

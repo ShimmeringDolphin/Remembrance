@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 
 import { bookReminders } from '../core/booking';
 import { reminderData } from '../core/lateness';
-import { olderShown, shownFor } from '../core/moment';
+import { emptyShown, olderShown, shownFor } from '../core/moment';
 import { MAX_BOOKED, MAX_BOOKED_ANDROID } from '../core/planner';
 import { serialLatest } from '../core/serialLatest';
 import type { Settings } from '../core/types';
@@ -115,6 +115,17 @@ export async function dismissSeen(at: string): Promise<void> {
     await Promise.all(ids.map((id) => Notifications.dismissNotificationAsync(id)));
   } catch {
     // The notification just stays; nothing else depends on it.
+  }
+}
+
+/** After a point is deleted or put away: takes out of the shade any reminder whose points are all gone. Never throws. */
+export async function dismissEmpty(): Promise<void> {
+  try {
+    const shown = await Notifications.getPresentedNotificationsAsync();
+    const ids = emptyShown(shown.map((n) => ({ id: n.request.identifier, data: n.request.content.data })), await listPoints());
+    await Promise.all(ids.map((id) => Notifications.dismissNotificationAsync(id)));
+  } catch {
+    // It just stays; opening it says the points are gone.
   }
 }
 

@@ -96,15 +96,19 @@ export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void
     { q: t.qTips, a: t.aTips, actions: [{ label: t.tipsAgain, run: props.onTipsAgain }] },
   ];
   return (
-    <ScrollView contentContainerStyle={styles.wrap}>
-      <Header
-        title={t.helpTitle}
-        backLabel={t.back}
-        onBack={props.onBack}
-        color={theme.accent}
-        titleColor={theme.text}
-        right={<OverflowMenu label={t.menu} theme={theme} items={[{ label: t.home, run: () => props.onGo('home') }, { label: t.settings, run: () => props.onGo('settings') }]} />}
-      />
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {/* The title and navigation stay at the top while the page scrolls. */}
+      <View style={styles.pinned}>
+        <Header
+          title={t.helpTitle}
+          backLabel={t.back}
+          onBack={props.onBack}
+          color={theme.accent}
+          titleColor={theme.text}
+          right={<OverflowMenu label={t.menu} theme={theme} items={[{ label: t.home, run: () => props.onGo('home') }, { label: t.settings, run: () => props.onGo('settings') }]} />}
+        />
+      </View>
+      <ScrollView contentContainerStyle={styles.wrap}>
       {items.map((item) => (
         <Card key={item.q} theme={theme}>
           <Text accessibilityRole="header" textBreakStrategy="simple" style={[styles.q, { color: theme.text }]}>{item.q}</Text>
@@ -112,12 +116,14 @@ export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void
           {item.actions?.map((a) => <Button key={a.label} label={a.label} theme={theme} kind="plain" onPress={a.run} />)}
         </Card>
       ))}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: 16, gap: 14, paddingBottom: 48 },
+  pinned: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 6 },
+  wrap: { paddingHorizontal: 16, paddingTop: 8, gap: 14, paddingBottom: 48 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 22, fontWeight: '700', flexShrink: 1 },
   spacer: { flex: 1 },

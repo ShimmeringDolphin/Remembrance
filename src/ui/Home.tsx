@@ -127,8 +127,8 @@ export function Home(props: Props) {
     : st.kind === 'waiting' ? fill(t.statusWaiting, { time: clock(st.at) })
     : null;
 
-  const header = (
-    <View style={styles.header}>
+  const topBar = (
+    <View style={[styles.pinned, { backgroundColor: theme.background }]}>
       <View style={styles.topRow}>
         <Text accessibilityRole="header" style={[styles.brand, { color: theme.accent }]}>{t.appName}</Text>
         <View style={styles.menuRow}>
@@ -147,6 +147,11 @@ export function Home(props: Props) {
         />
         </View>
       </View>
+    </View>
+  );
+
+  const header = (
+    <View style={styles.header}>
       {tipCard('settings', t.tipSettings)}
 
       <View style={[styles.toggle, { borderColor: theme.line, backgroundColor: theme.surface }]} accessibilityRole="radiogroup">
@@ -254,6 +259,8 @@ export function Home(props: Props) {
   ) : undefined;
 
   return (
+    <View style={{ flex: 1 }}>
+    {topBar}
     <SectionList
       ref={list}
       sections={sections}
@@ -312,11 +319,13 @@ export function Home(props: Props) {
         );
       }}
     />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { padding: 16, paddingBottom: 48 },
+  list: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 48 },
+  pinned: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 6 },
   header: { gap: 14, marginBottom: 8 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' },
   brand: { fontSize: 22, fontWeight: '700', letterSpacing: 0.5 },

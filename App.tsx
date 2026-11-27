@@ -21,7 +21,7 @@ import { isSamsung, openBatterySettings } from './src/notify/phoneSettings';
 import { dismissLateTip, lateTipNow } from './src/notify/timing';
 import { deleteRecording } from './src/notify/ownVoice';
 import { say, setEnglishInIndian, speakAll, speechDown, stopAll } from './src/notify/voice';
-import { askPermission, dismissSeen, tidyShade, initNotifications, permission, syncReminders, type Permission } from './src/notify/reminders';
+import { askPermission, dismissEmpty, dismissSeen, tidyShade, initNotifications, permission, syncReminders, type Permission } from './src/notify/reminders';
 import { themeFor } from './src/theme/calmStudy';
 import { updateWidget } from './src/widget/update';
 import { HelpScreen } from './src/ui/HelpScreen';
@@ -155,6 +155,13 @@ export default function App() {
       // Older native code: the identifier guard above still prevents reopening.
     }
   }, [response]);
+
+  // A tapped reminder whose points are all deleted or put away: say so, instead of silently showing Home.
+  useEffect(() => {
+    if (!ready || !momentIds || momentPoints(momentIds, points).length > 0) return;
+    setMomentIds(null);
+    Alert.alert(t.momentGone);
+  }, [ready, momentIds, points]);
 
   // A reminder that arrives while the app is open: count it and move "latest" on to it.
   // One event listener, no polling; it fires only when a notification is shown.
@@ -364,6 +371,7 @@ export default function App() {
     const r = await fn();
     await refresh();
     await rebook();
+    void dismissEmpty();
     return r;
   };
   const actions: PointActions = {
