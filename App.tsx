@@ -2,7 +2,7 @@
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Linking, Platform, Share, useColorScheme } from 'react-native';
+import { Alert, AppState, Linking, Platform, Share, useColorScheme } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import type { Booked } from './src/core/appearances';
@@ -20,7 +20,7 @@ import { deviceLanguage, fill, strings } from './src/i18n/strings';
 import { isSamsung, openBatterySettings } from './src/notify/phoneSettings';
 import { dismissLateTip, lateTipNow } from './src/notify/timing';
 import { deleteRecording } from './src/notify/ownVoice';
-import { say, setEnglishInIndian, speakAll, stopAll } from './src/notify/voice';
+import { say, setEnglishInIndian, speakAll, speechDown, stopAll } from './src/notify/voice';
 import { askPermission, dismissSeen, tidyShade, initNotifications, permission, syncReminders, type Permission } from './src/notify/reminders';
 import { themeFor } from './src/theme/calmStudy';
 import { updateWidget } from './src/widget/update';
@@ -190,6 +190,8 @@ export default function App() {
     const steps = listenSteps(listenQueue(points));
     if (steps.length === 0) return;
     const run = ++listenRun.current;
+    // Silence from a lost link to the speech engine looks like a bug, so say so (once per tap).
+    void speechDown().then((d) => d && steps.some((s) => s.kind !== 'own') && listenRun.current === run && Alert.alert(t.speechDown));
     stopAll();
     setListening(true);
     const next = (i: number) => {

@@ -90,6 +90,12 @@ export async function voiceCounts(): Promise<Record<Language, number> | null> {
   }
 }
 
+/** True when the phone's speech engine cannot be reached (it restarted and this app lost its link, or there is none). */
+export async function speechDown(): Promise<boolean> {
+  const counts = await voiceCounts();
+  return counts === null || counts.en + counts.hi + counts.gu === 0;
+}
+
 /** The languages in `text` that the phone has no voice for (empty if all are there or the phone cannot say). */
 export async function missingVoices(text: string, language: Language): Promise<Language[]> {
   const counts = await voiceCounts();
