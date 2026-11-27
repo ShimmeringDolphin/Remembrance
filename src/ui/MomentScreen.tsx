@@ -2,7 +2,7 @@
 // Nothing to mark or answer. The last view shows those points' stars growing a little.
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
-import { Text } from './AppText';
+import { PointText, Text } from './AppText';
 
 import { starGrowth } from '../core/moment';
 import { layoutSky } from '../core/sky';
@@ -116,7 +116,7 @@ export function MomentScreen(props: Props) {
         </Pressable>
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel={p.text} accessibilityHint={t.next} onPress={next} style={styles.textBox}>
-        <Text key={p.id} style={[styles.text, { color: theme.cardText }]}>{p.text}</Text>
+        <PointText key={p.id} style={[styles.text, { color: theme.cardText }]}>{p.text}</PointText>
       </Pressable>
       <View style={styles.row}>
         <Pressable

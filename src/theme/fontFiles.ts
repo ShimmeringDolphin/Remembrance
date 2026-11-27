@@ -11,4 +11,5 @@ import type { Language } from '../core/types';
 const LATIN_DEVANAGARI = { Baloo2_700Bold, Hind_400Regular, Hind_600SemiBold };
 const GUJARATI = { BalooBhai2_700Bold, HindVadodara_400Regular, HindVadodara_600SemiBold };
 
-export const fontFilesFor = (language: Language) => (language === 'gu' ? GUJARATI : LATIN_DEVANAGARI);
+export const fontFilesForSet = (set: 'lat' | 'gu') => (set === 'gu' ? GUJARATI : LATIN_DEVANAGARI);
+export const fontFilesFor = (language: Language) => fontFilesForSet(language === 'gu' ? 'gu' : 'lat');

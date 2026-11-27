@@ -2,7 +2,7 @@
 // Nothing to tick off and no counts to keep up. Points from the latest reminder glow for a while.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Pressable, SectionList, StyleSheet, View } from 'react-native';
-import { Text, TextInput } from './AppText';
+import { PointText, Text, TextInput } from './AppText';
 
 import { paceFor } from '../core/pace';
 import { DEFAULT_DAILY_DAYS, lastDayOf, MAX_DAILY_DAYS, sameDay } from '../core/expiry';
@@ -310,7 +310,7 @@ export function Home(props: Props) {
             ]}
           >
             {isFresh && <Text style={[styles.freshTag, { backgroundColor: colour, color: onTint(theme, item.category) }]}>{t.justCameBack}</Text>}
-            <Text style={[styles.pointText, { color: item.archived ? theme.muted : theme.text }]}>{item.text}</Text>
+            <PointText style={[styles.pointText, { color: item.archived ? theme.muted : theme.text }]}>{item.text}</PointText>
             {item.private && <Text style={[styles.tag, { color: theme.muted }]}>{t.privateTag}</Text>}
             {!item.archived && paceFor(item) !== 'normal' && (
               <Text style={[styles.tag, { color: theme.muted }]}>{{ every: t.paceEveryTag, often: t.paceOftenTag, rarely: t.paceRarelyTag, normal: '' }[paceFor(item)]}</Text>

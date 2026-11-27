@@ -1,6 +1,6 @@
 // YaadOM: write a short point once; it comes back to you through the day. See docs/PRODUCT.md.
 import * as Notifications from 'expo-notifications';
-import { useFonts } from 'expo-font';
+import { loadAsync, useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, Linking, Platform, Share, useColorScheme } from 'react-native';
@@ -22,7 +22,8 @@ import { isSamsung, openBatterySettings } from './src/notify/phoneSettings';
 import { dismissLateTip, lateTipNow } from './src/notify/timing';
 import { deleteRecording } from './src/notify/ownVoice';
 import { FontContext } from './src/ui/AppText';
-import { fontFilesFor } from './src/theme/fontFiles';
+import { fontFilesFor, fontFilesForSet } from './src/theme/fontFiles';
+import { extraSetsNeeded, type FontSet } from './src/theme/fonts';
 import { say, setEnglishInIndian, speakAll, speechDown, stopAll } from './src/notify/voice';
 import { askPermission, dismissEmpty, dismissSeen, tidyShade, initNotifications, permission, syncReminders, type Permission } from './src/notify/reminders';
 import { themeFor } from './src/theme/calmStudy';
@@ -88,6 +89,22 @@ export default function App() {
   const t = strings(settings.language);
   // Bundled fonts for the app language only; until they load (or if they fail) the phone's own font is used.
   const [fontsLoaded] = useFonts(fontFilesFor(settings.language));
+  // A point written in a script the app language's fonts lack (Hindi in a Gujarati app, Gujarati elsewhere) needs the other
+  // set. It is loaded once, only when such a point exists, so most phones never hold both.
+  const [extraLoaded, setExtraLoaded] = useState<FontSet[]>([]);
+  const extraWanted = extraSetsNeeded(points.map((p) => p.text), settings.language).join();
+  useEffect(() => {
+    setExtraLoaded([]);
+    if (!fontsLoaded || !extraWanted) return;
+    let alive = true;
+    const sets = extraWanted.split(',') as FontSet[];
+    void Promise.all(sets.map((set) => loadAsync(fontFilesForSet(set))))
+      .then(() => alive && setExtraLoaded(sets))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [fontsLoaded, extraWanted]);
 
   /** Books the reminders again and returns the latest reminder that has come. */
   const rebook = useCallback(async (s: Settings = settingsRef.current): Promise<Booked | null> => {
@@ -418,7 +435,7 @@ export default function App() {
   const inMoment = moment.length > 0;
   const fresh = freshIds(lastShown, new Date());
   return (
-    <FontContext.Provider value={{ language: settings.language, ready: fontsLoaded }}>
+    <FontContext.Provider value={{ language: settings.language, ready: fontsLoaded, extra: extraLoaded }}>
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: screen === 'sky' ? theme.sky : theme.background }}>
         <StatusBar style={screen === 'sky' ? 'light' : 'auto'} />

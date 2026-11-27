@@ -1,7 +1,7 @@
 // Small shared pieces. Every button has an accessibility label.
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Text } from './AppText';
+import { PointText, Text } from './AppText';
 
 import type { Theme } from '../theme/calmStudy';
 
@@ -62,7 +62,7 @@ export function Choice(props: { label: string; selected: boolean; onPress: () =>
         pressed && { opacity: 0.7 },
       ]}
     >
-      <Text style={[styles.choiceText, { color: props.selected ? t.onButton : t.text }]}>{props.label}</Text>
+      <PointText style={[styles.choiceText, { color: props.selected ? t.onButton : t.text }]}>{props.label}</PointText>
     </Pressable>
   );
 }

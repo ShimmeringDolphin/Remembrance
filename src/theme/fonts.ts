@@ -20,3 +20,43 @@ export function roleOfWeight(weight: string | number | undefined): FontRole {
 }
 
 export const familyFor = (language: Language, weight: string | number | undefined): string => FAMILY[language][roleOfWeight(weight)];
+
+/** A bundled font set: Latin and Devanagari share one, Gujarati has its own (it covers Latin too). */
+export type FontSet = 'lat' | 'gu';
+export const setOfLanguage = (language: Language): FontSet => (language === 'gu' ? 'gu' : 'lat');
+
+export interface FontRun {
+  text: string;
+  set: FontSet;
+}
+
+/**
+ * Splits a point's text so each part is drawn in a font that has its letters: Gujarati letters in the Gujarati set,
+ * Devanagari in the other, and Latin letters in the set of the app language. Spaces, digits and punctuation stay with
+ * the run they follow. A text with no letters is one run in the app language's set.
+ */
+export function fontRuns(text: string, appLanguage: Language): FontRun[] {
+  const own = setOfLanguage(appLanguage);
+  const setOfChar = (ch: string): FontSet | null => (/[઀-૿]/.test(ch) ? 'gu' : /[ऀ-ॿ]/.test(ch) ? 'lat' : /[A-Za-z]/.test(ch) ? own : null);
+  const runs: FontRun[] = [];
+  let lead = '';
+  for (const ch of text) {
+    const s = setOfChar(ch);
+    const last = runs[runs.length - 1];
+    if (s === null) {
+      if (last) last.text += ch;
+      else lead += ch;
+    } else if (last && last.set === s) last.text += ch;
+    else runs.push({ text: (runs.length === 0 ? lead : '') + ch, set: s });
+  }
+  return runs.length === 0 ? [{ text, set: own }] : runs;
+}
+
+/** The sets other than the app language's that these texts need loaded. */
+export function extraSetsNeeded(texts: readonly string[], appLanguage: Language): FontSet[] {
+  const own = setOfLanguage(appLanguage);
+  const other: FontSet = own === 'gu' ? 'lat' : 'gu';
+  return texts.some((t) => fontRuns(t, appLanguage).some((r) => r.set === other)) ? [other] : [];
+}
+
+export const familyOfSet = (set: FontSet, weight: string | number | undefined): string => familyFor(set === 'gu' ? 'gu' : 'en', weight);
