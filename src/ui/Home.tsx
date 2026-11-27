@@ -9,7 +9,7 @@ import { MAX_TEXT_LENGTH, cleanText } from '../core/limits';
 import type { Category, Point } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import type { Permission } from '../notify/reminders';
-import { tint, tintSoft, type Theme } from '../theme/calmStudy';
+import { onTint, tint, tintInk, tintSoft, type Theme } from '../theme/calmStudy';
 import { OverflowMenu } from './OverflowMenu';
 import { SkyMark } from './SkyMark';
 import type { Status } from '../core/awake';
@@ -107,7 +107,7 @@ export function Home(props: Props) {
     const text = sameDay(d, today)
       ? t.lastDayToday
       : fill(t.lastDayOn, { date: d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) });
-    return <Text style={[styles.tag, { color: tint(theme, 'daily') }]}>{text}</Text>;
+    return <Text style={[styles.tag, { color: tintInk(theme, 'daily') }]}>{text}</Text>;
   };
 
   // One tip at a time, only once there is a point, and never on top of the other notes on this screen.
@@ -221,14 +221,14 @@ export function Home(props: Props) {
         />
         <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={t.saveTo}>
           {(['daily', 'long_term'] as const).map((c) => (
-            <Choice key={c} label={c === 'daily' ? t.daily : t.longTerm} selected={category === c} theme={{ ...theme, accent: tint(theme, c) }} onPress={() => setCategory(c)} />
+            <Choice key={c} label={c === 'daily' ? t.daily : t.longTerm} selected={category === c} theme={{ ...theme, accent: tint(theme, c), onAccent: onTint(theme, c) }} onPress={() => setCategory(c)} />
           ))}
         </View>
         {category === 'daily' && (
           <View style={styles.row}>
             <Text style={[styles.note, { color: theme.text }]}>{t.repeatFor}</Text>
             <Button label="−" hint={t.fewerDays} theme={theme} kind="plain" disabled={days <= 1} onPress={() => setDays((d) => Math.max(1, d - 1))} />
-            <Text accessibilityLiveRegion="polite" style={[styles.days, { color: tint(theme, 'daily') }]}>
+            <Text accessibilityLiveRegion="polite" style={[styles.days, { color: tintInk(theme, 'daily') }]}>
               {days > MAX_DAILY_DAYS ? t.dayMore : days === 1 ? t.dayOne : fill(t.dayMany, { n: days })}
             </Text>
             <Button label="+" hint={t.moreDays} theme={theme} kind="plain" disabled={days > MAX_DAILY_DAYS} onPress={() => setDays((d) => Math.min(MAX_DAILY_DAYS + 1, d + 1))} />
@@ -240,7 +240,7 @@ export function Home(props: Props) {
             {fill(t.full, { name: category === 'daily' && days <= MAX_DAILY_DAYS ? t.daily : t.longTerm })}
           </Text>
         )}
-        <Button label={t.keep} theme={{ ...theme, accent: tint(theme, category) }} disabled={!clean} onPress={add} />
+        <Button label={t.keep} theme={{ ...theme, button: tint(theme, category), onButton: onTint(theme, category) }} disabled={!clean} onPress={add} />
       </Card>
 
       {showLatest && tipCard('latest', t.tipLatest)}
@@ -308,7 +308,7 @@ export function Home(props: Props) {
               pressed && { opacity: 0.7 },
             ]}
           >
-            {isFresh && <Text style={[styles.freshTag, { backgroundColor: colour, color: theme.onAccent }]}>{t.justCameBack}</Text>}
+            {isFresh && <Text style={[styles.freshTag, { backgroundColor: colour, color: onTint(theme, item.category) }]}>{t.justCameBack}</Text>}
             <Text style={[styles.pointText, { color: item.archived ? theme.muted : theme.text }]}>{item.text}</Text>
             {item.private && <Text style={[styles.tag, { color: theme.muted }]}>{t.privateTag}</Text>}
             {!item.archived && paceFor(item) !== 'normal' && (

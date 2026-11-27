@@ -54,6 +54,11 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 
 - One screen: a title, a sentence and one box. Keeping the first point (as Daily) asks once whether to turn on reminders, explaining the default times. "Not now" leaves a calm banner on Home with a Turn on button.
 
+## Look (Sky colours)
+
+- Colours live in `src/theme/calmStudy.ts` (light and dark): mist background by day, teal-night by night; Daily is haldi gold (`daily`, `dailyInk` for text), Long-term is peacock (`longTerm`, `longInk` for text); main buttons are plain ink (`button`, `onButton`); text on a filled category colour is `onDaily` / `onLong`.
+- `src/core/theme.test.ts` checks that every text and background pair in both themes reaches 4.5:1 (`src/core/contrast.ts`). Non-text contrast (a star against its background) is not checked.
+
 ## Pages and stale reminders
 
 - Home, Settings and Help keep their title row (name, back arrow, menu) fixed at the top; only the content below scrolls.

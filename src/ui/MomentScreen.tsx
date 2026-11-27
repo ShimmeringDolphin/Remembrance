@@ -8,7 +8,7 @@ import { layoutSky } from '../core/sky';
 import type { Language, Point } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import { missingVoices, say, speechDown, stopAll } from '../notify/voice';
-import { tint, tintSoft, type Theme } from '../theme/calmStudy';
+import { onTint, tint, tintInk, tintSoft, type Theme } from '../theme/calmStudy';
 
 interface Props {
   t: Strings;
@@ -104,7 +104,7 @@ export function MomentScreen(props: Props) {
   return (
     <View style={[styles.wrap, { backgroundColor: tintSoft(theme, p.category) }]}>
       <View style={styles.top}>
-        <Text style={[styles.chip, { backgroundColor: colour, color: theme.onAccent }]}>{p.category === 'daily' ? t.daily : t.longTerm}</Text>
+        <Text style={[styles.chip, { backgroundColor: colour, color: onTint(theme, p.category) }]}>{p.category === 'daily' ? t.daily : t.longTerm}</Text>
         <View style={styles.bars} accessible accessibilityLabel={fill(t.momentOf, { i: i + 1, n: moment.length })}>
           {moment.map((m, k) => (
             <View key={m.id} style={[styles.bar, { backgroundColor: k <= i ? colour : theme.line }]} />
@@ -125,7 +125,7 @@ export function MomentScreen(props: Props) {
           onPress={toggleVoice}
           style={[styles.btn, { backgroundColor: speaking ? colour : theme.surface, borderColor: colour }]}
         >
-          <Text style={[styles.btnText, { color: speaking ? theme.onAccent : colour }]}>{speaking ? t.reading : t.readAloud}</Text>
+          <Text style={[styles.btnText, { color: speaking ? onTint(theme, p.category) : tintInk(theme, p.category) }]}>{speaking ? t.reading : t.readAloud}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"

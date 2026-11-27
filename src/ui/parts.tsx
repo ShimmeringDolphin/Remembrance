@@ -17,13 +17,13 @@ export function Button(props: { label: string; onPress: () => void; theme: Theme
       onPress={props.onPress}
       style={({ pressed }) => [
         styles.button,
-        main && { backgroundColor: t.accent },
+        main && { backgroundColor: t.button },
         kind === 'plain' && { borderColor: t.line, borderWidth: 1, backgroundColor: t.surface },
         kind === 'quiet' && styles.quiet,
         (pressed || props.disabled) && { opacity: props.disabled ? 0.4 : 0.7 },
       ]}
     >
-      <Text style={[styles.buttonText, { color: main ? t.onAccent : t.accent }]}>{props.label}</Text>
+      <Text style={[styles.buttonText, { color: main ? t.onButton : t.accent }]}>{props.label}</Text>
     </Pressable>
   );
 }
