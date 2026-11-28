@@ -117,7 +117,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 
 ## Home-screen widget (Android)
 
-- "Keep in mind" widget (4 x 2 cells, resizable): the points of the reminder that came last, or before the first one the next one, with the same privacy rules as a notification (private points and private mode show only a count). Tapping it opens the app.
+- "Keep in mind" widget (4 x 2 cells, resizable): the points of the reminder that came last, or before the first one the next one, with the same privacy rules as a notification (private points and private mode show only a count). Tapping it opens the app. Sky look: no border, a small marker in the category colour beside each shown line (grey for the "+ N private" line and in private mode, never any hidden words), the same light and dark colours as the app. The Android notification accent already uses the new category colours (`categoryColour`: Daily #E0A030, Long-term #0F6F75).
 - Redrawn whenever the app rebooks reminders and by Android at most once an hour (`updatePeriodMillis` 3,600,000), through a headless task that only reads the database. No iPhone widget yet (needs a WidgetKit extension).
 
 ## Late reminders (Android)
