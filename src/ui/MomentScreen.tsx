@@ -235,16 +235,15 @@ function Grew(props: Props) {
                 {
                   width: full,
                   height: full,
-                  borderRadius: full / 2,
                   left: s.x * side - full / 2,
                   top: s.y * side - full / 2,
-                  backgroundColor: theme.star,
-                  borderColor: tint(theme, p.category),
                   opacity: mine ? 1 : 0.45,
                   transform: [{ scale }],
                 },
               ]}
-            />
+            >
+              <Star radius={full / 2 - 2} color={theme.star} stroke={mine ? tint(theme, p.category) : theme.star} strokeWidth={mine ? 2.5 : 1} />
+            </Animated.View>
           );
         })}
       </View>
@@ -284,7 +283,7 @@ const styles = StyleSheet.create({
   btnText: { fontSize: 16, fontWeight: '700' },
   small: { fontSize: 13, textAlign: 'center', opacity: 0.7 },
   grewTitle: { fontSize: 24, fontWeight: '700', marginTop: 12, textAlign: 'center' },
-  star: { position: 'absolute', borderWidth: 3 },
+  star: { position: 'absolute' },
   back: { flex: 0, alignSelf: 'stretch', marginTop: 'auto' },
   list: { alignSelf: 'stretch', gap: 6 },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },

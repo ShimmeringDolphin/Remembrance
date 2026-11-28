@@ -7,7 +7,7 @@ import { parseBooked } from '../core/appearances';
 import { buildContent } from '../core/content';
 import { parseShown } from '../core/moment';
 import { mergeSettings } from '../core/settings';
-import type { Point } from '../core/types';
+import type { Category, Point } from '../core/types';
 import { widgetSlot } from '../core/widget';
 import { getValue, listPoints } from '../data/db';
 import { deviceLanguage, strings } from '../i18n/strings';
@@ -24,6 +24,8 @@ async function render() {
   }
   const t = strings(settings.language);
   let lines: string[] = [];
+  // The category of each shown line, in the same order (null for the "+ N private" line); never any hidden words.
+  let kinds: (Category | null)[] = [];
   try {
     const [points, booked, shown] = await Promise.all([listPoints(), getValue('booked'), getValue('lastShown')]);
     const live = new Map<string, Point>(points.filter((p) => !p.archived).map((p) => [p.id, p]));
@@ -32,11 +34,12 @@ async function render() {
     if (ids.length > 0) {
       const text = { title: t.notifTitle, privateOne: t.notifPrivateOne, privateMany: t.notifPrivateMany, privateExtra: t.notifPrivateExtra };
       lines = buildContent(ids, live, settings.privateMode, text).body.split('\n');
+      kinds = ids.map((id) => live.get(id)!).filter((p) => !p.private && !settings.privateMode).map((p) => p.category);
     }
   } catch {
     // Show the empty card.
   }
-  return keepWidget(t.notifTitle, lines, t.widgetEmpty, light, dark);
+  return keepWidget(t.notifTitle, lines, kinds, t.widgetEmpty, light, dark);
 }
 
 /** Redraws any widgets on the home screen. Does nothing on iPhone or when none is placed. */

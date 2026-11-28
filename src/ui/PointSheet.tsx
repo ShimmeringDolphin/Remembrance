@@ -107,7 +107,7 @@ export function PointSheet(props: { point: Point | null; t: Strings; theme: Them
           )}
           {!p.archived && p.category === 'long_term' && (
             <View style={[styles.paceBox, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.muted, { color: theme.text }]}>{fill(t.keptForGood, { date: new Date(p.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long' }) })}</Text>
+              <Text style={[styles.muted, { color: theme.text }]}>{fill(t.keptForGood, { date: new Date(p.createdAt).toLocaleDateString(t.locale, { day: 'numeric', month: 'long' }) })}</Text>
             </View>
           )}
 
@@ -173,7 +173,6 @@ export function PointSheet(props: { point: Point | null; t: Strings; theme: Them
             </>
           )}
           {full && <Text accessibilityLiveRegion="polite" style={[styles.muted, { color: theme.muted }]}>{p.archived ? fill(t.full, { name: p.category === 'daily' ? t.daily : t.longTerm }) : fullText}</Text>}
-          <Button label={t.close} theme={theme} kind="quiet" onPress={props.onClose} />
         </ScrollView>
       </View>
     </Modal>

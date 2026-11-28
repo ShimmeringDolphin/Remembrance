@@ -1,6 +1,6 @@
 // Restore points from a backup the user pasted. Nothing is read from anywhere else; nothing is sent anywhere.
 import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from './AppText';
 
 import type { Strings } from '../i18n/strings';
@@ -32,7 +32,7 @@ export function RestoreSheet(props: { visible: boolean; t: Strings; theme: Theme
   };
   return (
     <Modal visible={props.visible} transparent animationType="slide" onRequestClose={close}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.scrim, { backgroundColor: theme.scrim }]}>
+      <KeyboardAvoidingView behavior="padding" style={[styles.scrim, { backgroundColor: theme.scrim }]}>
         <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
           <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>{t.restoreTitle}</Text>
           <Text style={[styles.body, { color: theme.muted }]}>{t.restoreBody}</Text>

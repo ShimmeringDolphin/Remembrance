@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from './AppText';
 
 import type { DayLine, DayStrip } from '../core/dayline';
+import { starRadius } from '../core/star';
 import { fill, type Strings } from '../i18n/strings';
 import { tint, tintInk, type Theme } from '../theme/calmStudy';
 import { clock } from './clock';
@@ -16,6 +17,8 @@ export function DayLineCard(props: { line: DayLine; t: Strings; theme: Theme }) 
   const [width, setWidth] = useState(0);
   const left = (frac: number, r: number) => 12 + frac * Math.max(0, width - 24) - (r + 2);
   const come = line.stars.filter((s) => s.past).length;
+  // Many reminders a day (every 15 minutes): smaller stars so they stay apart.
+  const r = starRadius(width - 24, line.stars.length, 6);
   const label = fill(t.dayLineA11y, { n: line.stars.length, m: line.stars.length - come });
   return (
     <Card theme={theme}>
@@ -25,8 +28,8 @@ export function DayLineCard(props: { line: DayLine; t: Strings; theme: Theme }) 
           <View style={[styles.thread, { backgroundColor: theme.thread }]} />
           {width > 0 &&
             line.stars.map((s, i) => (
-              <View key={i} style={[styles.star, { left: left(s.frac, 6) }]}>
-                <Star radius={6} color={tint(theme, 'daily')} outline={!s.past} />
+              <View key={i} style={[styles.star, { left: left(s.frac, r), top: 18 - (r + 2) }]}>
+                <Star radius={r} color={tint(theme, 'daily')} outline={!s.past} />
               </View>
             ))}
           {width > 0 && (
@@ -63,6 +66,7 @@ export function DayStripCard(props: { strip: DayStrip; summary: string; t: Strin
   const usable = Math.max(0, width - 16);
   const at = (frac: number) => 8 + frac * usable;
   const marks = [0, 6, 12, 18, 24];
+  const r = starRadius(usable, strip.stars.length, 5);
   return (
     <Card theme={theme}>
       <View accessible accessibilityLabel={`${t.yourDay}. ${summary}`}>
@@ -75,8 +79,8 @@ export function DayStripCard(props: { strip: DayStrip; summary: string; t: Strin
           <View style={[styles.thread, { backgroundColor: theme.thread }]} />
           {width > 0 &&
             strip.stars.map((f, i) => (
-              <View key={i} style={[styles.star, { left: at(f) - 8 }]}>
-                <Star radius={5} color={tint(theme, 'daily')} />
+              <View key={i} style={[styles.star, { left: at(f) - (r + 2), top: 14 - (r + 2) }]}>
+                <Star radius={r} color={tint(theme, 'daily')} />
               </View>
             ))}
         </View>

@@ -16,3 +16,7 @@ const round = (n: number): number => Math.round(n * 100) / 100;
 
 /** Home's star radius (7 to 14 px) from how often the point has come back, on the Sky's own log scale. */
 export const homeRadius = (size: number): number => 7 + 7 * ((size - 0.15) / 0.85);
+
+/** A star radius that keeps `count` stars apart on a line of `width`: at most `max`, at least 2.5. */
+export const starRadius = (width: number, count: number, max: number): number =>
+  count <= 1 || width <= 0 ? max : Math.max(2.5, Math.min(max, width / (count * 2.4)));

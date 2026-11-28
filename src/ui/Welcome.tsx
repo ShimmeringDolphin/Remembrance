@@ -1,6 +1,6 @@
 // First run: one box and a language choice. No setup, no questions; sensible defaults are already in place.
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from './AppText';
 
 import { MAX_TEXT_LENGTH, cleanText } from '../core/limits';
@@ -16,7 +16,7 @@ export function Welcome(props: { t: Strings; theme: Theme; language: Language; o
   const example = [t.example1, t.example2, t.example3][new Date().getDate() % 3];
   const clean = cleanText(text);
   return (
-    <KeyboardAvoidingView style={styles.wrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.wrap} behavior="padding">
       <View style={styles.inner}>
         <View style={styles.langs} accessibilityRole="radiogroup" accessibilityLabel={t.language}>
           {([['en', t.langEn], ['hi', t.langHi], ['gu', t.langGu]] as [Language, string][]).map(([l, label]) => (

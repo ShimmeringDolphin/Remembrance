@@ -78,7 +78,7 @@ export function SkyScreen(props: { t: Strings; theme: Theme; points: Point[]; on
       {chosen ? (
         <View accessibilityLiveRegion="polite" style={[styles.card, { backgroundColor: theme.skyCard }]}>
           <Text style={[styles.cardMeta, { color: tint(theme, chosen.category) }]}>
-            {(chosen.category === 'daily' ? t.daily : t.longTerm) + ' · ' + fill(t.skySince, { date: new Date(chosen.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long' }) })}
+            {(chosen.category === 'daily' ? t.daily : t.longTerm) + ' · ' + fill(t.skySince, { date: new Date(chosen.createdAt).toLocaleDateString(t.locale, { day: 'numeric', month: 'long' }) })}
           </Text>
           <PointText style={[styles.cardText, { color: theme.skyHead }]}>{chosen.private ? t.privatePoint : chosen.text}</PointText>
           <Text style={[styles.cardMeta, { color: theme.skyText }]}>{came(chosen)}</Text>

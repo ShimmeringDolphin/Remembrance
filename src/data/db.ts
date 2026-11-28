@@ -4,7 +4,7 @@ import * as SQLite from 'expo-sqlite';
 
 import type { Booked } from '../core/appearances';
 import { fullyAsleepDays, shiftExpiry } from '../core/awake';
-import { expiryFor, resolveDays } from '../core/expiry';
+import { DEFAULT_DAILY_DAYS, expiryFor, resolveDays } from '../core/expiry';
 import { MAX_PER_CATEGORY } from '../core/limits';
 import type { BackupPoint } from '../core/backup';
 import { isPace } from '../core/pace';
@@ -128,10 +128,11 @@ export async function editPoint(id: string, text: string): Promise<void> {
 export async function movePoint(id: string, category: Category): Promise<boolean> {
   const d = await db();
   const r = await d.runAsync(
-    `UPDATE points SET category = ?, updated_at = ?, expires_at = NULL, pace = 'normal'
+    `UPDATE points SET category = ?, updated_at = ?, expires_at = ?, pace = 'normal'
      WHERE id = ? AND category <> ?
        AND (archived = 1 OR (SELECT COUNT(*) FROM points WHERE category = ? AND archived = 0) < ?)`,
-    category, new Date().toISOString(), id, category, category, MAX_PER_CATEGORY,
+    // A Daily point always has a last day (the default, as when adding); Long-term has none.
+    category, new Date().toISOString(), category === 'daily' ? expiryFor(new Date(), DEFAULT_DAILY_DAYS).toISOString() : null, id, category, category, MAX_PER_CATEGORY,
   );
   return r.changes === 1;
 }
@@ -172,10 +173,10 @@ export async function putAway(id: string): Promise<void> {
 export async function bringBack(id: string): Promise<boolean> {
   const d = await db();
   const r = await d.runAsync(
-    `UPDATE points SET archived = 0, updated_at = ?, expires_at = NULL
+    `UPDATE points SET archived = 0, updated_at = ?, expires_at = CASE WHEN category = 'daily' THEN ? ELSE NULL END
      WHERE id = ? AND archived = 1
        AND (SELECT COUNT(*) FROM points p WHERE p.category = points.category AND p.archived = 0) < ?`,
-    new Date().toISOString(), id, MAX_PER_CATEGORY,
+    new Date().toISOString(), expiryFor(new Date(), DEFAULT_DAILY_DAYS).toISOString(), id, MAX_PER_CATEGORY,
   );
   return r.changes === 1;
 }
