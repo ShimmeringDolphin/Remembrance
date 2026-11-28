@@ -29,6 +29,7 @@ const textPairs = (t: Theme): [string, string, string][] => [
   ['skyText on sky', t.skyText, t.sky],
   ['skyText on skyCard', t.skyText, t.skyCard],
   ['star on sky', t.star, t.sky],
+  ['skyHead on sky', t.skyHead, t.sky],
 ];
 
 for (const [name, theme] of [['light', light], ['dark', dark]] as const) {

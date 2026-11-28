@@ -14,6 +14,8 @@ export interface Theme {
   scrim: string;
   sky: string;
   star: string;
+  /** Headings on the Sky page. */
+  skyHead: string;
   skyText: string;
   daily: string;
   dailySoft: string;
@@ -49,8 +51,9 @@ export const light: Theme = {
   soft: '#E0E7E5',
   scrim: 'rgba(20, 22, 30, 0.45)',
   sky: '#101A33',
-  star: '#F6E7B0',
-  skyText: '#D9DCF0',
+  star: '#FFF0C2',
+  skyHead: '#EEF0FA',
+  skyText: '#C3C8E2',
   daily: '#E0A030',
   dailySoft: '#FBEFD6',
   longTerm: '#0F6F75',
@@ -78,8 +81,9 @@ export const dark: Theme = {
   soft: '#1C2A32',
   scrim: 'rgba(0, 0, 0, 0.6)',
   sky: '#070C1C',
-  star: '#F6E7B0',
-  skyText: '#D9DCF0',
+  star: '#FFF0C2',
+  skyHead: '#EEF0FA',
+  skyText: '#C3C8E2',
   daily: '#F0B451',
   dailySoft: '#2E2614',
   longTerm: '#3DB6B9',
@@ -108,4 +112,4 @@ export const tintSoft = (theme: Theme, c: Category) => (c === 'daily' ? theme.da
 export const categoryColour = (c: Category) => (c === 'daily' ? light.daily : light.longTerm);
 
 /** The Sky symbol: three stars that dim with distance. Cream in front, bronze behind, dusky violet furthest back. */
-export const SKY_MARK = { five: '#FFF3C4', four: '#8E6D47', three: '#454377' } as const;
+export const SKY_MARK = { five: '#FFF0C2', four: '#C79A5B', three: '#8F8CC8' } as const;

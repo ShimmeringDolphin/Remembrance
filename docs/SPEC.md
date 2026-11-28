@@ -48,7 +48,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 ## Appearances and the sky
 
 - When rebooking, reminders that were booked and whose time has passed count as one appearance for each point in them, in the same transaction that stores the new bookings. This is approximate: a phone that was off still counts.
-- **Your sky** appears once the total appearances of live points reach 30. In test builds (Expo Go, or an APK built with `EXPO_PUBLIC_TESTING=1`, as the `preview` profile in `eas.json` does) it also appears after 3 reminders have passed (`remindersPassed` in `kv`). Up to 30 stars on a golden-angle spiral, oldest in the middle; size grows with appearances (log scale, full at 200) and never shrinks.
+- **Your sky** appears once the total appearances of live points reach 30. In test builds (Expo Go, or an APK built with `EXPO_PUBLIC_TESTING=1`, as the `preview` profile in `eas.json` does) it also appears after 3 reminders have passed (`remindersPassed` in `kv`). Up to 30 stars on a golden-angle spiral, oldest in the middle; size grows with appearances (log scale, full at 200) and never shrinks. Stars are ten-point star shapes with a thin line in the category colour joining the stars of each category, oldest to newest, and a few faint fixed dots behind; all drawn once in one SVG, no animation. A hint line ("Tap a star to see its line. Private stars show no words.") turns into a bottom card when a star is tapped: category, "Since {date}", the line (a private point shows "Private point") and how often it has come back. Sky colours follow the design (`star` #FFF0C2, `skyHead` #EEF0FA, `skyText` #C3C8E2).
 
 ## First run
 
