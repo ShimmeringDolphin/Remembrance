@@ -112,7 +112,7 @@ export function Home(props: Props) {
     if (!d) return null;
     const text = sameDay(d, today)
       ? t.lastDayToday
-      : fill(t.lastDayOn, { date: d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) });
+      : fill(t.lastDayOn, { date: d.toLocaleDateString(t.locale, { weekday: 'short', day: 'numeric', month: 'short' }) });
     return <Text style={[styles.tag, { color: tintInk(theme, 'daily') }]}>{text}</Text>;
   };
 

@@ -3,7 +3,7 @@ import Svg, { Polygon } from 'react-native-svg';
 
 import { starPoints } from '../core/star';
 
-export function Star(props: { radius: number; color: string; outline?: boolean }) {
+export function Star(props: { radius: number; color: string; outline?: boolean; stroke?: string; strokeWidth?: number }) {
   const { radius, color, outline } = props;
   const box = radius * 2 + 4;
   return (
@@ -11,8 +11,8 @@ export function Star(props: { radius: number; color: string; outline?: boolean }
       <Polygon
         points={starPoints(box / 2, box / 2, radius)}
         fill={outline ? 'none' : color}
-        stroke={color}
-        strokeWidth={outline ? 1.5 : 1}
+        stroke={props.stroke ?? color}
+        strokeWidth={props.strokeWidth ?? (outline ? 1.5 : 1)}
         strokeLinejoin="round"
       />
     </Svg>
