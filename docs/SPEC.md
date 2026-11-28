@@ -43,7 +43,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - The latest reminder that has passed is stored as `lastShown` in `kv`. For 90 minutes its points glow on Home with "Just came back", and Home offers "Go through the latest reminder".
 - Android notifications use the category colour as their accent (Long-term when the reminder holds a Long-term point).
 - **Read aloud** is a play button on the card: one tap reads the card, it shows "Reading aloud" while the voice speaks and goes back to "Read aloud" by itself when it ends; a tap while reading stops it. The Settings switch "Read points aloud in a moment" reads each card as it opens (the button is separate from it). It uses the phone's text-to-speech (expo-speech; languages en, hi, gu, passed as bare codes because Android rejects region codes), started only by a tap or the "read aloud" setting. A point is split by script and each part is read in its own voice, one after another (Devanagari in Hindi, Gujarati script in Gujarati, Latin letters in English), so a line that mixes them is read properly whatever the app language is; the app language is used only when a point has no letters. If the phone has no voice for a language in the point (checked with the engine's voice list), a short line on the card says so and where to add it (Settings, General management, Text-to-speech, the gear next to the engine, Install voice data). Several points read one after another (Listen, or a moment with more than one point) are one chain: each part waits for the one before it, and a part the engine cannot read is skipped without silencing the rest. Each language reads with a voice chosen from the engine's list (an offline voice first, then an Indian one), because a network voice is slow to start at every language switch; the test panel shows the voice chosen for each. Test builds show the voice counts for English, Hindi and Gujarati in the Settings test panel, and a button there adds one Long-term point for every pair of the three languages in both orders, each language alone and all three, to hear the voices. Private points are never read automatically.
-- **Listen to all my points** on Home hands every live, non-private point to the phone's voice at once, in order, so it reads them one after another. It stops when tapped again or when the app leaves the screen.
+- **Listen to all my points** is a round headphone button beside Awake and Asleep on Home (a filled stop square while it plays; its label and hint are spoken, and the line "Private points are never read aloud." sits at the end of the list). It hands every live, non-private point to the phone's voice at once, in order, so it reads them one after another. It stops when tapped again or when the app leaves the screen.
 
 ## Appearances and the sky
 
@@ -53,6 +53,12 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 ## First run
 
 - One screen: language chips at the top right (English, हिन्दी, ગુજરાતી; same setting as in Settings), a title, a sentence and one box. No category or days here. Keeping the first point (as Daily) asks once whether to turn on reminders, explaining the default times. "Not now" leaves a calm banner on Home with a Turn on button.
+
+## Home layout (Sky look)
+
+- Points are white cards with no border; a star bullet in the category colour (hollow-free, filled) grows with how often the point has come back (radius 7 to 14 px on the Sky's own log scale; `src/core/star.ts`), grey when put away. Section headings show a count ("3 of 15").
+- The add box is a bar fixed at the bottom of Home: a text box, Keep, the Daily / Long-term choice, and for Daily a "1 day" chip that opens the day pills 1 to 6 and ∞ (∞ = Long-term, same rule as before: more than 6 days becomes Long-term). Nothing that could be set before is lost. Buttons are pill-shaped; cards have no border; page titles stay centred.
+- Not yet in this step: the day line card and moving put-away points to Settings.
 
 ## Look (Sky colours)
 
@@ -68,7 +74,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 
 ## First-run tips
 
-- After the first point is saved, Home shows up to four short tip cards, one at a time, each beside the control it explains and each once, in the order they sit on Home from top to bottom: the ⋮ menu that holds Settings, Awake/Asleep (under the toggle), the latest-reminder button (only when it is on screen), and Listen to all my points. Each card has OK and Skip tips; Skip tips switches them all off. A tip waits while the notification-permission, late-reminder or battery cards are showing. Nothing blocks the screen, there are no timers, and there is no new dependency.
+- After the first point is saved, Home shows up to four short tip cards, one at a time, each beside the control it explains and each once, in the order they sit on Home from top to bottom: the ⋮ menu that holds Settings, Awake/Asleep (under the toggle), Listen to all my points (the round button beside the toggle), and the latest-reminder button (only when it is on screen). Each card has OK and Skip tips; Skip tips switches them all off. A tip waits while the notification-permission, late-reminder or battery cards are showing. Nothing blocks the screen, there are no timers, and there is no new dependency.
 - What has been seen is one string in the key-value table (`tips`: "off" or a comma list of tip ids). Help has "Show the tips again", which clears it. Text in English, Hindi and Gujarati (Hindi and Gujarati need native review).
 
 ## Backup, feedback and version
