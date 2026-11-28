@@ -411,6 +411,12 @@ export default function App() {
   const actions: PointActions = {
     edit: (id, text) => void act(() => data.editPoint(id, text))(),
     move: async (id, to) => (await act(() => data.movePoint(id, to))()) as boolean,
+    // A last day of 1 to 6 days; more than that is Long-term, the same rule as when a point is added.
+    setDays: async (id, days) => {
+      if (resolveDays(days).longTerm) return (await act(() => data.movePoint(id, 'long_term'))()) as boolean;
+      await act(() => data.setDays(id, days))();
+      return true;
+    },
     setPrivate: (id, v) => void act(() => data.setPrivate(id, v))(),
     setPace: (id, pace) => void act(() => data.setPace(id, pace))(),
     // A new recording replaces the old file; removing one deletes it.

@@ -31,3 +31,29 @@ export function dayLine(settings: Settings, now: Date): DayLine | null {
     last,
   };
 }
+
+export interface DayStrip {
+  /** Each planned reminder on an ordinary day, as a place on the 24-hour line (0 = midnight, 1 = next midnight). */
+  stars: number[];
+  /** Quiet hours as spans on the same line; a range that crosses midnight is two spans. */
+  quiet: { from: number; to: number }[];
+}
+
+const minuteOf = (hhmm: string): number => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+};
+
+/** Settings' "Your day": the reminders the saved settings plan for an ordinary day, whatever Awake or Asleep says right now. */
+export function dayStrip(settings: Settings, today: Date): DayStrip {
+  const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const times = planTimes({ ...settings, asleep: false, session: null }, new Date(dayStart.getTime() - 1), 400).filter((d) => sameDay(d, today));
+  const quiet: DayStrip['quiet'] = [];
+  for (const r of settings.quiet) {
+    const a = minuteOf(r.start);
+    const b = minuteOf(r.end);
+    if (a <= b) quiet.push({ from: a / 1440, to: b / 1440 });
+    else quiet.push({ from: a / 1440, to: 1 }, { from: 0, to: b / 1440 });
+  }
+  return { stars: times.map((d) => (d.getHours() * 60 + d.getMinutes()) / 1440), quiet };
+}

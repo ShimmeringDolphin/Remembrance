@@ -23,6 +23,14 @@ export function lastDayOf(expiresAt: string | null): Date | null {
   return new Date(end.getFullYear(), end.getMonth(), end.getDate() - 1);
 }
 
+/** Days from today until the last day, counting today as 1; null when the point never stops. */
+export function daysFromToday(expiresAt: string | null, today: Date): number | null {
+  const last = lastDayOf(expiresAt);
+  if (!last) return null;
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return Math.round((last.getTime() - start.getTime()) / 86400000) + 1;
+}
+
 export const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
 /** True when the point may still come back at `at`. */

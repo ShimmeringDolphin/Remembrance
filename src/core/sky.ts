@@ -38,3 +38,11 @@ export const totalAppearances = (points: readonly Point[]): number =>
 /** The sky opens at 30 appearances; while testing, after 3 reminders have passed. */
 export const skyUnlocked = (points: readonly Point[], remindersPassed: number, testing: boolean): boolean =>
   totalAppearances(points) >= SKY_UNLOCK || (testing && remindersPassed >= TEST_SKY_UNLOCK_REMINDERS);
+
+/** Thin lines joining the stars of one category, oldest to newest. Only categories with two or more stars have a line. */
+export function skyThreads(stars: readonly Star[], points: readonly Point[]): { category: Point['category']; ids: string[] }[] {
+  const byId = new Map(points.map((p) => [p.id, p]));
+  return (['daily', 'long_term'] as const)
+    .map((category) => ({ category, ids: stars.filter((s) => byId.get(s.pointId)?.category === category).map((s) => s.pointId) }))
+    .filter((t) => t.ids.length >= 2);
+}

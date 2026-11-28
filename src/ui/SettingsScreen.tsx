@@ -1,10 +1,11 @@
 // Settings: when, how often, privacy, voice and language. Each in its own card, with a plain summary.
-import { type ReactNode, useCallback, useEffect, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { Text } from './AppText';
 
 import { APP_VERSION } from '../appInfo';
 import { FEEDBACK_EMAIL, SURVEY_URL } from '../config';
+import { dayStrip } from '../core/dayline';
 import { feedbackMailto } from '../core/feedback';
 import { addQuiet, MAX_QUIET, removeQuiet, setQuiet } from '../core/quiet';
 import { EVERY_CHOICES, remindersPerDay } from '../core/settings';
@@ -15,6 +16,7 @@ import { readBooked } from '../notify/diagnostics';
 import { chosenVoices, voiceCounts } from '../notify/voice';
 import type { Theme } from '../theme/calmStudy';
 import { Button, Choice, Header } from './parts';
+import { DayStripCard } from './DayLineCard';
 import { RestoreSheet, type RestoreOutcome } from './RestoreSheet';
 import { OverflowMenu } from './OverflowMenu';
 import { QuietAdder } from './QuietAdder';
@@ -70,6 +72,7 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
   const everyLabel = (n: number) => (n < 60 ? fill(t.minutes, { n }) : fill(t.hours, { n: n % 60 === 0 ? n / 60 : (n / 60).toFixed(1) }));
   const perDay = remindersPerDay(s, windowLength(s.from, s.to));
   const [restoring, setRestoring] = useState(false);
+  const strip = useMemo(() => dayStrip(s, new Date()), [s]);
   const sendFeedback = () => {
     const url = feedbackMailto(FEEDBACK_EMAIL, { version: APP_VERSION, platform: Platform.OS, osVersion: String(Platform.Version), language: s.language });
     // No email app on the phone: nothing to open, and nothing is lost.
@@ -78,9 +81,9 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
   const langs: [Language, string][] = [['en', t.langEn], ['hi', t.langHi], ['gu', t.langGu]];
 
   const section = (title: string, children: ReactNode) => (
-    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.line }]}>
-      <Text accessibilityRole="header" style={[styles.section, { color: theme.muted }]}>{title.toUpperCase()}</Text>
-      {children}
+    <View style={styles.block}>
+      <Text accessibilityRole="header" style={[styles.section, { color: theme.text }]}>{title}</Text>
+      <View style={[styles.card, { backgroundColor: theme.surface }]}>{children}</View>
     </View>
   );
 
@@ -101,11 +104,13 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
   };
   // Tap the time for the phone's picker; − and + nudge it by 30 minutes.
   const stepper = (label: string, key: 'from' | 'to') => (
-    <View style={styles.stepper}>
+    <View style={styles.stepperCol}>
       <Text style={[styles.stepLabel, { color: theme.muted }]}>{label}</Text>
-      {round(fill(t.earlierBy, { label }), '−', () => shift(key, -STEP))}
-      <TimeField label={label} value={s[key]} onChange={(v) => setTime(key, v)} t={t} theme={theme} />
-      {round(fill(t.laterBy, { label }), '+', () => shift(key, STEP))}
+      <View style={styles.stepper}>
+        {round(fill(t.earlierBy, { label }), '−', () => shift(key, -STEP))}
+        <TimeField label={label} value={s[key]} onChange={(v) => setTime(key, v)} t={t} theme={theme} />
+        {round(fill(t.laterBy, { label }), '+', () => shift(key, STEP))}
+      </View>
     </View>
   );
 
@@ -141,6 +146,7 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
         />
       </View>
       <ScrollView contentContainerStyle={styles.wrap}>
+      <DayStripCard strip={strip} summary={fill(t.perDay, { n: perDay, from: s.mode === 'button' ? '00:00' : s.from, to: s.mode === 'button' ? '24:00' : s.to })} t={t} theme={theme} />
 
       {section(
         t.sectionWhen,
@@ -152,8 +158,10 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
           <Text style={[styles.hint, { color: theme.muted }]}>{s.mode === 'hours' ? t.modeHoursHint : t.modeButtonHint}</Text>
           {s.mode === 'hours' && (
             <>
-              {stepper(t.from, 'from')}
-              {stepper(t.until, 'to')}
+              <View style={styles.pair}>
+                {stepper(t.from, 'from')}
+                {stepper(t.until, 'to')}
+              </View>
             </>
           )}
         </>,
@@ -227,7 +235,7 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
 
       {props.testing && <TestPanel t={t} theme={theme} asleep={s.asleep} onSamples={props.onSamples} />}
 
-      <Text style={[styles.hint, { color: theme.muted, textAlign: 'center' }]}>{t.storedNote}</Text>
+      <Text style={[styles.hint, { color: theme.muted, textAlign: 'center' }]}>{t.storedNote} {t.noTracking}</Text>
       <Text style={[styles.hint, { color: theme.muted, textAlign: 'center' }]}>{fill(t.versionLabel, { v: APP_VERSION })}</Text>
       <RestoreSheet visible={restoring} t={t} theme={theme} onRestore={props.onRestore} onClose={() => setRestoring(false)} />
       </ScrollView>
@@ -241,12 +249,15 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   spacer: { flex: 1 },
   title: { fontSize: 24, fontWeight: '700' },
-  card: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 12 },
-  section: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2 },
+  block: { gap: 8 },
+  card: { borderRadius: 16, padding: 16, gap: 12 },
+  section: { fontSize: 18, fontWeight: '700' },
+  pair: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   big: { fontSize: 28, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  stepperCol: { gap: 4 },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   quietRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  stepLabel: { fontSize: 15, minWidth: 56 },
+  stepLabel: { fontSize: 15 },
   round: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   roundText: { fontSize: 22, fontWeight: '600', lineHeight: 26 },
   time: { fontSize: 20, fontWeight: '600', minWidth: 64, textAlign: 'center', fontVariant: ['tabular-nums'] },

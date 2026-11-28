@@ -4,6 +4,7 @@ import * as SQLite from 'expo-sqlite';
 
 import type { Booked } from '../core/appearances';
 import { fullyAsleepDays, shiftExpiry } from '../core/awake';
+import { expiryFor, resolveDays } from '../core/expiry';
 import { MAX_PER_CATEGORY } from '../core/limits';
 import type { BackupPoint } from '../core/backup';
 import { isPace } from '../core/pace';
@@ -133,6 +134,16 @@ export async function movePoint(id: string, category: Category): Promise<boolean
     category, new Date().toISOString(), id, category, category, MAX_PER_CATEGORY,
   );
   return r.changes === 1;
+}
+
+/** Sets the last day of a live Daily point: it comes back through `days` days counting today as 1. */
+export async function setDays(id: string, days: number): Promise<void> {
+  const d = await db();
+  const { days: n } = resolveDays(days);
+  await d.runAsync(
+    "UPDATE points SET expires_at = ?, updated_at = ? WHERE id = ? AND category = 'daily' AND archived = 0",
+    expiryFor(new Date(), n).toISOString(), new Date().toISOString(), id,
+  );
 }
 
 export async function setPrivate(id: string, value: boolean): Promise<void> {

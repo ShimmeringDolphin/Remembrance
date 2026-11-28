@@ -6,7 +6,7 @@ import { buildContent } from './content.ts';
 import { canAdd, cleanText, MAX_PER_CATEGORY, MAX_TEXT_LENGTH } from './limits.ts';
 import { DAYS_AHEAD, fillTimes, HANDFUL, JITTER_MINUTES, LONG_TERM_EVERY, MAX_BOOKED, MAX_BOOKED_ANDROID, planSlots, planTimes } from './planner.ts';
 import { defaultSettings, EVERY_CHOICES, mergeSettings } from './settings.ts';
-import { FULL_STAR, layoutSky, skyUnlocked, starSize, totalAppearances } from './sky.ts';
+import { FULL_STAR, layoutSky, skyThreads, skyUnlocked, starSize, totalAppearances } from './sky.ts';
 import { formatTime, parseTime, shiftTime, windowLength } from './time.ts';
 import { activeAt, expiryFor, lastDayOf, resolveDays } from './expiry.ts';
 import { addQuiet, inQuiet, MAX_QUIET, removeQuiet, setQuiet } from './quiet.ts';
@@ -420,4 +420,13 @@ test('shownFor picks the notifications of the reminder just seen in the app, and
   ];
   assert.deepEqual(shownFor(shown, '2026-01-05T08:00:00.000Z'), ['b']);
   assert.deepEqual(shownFor(shown, 'nope'), []);
+});
+
+
+test('the sky joins stars of the same category in age order', () => {
+  const mk = (id: string, category: 'daily' | 'long_term', createdAt: string) =>
+    ({ id, kind: 'note', text: id, answer: null, category, private: false, archived: false, createdAt, updatedAt: createdAt, expiresAt: null, appearances: 0, pace: 'normal', voice: null }) as never;
+  const pts = [mk('a', 'daily', '2026-01-01'), mk('b', 'long_term', '2026-01-02'), mk('c', 'daily', '2026-01-03')];
+  const threads = skyThreads(layoutSky(pts), pts);
+  assert.deepEqual(threads, [{ category: 'daily', ids: ['a', 'c'] }]);
 });
