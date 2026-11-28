@@ -66,7 +66,7 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 
 ## Settings and Help (Sky look)
 
-- Settings opens with a **Your day** card: a midnight-to-midnight line with a star for each reminder the saved settings plan on an ordinary day (also while Asleep), quiet hours shaded (a range across midnight is two spans), times at 12, 6, 12, 6, 12, and the line "About N reminders a day, from X to Y." Drawn by `dayStrip` (`src/core/dayline.ts`) with the same planner; redrawn when settings change; no timer.
+- Settings opens with a **Your day** card: a midnight-to-midnight line with a star for each reminder the saved settings plan on an ordinary day (also while Asleep; when the closest two would be under 8 px apart, as at every 15 or 30 minutes, each run of reminders is drawn as one gold thread instead, still broken at quiet hours), quiet hours shaded (a range across midnight is two spans), times at 12, 6, 12, 6, 12, and the line "About N reminders a day, from X to Y." Drawn by `dayStrip` (`src/core/dayline.ts`) with the same planner; redrawn when settings change; no timer.
 - Section titles are normal headings above their cards (no small capitals); cards have no border. From and Until sit side by side when the screen is wide enough and stack otherwise. The footer says "Your points stay on this phone. They are not encrypted yet. No account, no ads, no tracking."
 - Help: same cards; "Show the tips again" is the outlined button at the bottom instead of its own question.
 
