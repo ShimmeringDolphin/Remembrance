@@ -20,3 +20,26 @@ export const homeRadius = (size: number): number => 7 + 7 * ((size - 0.15) / 0.8
 /** A star radius that keeps `count` stars apart on a line of `width`: at most `max`, at least 2.5. */
 export const starRadius = (width: number, count: number, max: number): number =>
   count <= 1 || width <= 0 ? max : Math.max(2.5, Math.min(max, width / (count * 2.4)));
+
+/** True when the closest two reminders on a line of `width` (fractions 0 to 1) sit under 8 px apart, too close to read as stars. */
+export function tooCrowded(width: number, fracs: number[]): boolean {
+  if (fracs.length < 2 || width <= 0) return false;
+  const f = [...fracs].sort((a, b) => a - b);
+  let min = Infinity;
+  for (let i = 1; i < f.length; i++) if (f[i] - f[i - 1] > 0) min = Math.min(min, f[i] - f[i - 1]);
+  return min * width < 8;
+}
+
+/** Runs of reminders as {from, to} spans (0 to 1): neighbours join unless the gap is over 2.5 times the smallest gap, so quiet hours stay empty. */
+export function threadSpans(fracs: number[]): { from: number; to: number }[] {
+  if (fracs.length === 0) return [];
+  const f = [...fracs].sort((a, b) => a - b);
+  let min = Infinity;
+  for (let i = 1; i < f.length; i++) if (f[i] - f[i - 1] > 0) min = Math.min(min, f[i] - f[i - 1]);
+  const out = [{ from: f[0], to: f[0] }];
+  for (let i = 1; i < f.length; i++) {
+    if (f[i] - f[i - 1] <= min * 2.5) out[out.length - 1].to = f[i];
+    else out.push({ from: f[i], to: f[i] });
+  }
+  return out;
+}

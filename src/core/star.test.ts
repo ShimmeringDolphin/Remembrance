@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { homeRadius, starPoints, starRadius } from './star.ts';
+import { homeRadius, starPoints, starRadius, threadSpans, tooCrowded } from './star.ts';
 import { starSize } from './sky.ts';
 
 test('a star has ten points, the first straight up', () => {
@@ -25,4 +25,25 @@ test('stars shrink to stay apart when there are many reminders', () => {
   assert.equal(starRadius(300, 12, 6), 6);
   assert.ok(starRadius(300, 46, 6) < 3 && starRadius(300, 46, 6) >= 2.5);
   assert.equal(starRadius(300, 200, 6), 2.5);
+});
+
+test('a crowded strip becomes a thread; a roomy one keeps its stars', () => {
+  const every = (min: number) => Array.from({ length: Math.floor(690 / min) + 1 }, (_, k) => (570 + k * min) / 1440); // 09:30 to 21:00
+  assert.equal(tooCrowded(304, every(15)), true);
+  assert.equal(tooCrowded(304, every(30)), true);
+  assert.equal(tooCrowded(304, every(60)), false);
+  assert.equal(tooCrowded(304, every(120)), false);
+  assert.equal(tooCrowded(304, [0.5]), false);
+  assert.equal(tooCrowded(0, every(15)), false);
+});
+
+test('thread spans break at quiet hours', () => {
+  const day = [0.1, 0.11, 0.12, 0.13, 0.5, 0.51, 0.52];
+  const spans = threadSpans(day);
+  assert.equal(spans.length, 2);
+  assert.equal(spans[0].from, 0.1);
+  assert.equal(spans[0].to, 0.13);
+  assert.equal(spans[1].from, 0.5);
+  assert.deepEqual(threadSpans([]), []);
+  assert.equal(threadSpans([0.3]).length, 1);
 });

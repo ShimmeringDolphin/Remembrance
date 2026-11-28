@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from './AppText';
 
 import type { DayLine, DayStrip } from '../core/dayline';
-import { starRadius } from '../core/star';
+import { starRadius, threadSpans, tooCrowded } from '../core/star';
 import { fill, type Strings } from '../i18n/strings';
 import { tint, tintInk, type Theme } from '../theme/calmStudy';
 import { clock } from './clock';
@@ -56,6 +56,7 @@ const styles = StyleSheet.create({
   time: { fontSize: 13 },
   strip: { height: 28, marginTop: 8, justifyContent: 'center' },
   quiet: { position: 'absolute', top: 2, bottom: 2, borderRadius: 6 },
+  goldThread: { position: 'absolute', top: 11, height: 6, borderRadius: 3 },
   summary: { fontSize: 14, marginTop: 6 },
 });
 
@@ -67,6 +68,8 @@ export function DayStripCard(props: { strip: DayStrip; summary: string; t: Strin
   const at = (frac: number) => 8 + frac * usable;
   const marks = [0, 6, 12, 18, 24];
   const r = starRadius(usable, strip.stars.length, 5);
+  // Too many to read as stars (every 15 minutes): one gold thread over each run of reminders, still broken at quiet hours.
+  const thread = tooCrowded(usable, strip.stars);
   return (
     <Card theme={theme}>
       <View accessible accessibilityLabel={`${t.yourDay}. ${summary}`}>
@@ -78,10 +81,19 @@ export function DayStripCard(props: { strip: DayStrip; summary: string; t: Strin
             ))}
           <View style={[styles.thread, { backgroundColor: theme.thread }]} />
           {width > 0 &&
+            !thread &&
             strip.stars.map((f, i) => (
               <View key={i} style={[styles.star, { left: at(f) - (r + 2), top: 14 - (r + 2) }]}>
                 <Star radius={r} color={tint(theme, 'daily')} />
               </View>
+            ))}
+          {width > 0 &&
+            thread &&
+            threadSpans(strip.stars).map((sp, i) => (
+              <View
+                key={i}
+                style={[styles.goldThread, { left: at(sp.from), width: Math.max(4, (sp.to - sp.from) * usable), backgroundColor: tint(theme, 'daily') }]}
+              />
             ))}
         </View>
         <View style={styles.times}>
