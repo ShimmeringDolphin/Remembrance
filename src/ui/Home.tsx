@@ -67,19 +67,16 @@ export function Home(props: Props) {
   const [category, setCategory] = useState<Category>('daily');
   const [days, setDays] = useState(DEFAULT_DAILY_DAYS);
   const [full, setFull] = useState(false);
-  const [showAway, setShowAway] = useState(false);
   const [daysOpen, setDaysOpen] = useState(false);
 
   const sections = useMemo<Section[]>(() => {
     const live = points.filter((p) => !p.archived);
-    const away = points.filter((p) => p.archived);
     const out: Section[] = [
       { key: 'daily', title: t.daily, hint: t.dailyHint, category: 'daily', data: live.filter((p) => p.category === 'daily') },
       { key: 'long_term', title: t.longTerm, hint: t.longTermHint, category: 'long_term', data: live.filter((p) => p.category === 'long_term') },
     ];
-    if (away.length > 0) out.push({ key: 'away', title: fill(t.putAwaySection, { n: away.length }), data: showAway ? away : [] });
     return out;
-  }, [points, showAway, t]);
+  }, [points, t]);
 
   const list = useRef<SectionList<Point, Section>>(null);
   // After Keep it: the ids already there, so the list can scroll to the new point once it shows up.
@@ -325,18 +322,7 @@ export function Home(props: Props) {
       contentContainerStyle={styles.list}
       keyboardShouldPersistTaps="handled"
       stickySectionHeadersEnabled={false}
-      renderSectionHeader={({ section }) =>
-        section.key === 'away' ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={section.title}
-            accessibilityState={{ expanded: showAway }}
-            onPress={() => setShowAway((v) => !v)}
-            style={styles.sectionHead}
-          >
-            <Text style={[styles.sectionTitle, { color: theme.muted }]}>{showAway ? '▾' : '▸'} {section.title}</Text>
-          </Pressable>
-        ) : (
+      renderSectionHeader={({ section }) => (
           <View style={styles.sectionHead}>
             <View style={styles.titleRow}>
               <View style={[styles.dot, { backgroundColor: tint(theme, section.category!) }]} />
@@ -345,8 +331,7 @@ export function Home(props: Props) {
             </View>
             <Text style={[styles.hint, { color: theme.muted }]}>{section.data.length === 0 ? t.emptyHint : section.hint}</Text>
           </View>
-        )
-      }
+      )}
       renderItem={({ item }) => {
         const colour = tint(theme, item.category);
         const isFresh = !item.archived && props.fresh.has(item.id);

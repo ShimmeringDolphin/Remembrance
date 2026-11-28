@@ -37,9 +37,10 @@ import { PointSheet, type PointActions } from './src/ui/PointSheet';
 import { SettingsScreen } from './src/ui/SettingsScreen';
 import type { RestoreOutcome } from './src/ui/RestoreSheet';
 import { SkyScreen } from './src/ui/SkyScreen';
+import { PutAwayScreen } from './src/ui/PutAwayScreen';
 import { Welcome } from './src/ui/Welcome';
 
-type Screen = 'home' | 'settings' | 'sky' | 'help';
+type Screen = 'home' | 'settings' | 'sky' | 'help' | 'putaway';
 
 /** Test builds (Expo Go, or an APK built with EXPO_PUBLIC_TESTING=1) open the sky early. */
 const TESTING = __DEV__ || process.env.EXPO_PUBLIC_TESTING === '1';
@@ -68,7 +69,7 @@ export default function App() {
   useEffect(() => {
     if (screen === 'home') return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      setScreen('home');
+      setScreen(screen === 'putaway' ? 'settings' : 'home');
       return true;
     });
     return () => sub.remove();
@@ -464,7 +465,9 @@ export default function App() {
         ) : showWelcome ? (
           <Welcome t={t} theme={theme} language={settings.language} onLanguage={(language) => void changeSettings({ ...settings, language })} onKeep={keepFirst} />
         ) : screen === 'settings' ? (
-          <SettingsScreen t={t} theme={theme} settings={settings} onChange={changeSettings} onBack={() => setScreen('home')} onGo={setScreen} onBackup={backUp} onRestore={restore} testing={TESTING} onSamples={TESTING ? addVoiceSamples : undefined} />
+          <SettingsScreen t={t} theme={theme} settings={settings} onChange={changeSettings} onBack={() => setScreen('home')} onGo={setScreen} putAwayCount={points.filter((p) => p.archived).length} onBackup={backUp} onRestore={restore} testing={TESTING} onSamples={TESTING ? addVoiceSamples : undefined} />
+        ) : screen === 'putaway' ? (
+          <PutAwayScreen t={t} theme={theme} points={points} onOpen={setOpenId} onBack={() => setScreen('settings')} />
         ) : screen === 'help' ? (
           <HelpScreen t={t} theme={theme} onBack={() => setScreen('home')} onGo={setScreen} onTipsAgain={() => { void changeTips(NO_TIPS_SEEN); setScreen('home'); }} />
         ) : screen === 'sky' ? (
