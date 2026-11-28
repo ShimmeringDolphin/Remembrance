@@ -62,6 +62,12 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 - Put-away points are no longer on Home. Settings > Your points has a row "Put away (N)" (shown when there is at least one) that opens a Put-away list page (same page style, back goes to Settings). Tapping a point opens its page, where Bring back and Delete for good work as before.
 - **Point page** (tap a point) is a full page, not a bottom sheet: a back arrow and the category as title, a star on a thin line in the category colour, "Came back N times", the text box with a Save button that appears only when the text changed, a Daily / Long-term switch (replaces the Move button; same limit message when the other list is full), for Daily a **Repeat for** row of day pills 1 to 6 and ∞ (new: the last day of a live Daily point can now be changed after adding it; the day count starts from today, as when adding; ∞ moves the point to Long-term), for Long-term "Kept for good. Added on {date}.", pace, own voice, private, Put away. A put-away point shows Bring back and Delete for good as before.
 
+## Settings and Help (Sky look)
+
+- Settings opens with a **Your day** card: a midnight-to-midnight line with a star for each reminder the saved settings plan on an ordinary day (also while Asleep), quiet hours shaded (a range across midnight is two spans), times at 12, 6, 12, 6, 12, and the line "About N reminders a day, from X to Y." Drawn by `dayStrip` (`src/core/dayline.ts`) with the same planner; redrawn when settings change; no timer.
+- Section titles are normal headings above their cards (no small capitals); cards have no border. From and Until sit side by side when the screen is wide enough and stack otherwise. The footer says "Your points stay on this phone. They are not encrypted yet. No account, no ads, no tracking."
+- Help: same cards; "Show the tips again" is the outlined button at the bottom instead of its own question.
+
 ## Look (Sky colours)
 
 - Colours live in `src/theme/calmStudy.ts` (light and dark): mist background by day, teal-night by night; Daily is haldi gold (`daily`, `dailyInk` for text), Long-term is peacock (`longTerm`, `longInk` for text); main buttons are plain ink (`button`, `onButton`); text on a filled category colour is `onDaily` / `onLong`.

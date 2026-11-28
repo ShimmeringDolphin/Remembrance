@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from './AppText';
 
-import type { DayLine } from '../core/dayline';
+import type { DayLine, DayStrip } from '../core/dayline';
 import { fill, type Strings } from '../i18n/strings';
 import { tint, tintInk, type Theme } from '../theme/calmStudy';
 import { clock } from './clock';
@@ -51,4 +51,42 @@ const styles = StyleSheet.create({
   star: { position: 'absolute', top: 6 },
   times: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
   time: { fontSize: 13 },
+  strip: { height: 28, marginTop: 8, justifyContent: 'center' },
+  quiet: { position: 'absolute', top: 2, bottom: 2, borderRadius: 6 },
+  summary: { fontSize: 14, marginTop: 6 },
 });
+
+/** Settings: a midnight-to-midnight line with a star for each planned reminder and the quiet hours shaded. */
+export function DayStripCard(props: { strip: DayStrip; summary: string; t: Strings; theme: Theme }) {
+  const { strip, summary, t, theme } = props;
+  const [width, setWidth] = useState(0);
+  const usable = Math.max(0, width - 16);
+  const at = (frac: number) => 8 + frac * usable;
+  const marks = [0, 6, 12, 18, 24];
+  return (
+    <Card theme={theme}>
+      <View accessible accessibilityLabel={`${t.yourDay}. ${summary}`}>
+        <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>{t.yourDay}</Text>
+        <View style={styles.strip} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+          {width > 0 &&
+            strip.quiet.map((q, i) => (
+              <View key={i} style={[styles.quiet, { left: at(q.from), width: Math.max(2, (q.to - q.from) * usable), backgroundColor: theme.chip }]} />
+            ))}
+          <View style={[styles.thread, { backgroundColor: theme.thread }]} />
+          {width > 0 &&
+            strip.stars.map((f, i) => (
+              <View key={i} style={[styles.star, { left: at(f) - 8 }]}>
+                <Star radius={5} color={tint(theme, 'daily')} />
+              </View>
+            ))}
+        </View>
+        <View style={styles.times}>
+          {marks.map((h) => (
+            <Text key={h} style={[styles.time, { color: theme.muted }]}>{clock(new Date(2000, 0, 1, h % 24))}</Text>
+          ))}
+        </View>
+        <Text style={[styles.summary, { color: theme.muted }]}>{summary}</Text>
+      </View>
+    </Card>
+  );
+}

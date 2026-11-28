@@ -94,7 +94,6 @@ export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void
       a: t.aSpeech,
       ...(android ? { actions: [{ label: t.openSpeech, run: () => void openSpeechSettings() }, { label: t.downloadVoices, run: () => void openVoiceDownload() }] } : {}),
     },
-    { q: t.qTips, a: t.aTips, actions: [{ label: t.tipsAgain, run: props.onTipsAgain }] },
   ];
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -117,6 +116,7 @@ export function HelpScreen(props: { t: Strings; theme: Theme; onBack: () => void
           {item.actions?.map((a) => <Button key={a.label} label={a.label} theme={theme} kind="plain" onPress={a.run} />)}
         </Card>
       ))}
+      <Button label={t.tipsAgain} theme={theme} kind="plain" onPress={props.onTipsAgain} />
       </ScrollView>
     </View>
   );
