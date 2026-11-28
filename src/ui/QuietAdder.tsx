@@ -12,6 +12,9 @@ import type { Theme } from '../theme/calmStudy';
 import { Button } from './parts';
 import { fromDate } from './TimeField';
 
+/** How long to let Android finish removing the start dialog before the end dialog opens. */
+const END_DELAY_MS = 400;
+
 /** The picker opens on the next whole hour; this is where the wheel starts, not a saved value. */
 function nextHour(plus = 0): Date {
   const d = new Date();
@@ -39,13 +42,17 @@ export function QuietAdder(props: { t: Strings; theme: Theme; onAdd: (r: TimeRan
       positiveButton: { label: t.quietStartOk },
       onValueChange: (_e, from) => {
         const later = new Date(from.getTime() + 60 * 60000);
-        DateTimePickerAndroid.open({
-          value: later,
-          mode: 'time',
-          is24Hour: true,
-          positiveButton: { label: t.quietEndOk },
-          onValueChange: (_e2, until) => props.onAdd({ start: fromDate(from), end: fromDate(until) }),
-        });
+        // The first dialog is still being removed when this runs, and the library then reuses it
+        // instead of opening a new one (the end time was never asked). Wait for it to go.
+        setTimeout(() => {
+          DateTimePickerAndroid.open({
+            value: later,
+            mode: 'time',
+            is24Hour: true,
+            positiveButton: { label: t.quietEndOk },
+            onValueChange: (_e2, until) => props.onAdd({ start: fromDate(from), end: fromDate(until) }),
+          });
+        }, END_DELAY_MS);
       },
     });
   };
