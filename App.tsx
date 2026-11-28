@@ -475,6 +475,7 @@ export default function App() {
             theme={theme}
             points={points}
             asleep={settings.asleep}
+            settings={settings}
             fresh={fresh}
             listening={listening}
             onListen={listen}

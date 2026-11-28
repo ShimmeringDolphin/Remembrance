@@ -10,7 +10,8 @@ import { DEFAULT_DAILY_DAYS, lastDayOf, MAX_DAILY_DAYS, sameDay } from '../core/
 import { MAX_PER_CATEGORY, MAX_TEXT_LENGTH, cleanText } from '../core/limits';
 import { homeRadius } from '../core/star';
 import { starSize } from '../core/sky';
-import type { Category, Point } from '../core/types';
+import { dayLine } from '../core/dayline';
+import type { Category, Point, Settings } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import type { Permission } from '../notify/reminders';
 import { onTint, tint, tintInk, tintSoft, type Theme } from '../theme/calmStudy';
@@ -21,6 +22,7 @@ import { clock } from './clock';
 import { nextTip, type TipId, type TipState } from '../core/tips';
 import { TipCard } from './TipCard';
 import { Button, Card, Choice } from './parts';
+import { DayLineCard } from './DayLineCard';
 import { Star } from './Star';
 
 interface Props {
@@ -28,6 +30,7 @@ interface Props {
   theme: Theme;
   points: Point[];
   asleep: boolean;
+  settings: Settings;
   fresh: Set<string>;
   skyOpen: boolean;
   batteryTip: boolean;
@@ -180,6 +183,7 @@ export function Home(props: Props) {
     </Pressable>
   ) : null;
 
+  const todayLine = useMemo(() => dayLine(props.settings, new Date()), [props.settings, points]);
   const header = (
     <View style={styles.header}>
       {tipCard('settings', t.tipSettings)}
@@ -207,6 +211,7 @@ export function Home(props: Props) {
       {listenButton}
       </View>
       {statusLine && <Text style={[styles.note, { color: theme.muted }]}>{statusLine}</Text>}
+      {hasLive && todayLine && <DayLineCard line={todayLine} t={t} theme={theme} />}
       {tipCard('awake', t.tipAwake)}
       {tipCard('listen', t.tipListen)}
 
