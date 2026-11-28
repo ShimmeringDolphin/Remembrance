@@ -1,7 +1,7 @@
 // The notebook: Awake/Asleep, a box to add a point, then the points in their colours.
 // Nothing to tick off and no counts to keep up. Points from the latest reminder glow for a while.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, Pressable, SectionList, StyleSheet, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Pressable, SectionList, StyleSheet, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { PointText, Text, TextInput } from './AppText';
 
@@ -308,8 +308,9 @@ export function Home(props: Props) {
     </View>
   );
 
+  // Android draws edge to edge (Expo SDK 58), so the window no longer shrinks for the keyboard: lift the add bar with padding on both systems.
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
     {topBar}
     <SectionList
       ref={list}
