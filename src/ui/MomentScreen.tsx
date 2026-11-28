@@ -2,14 +2,17 @@
 // Nothing to mark or answer. The last view shows those points' stars growing a little.
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import Svg, { Path, Rect } from 'react-native-svg';
 import { PointText, Text } from './AppText';
 
+import { lastDayOf, sameDay } from '../core/expiry';
 import { starGrowth } from '../core/moment';
 import { layoutSky } from '../core/sky';
 import type { Language, Point } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import { missingVoices, say, speechDown, stopAll } from '../notify/voice';
 import { onTint, tint, tintInk, tintSoft, type Theme } from '../theme/calmStudy';
+import { Star } from './Star';
 
 interface Props {
   t: Strings;
@@ -34,10 +37,23 @@ export function MomentScreen(props: Props) {
   // Next and Done wait a few seconds on every point, so no point is skipped before it is read.
   // One timeout per point, cleared when the point changes or the screen closes.
   const [ready, setReady] = useState(false);
+  // Next fills from the left during the wait, on the graphics side (no extra timer); with reduced motion it just stays dim.
+  const fill_ = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     setReady(false);
+    fill_.setValue(0);
+    let cancelled = false;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .catch(() => false)
+      .then((reduce) => {
+        if (!cancelled && !reduce) Animated.timing(fill_, { toValue: 1, duration: READ_DELAY_MS, useNativeDriver: true }).start();
+      });
     const timer = setTimeout(() => setReady(true), READ_DELAY_MS);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      fill_.stopAnimation();
+      clearTimeout(timer);
+    };
   }, [i]);
 
   // The button plays the card once. While it plays the button says so, and it goes back to "Read aloud" by itself
@@ -102,21 +118,32 @@ export function MomentScreen(props: Props) {
     } else play();
   };
 
+  const last_ = lastDayOf(p.expiresAt);
+  const label = p.category === 'daily' ? (last_ && sameDay(last_, new Date()) ? `${t.daily}, ${t.lastDayToday.toLowerCase()}` : t.daily) : t.longTerm;
+  const came = p.appearances === 0 ? t.appearedNone : p.appearances === 1 ? t.appearedOnce : fill(t.appeared, { n: p.appearances });
+
   return (
     <View style={[styles.wrap, { backgroundColor: tintSoft(theme, p.category) }]}>
       <View style={styles.top}>
-        <Text style={[styles.chip, { backgroundColor: colour, color: onTint(theme, p.category) }]}>{p.category === 'daily' ? t.daily : t.longTerm}</Text>
-        <View style={styles.bars} accessible accessibilityLabel={fill(t.momentOf, { i: i + 1, n: moment.length })}>
-          {moment.map((m, k) => (
-            <View key={m.id} style={[styles.bar, { backgroundColor: k <= i ? colour : theme.line }]} />
-          ))}
-        </View>
+        <Text style={[styles.chip, { backgroundColor: colour, color: onTint(theme, p.category) }]}>{label}</Text>
+        <Text style={[styles.count, { color: theme.cardText }]}>{fill(t.momentOf, { i: i + 1, n: moment.length })}</Text>
         <Pressable accessibilityRole="button" accessibilityLabel={t.close} onPress={props.onClose} hitSlop={12}>
           <Text style={[styles.close, { color: theme.cardText }]}>✕</Text>
         </Pressable>
       </View>
+      <View style={styles.starRow} accessible accessibilityLabel={fill(t.momentOf, { i: i + 1, n: moment.length })}>
+        <View style={[styles.starThread, { backgroundColor: colour }]} />
+        {moment.map((m, k) => (
+          <View key={m.id} style={[styles.starSlot, { backgroundColor: tintSoft(theme, p.category) }]}>
+            <Star radius={k === i ? 11 : 7} color={colour} outline={k > i} />
+          </View>
+        ))}
+      </View>
       <Pressable accessibilityRole="button" accessibilityLabel={p.text} accessibilityHint={t.next} onPress={next} style={styles.textBox}>
-        <PointText key={p.id} style={[styles.text, { color: theme.cardText }]}>{p.text}</PointText>
+        <View style={[styles.card, { backgroundColor: theme.surface }]}>
+          <PointText key={p.id} style={[styles.text, { color: theme.cardText }]}>{p.text}</PointText>
+          <Text style={[styles.came, { color: theme.muted }]}>{came}</Text>
+        </View>
       </Pressable>
       <View style={styles.row}>
         <Pressable
@@ -124,9 +151,18 @@ export function MomentScreen(props: Props) {
           accessibilityLabel={speaking ? t.reading : t.readAloud}
           accessibilityState={{ busy: speaking }}
           onPress={toggleVoice}
-          style={[styles.btn, { backgroundColor: speaking ? colour : theme.surface, borderColor: colour }]}
+          style={[styles.round, { backgroundColor: speaking ? colour : theme.surface, borderColor: colour }]}
         >
-          <Text style={[styles.btnText, { color: speaking ? onTint(theme, p.category) : tintInk(theme, p.category) }]}>{speaking ? t.reading : t.readAloud}</Text>
+          <Svg width={26} height={26} viewBox="0 0 24 24">
+            {speaking ? (
+              <Rect x={7} y={7} width={10} height={10} rx={2} fill={onTint(theme, p.category)} />
+            ) : (
+              <>
+                <Path d="M4 9v6h4l5 4V5L8 9H4z" fill={tintInk(theme, p.category)} />
+                <Path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11" fill="none" stroke={tintInk(theme, p.category)} strokeWidth={2} strokeLinecap="round" />
+              </>
+            )}
+          </Svg>
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -134,9 +170,10 @@ export function MomentScreen(props: Props) {
           accessibilityState={{ disabled: !canNext }}
           disabled={!canNext}
           onPress={next}
-          style={[styles.btn, { backgroundColor: theme.cardText, borderColor: theme.cardText, opacity: canNext ? 1 : 0.35 }]}
+          style={[styles.btn, styles.nextBtn, { backgroundColor: canNext ? theme.cardText : theme.surface, borderColor: theme.cardText }]}
         >
-          <Text style={[styles.btnText, { color: tintSoft(theme, p.category) }]}>{i < moment.length - 1 ? t.next : t.done}</Text>
+          {!canNext && <Animated.View style={[styles.fillBar, { backgroundColor: theme.cardText, transform: [{ scaleX: fill_ }] }]} />}
+          <Text style={[styles.btnText, { color: canNext ? tintSoft(theme, p.category) : theme.cardText }]}>{i < moment.length - 1 ? t.next : t.done}</Text>
         </Pressable>
       </View>
       {down && (
@@ -158,7 +195,7 @@ export function MomentScreen(props: Props) {
 function Grew(props: Props) {
   const { t, theme, moment, allPoints } = props;
   const { width } = useWindowDimensions();
-  const side = Math.min(width - 48, 420);
+  const side = Math.min(width - 48, 300);
   const grow = useRef(new Animated.Value(0)).current;
   const ids = new Set(moment.map((m) => m.id));
   useEffect(() => {
@@ -180,9 +217,9 @@ function Grew(props: Props) {
   const title = moment.length === 1 ? t.starGrewOne : fill(t.starsGrew, { n: moment.length });
 
   return (
-    <View style={[styles.wrap, { backgroundColor: theme.sky, alignItems: 'center' }]}>
-      <Text accessibilityRole="header" style={[styles.grewTitle, { color: theme.star }]}>{title}</Text>
-      <View style={{ width: side, height: side }}>
+    <View style={[styles.wrap, { backgroundColor: theme.background, alignItems: 'center' }]}>
+      <Text accessibilityRole="header" style={[styles.grewTitle, { color: theme.text }]}>{title}</Text>
+      <View style={{ width: side, height: side, backgroundColor: theme.sky, borderRadius: 20 }}>
         {stars.map((s) => {
           const p = byId.get(s.pointId);
           if (!p) return null;
@@ -211,8 +248,16 @@ function Grew(props: Props) {
           );
         })}
       </View>
-      <Pressable accessibilityRole="button" accessibilityLabel={t.backToPoints} onPress={props.onClose} style={[styles.btn, styles.back, { borderColor: theme.skyText }]}>
-        <Text style={[styles.btnText, { color: theme.star }]}>{t.backToPoints}</Text>
+      <View style={styles.list}>
+        {moment.map((m) => (
+          <View key={m.id} style={[styles.listRow, { backgroundColor: theme.surface }]}>
+            <Star radius={7} color={tint(theme, m.category)} />
+            <PointText style={[styles.listText, { color: theme.text }]}>{m.private ? t.privatePoint : m.text}</PointText>
+          </View>
+        ))}
+      </View>
+      <Pressable accessibilityRole="button" accessibilityLabel={t.done} onPress={props.onClose} style={[styles.btn, styles.back, { backgroundColor: theme.button, borderColor: theme.button }]}>
+        <Text style={[styles.btnText, { color: theme.onButton }]}>{t.done}</Text>
       </Pressable>
     </View>
   );
@@ -222,16 +267,26 @@ const styles = StyleSheet.create({
   wrap: { flex: 1, padding: 20, gap: 14 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   chip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 14, fontSize: 14, fontWeight: '700', overflow: 'hidden' },
-  bars: { flex: 1, flexDirection: 'row', gap: 6 },
-  bar: { flex: 1, height: 4, borderRadius: 2 },
+  count: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '600' },
+  starRow: { height: 30, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
+  starThread: { position: 'absolute', left: 0, right: 0, height: 2, borderRadius: 1, opacity: 0.5 },
+  starSlot: { paddingHorizontal: 6 },
+  card: { borderRadius: 18, padding: 22, gap: 12 },
+  came: { fontSize: 14 },
+  round: { width: 52, height: 52, borderRadius: 26, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  nextBtn: { overflow: 'hidden' },
+  fillBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '100%', opacity: 0.22, transformOrigin: 'left' },
   close: { fontSize: 20, paddingHorizontal: 4 },
   textBox: { flex: 1, justifyContent: 'center', paddingHorizontal: 8 },
-  text: { fontSize: 30, lineHeight: 40, fontWeight: '700', textAlign: 'center' },
+  text: { fontSize: 28, lineHeight: 38, fontWeight: '700', textAlign: 'left' },
   row: { flexDirection: 'row', gap: 10 },
-  btn: { flex: 1, minHeight: 52, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
+  btn: { flex: 1, minHeight: 52, borderRadius: 26, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
   btnText: { fontSize: 16, fontWeight: '700' },
   small: { fontSize: 13, textAlign: 'center', opacity: 0.7 },
   grewTitle: { fontSize: 24, fontWeight: '700', marginTop: 12, textAlign: 'center' },
   star: { position: 'absolute', borderWidth: 3 },
   back: { flex: 0, alignSelf: 'stretch', marginTop: 'auto' },
+  list: { alignSelf: 'stretch', gap: 6 },
+  listRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
+  listText: { flex: 1, fontSize: 15 },
 });
