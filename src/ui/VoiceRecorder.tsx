@@ -98,7 +98,7 @@ export function VoiceRecorder(props: {
   };
 
   return (
-    <View style={[styles.box, { borderColor: theme.line }]}>
+    <View style={[styles.box, { backgroundColor: theme.surface }]}>
       <Text style={[styles.label, { color: theme.text }]}>{t.ownVoice}</Text>
       <Text style={[styles.muted, { color: theme.muted }]}>{recording ? t.recordingNow : p.voice ? t.ownVoiceHas : t.ownVoiceHint}</Text>
       {recording ? (
@@ -127,7 +127,7 @@ export function VoiceRecorder(props: {
 }
 
 const styles = StyleSheet.create({
-  box: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 8 },
+  box: { borderRadius: 14, padding: 14, gap: 8 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   label: { fontSize: 17, fontWeight: '700' },
   muted: { fontSize: 15, lineHeight: 21 },
