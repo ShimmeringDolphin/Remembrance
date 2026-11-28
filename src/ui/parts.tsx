@@ -68,7 +68,7 @@ export function Choice(props: { label: string; selected: boolean; onPress: () =>
 }
 
 export function Card(props: { children: ReactNode; theme: Theme }) {
-  return <View style={[styles.card, { backgroundColor: props.theme.surface, borderColor: props.theme.line }]}>{props.children}</View>;
+  return <View style={[styles.card, { backgroundColor: props.theme.surface }]}>{props.children}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -78,10 +78,10 @@ const styles = StyleSheet.create({
   backHit: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   backArrow: { fontSize: 38, lineHeight: 42, fontWeight: '400' },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: 22, fontWeight: '700' },
-  button: { minHeight: 48, paddingHorizontal: 18, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  button: { minHeight: 48, paddingHorizontal: 18, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   quiet: { paddingHorizontal: 8 },
   buttonText: { fontSize: 16, fontWeight: '600' },
   choice: { minHeight: 44, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 22, borderWidth: 1, justifyContent: 'center' },
   choiceText: { fontSize: 15 },
-  card: { borderRadius: 14, borderWidth: 1, padding: 16, gap: 10 },
+  card: { borderRadius: 14, padding: 16, gap: 10 },
 });

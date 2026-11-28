@@ -12,7 +12,7 @@ test('tips come one at a time in order, each once', () => {
     seenOrder.push(t);
     s = markSeen(s, t);
   }
-  assert.deepEqual(seenOrder, ['settings', 'awake', 'latest', 'listen']);
+  assert.deepEqual(seenOrder, ['settings', 'awake', 'listen', 'latest']);
   assert.equal(nextTip(s, TIP_IDS), null);
 });
 
