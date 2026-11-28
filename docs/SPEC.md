@@ -56,9 +56,10 @@ The data model lives in `src/core/types.ts`. This file says how the app behaves.
 
 ## Home layout (Sky look)
 
-- Points are white cards with no border; a star bullet in the category colour (hollow-free, filled) grows with how often the point has come back (radius 7 to 14 px on the Sky's own log scale; `src/core/star.ts`), grey when put away. Section headings show a count ("3 of 15").
+- Points are white cards with no border; a star bullet in the category colour grows with how often the point has come back (radius 7 to 14 px on the Sky's own log scale; `src/core/star.ts`), grey when put away. Section headings show a count ("3 of 15").
 - The add box is a bar fixed at the bottom of Home: a text box, Keep, the Daily / Long-term choice, and for Daily a "1 day" chip that opens the day pills 1 to 6 and ∞ (∞ = Long-term, same rule as before: more than 6 days becomes Long-term). Nothing that could be set before is lost. Buttons are pill-shaped; cards have no border; page titles stay centred.
-- Not yet in this step: the day line card and moving put-away points to Settings.
+- **Day line card** (under Awake and Asleep, only while Awake with at least one live point): today's reminders as stars on a thin line from the first to the last time, filled once they have come and hollow while still to come, a bigger mark for now, and the first and last times underneath. Drawn by `dayLine` (`src/core/dayline.ts`) from the saved settings with the same planner that books the reminders, so quiet hours show as a wider gap and nothing is booked or timed; the now-mark moves only when the screen is drawn. Hidden while Asleep.
+- Put-away points are no longer on Home. Settings > Your points has a row "Put away (N)" (shown when there is at least one) that opens a Put-away list page (same page style, back goes to Settings). Tapping a point opens its page, where Bring back and Delete for good work as before.
 
 ## Look (Sky colours)
 

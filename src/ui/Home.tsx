@@ -10,7 +10,8 @@ import { DEFAULT_DAILY_DAYS, lastDayOf, MAX_DAILY_DAYS, sameDay } from '../core/
 import { MAX_PER_CATEGORY, MAX_TEXT_LENGTH, cleanText } from '../core/limits';
 import { homeRadius } from '../core/star';
 import { starSize } from '../core/sky';
-import type { Category, Point } from '../core/types';
+import { dayLine } from '../core/dayline';
+import type { Category, Point, Settings } from '../core/types';
 import { fill, type Strings } from '../i18n/strings';
 import type { Permission } from '../notify/reminders';
 import { onTint, tint, tintInk, tintSoft, type Theme } from '../theme/calmStudy';
@@ -21,6 +22,7 @@ import { clock } from './clock';
 import { nextTip, type TipId, type TipState } from '../core/tips';
 import { TipCard } from './TipCard';
 import { Button, Card, Choice } from './parts';
+import { DayLineCard } from './DayLineCard';
 import { Star } from './Star';
 
 interface Props {
@@ -28,6 +30,7 @@ interface Props {
   theme: Theme;
   points: Point[];
   asleep: boolean;
+  settings: Settings;
   fresh: Set<string>;
   skyOpen: boolean;
   batteryTip: boolean;
@@ -64,19 +67,16 @@ export function Home(props: Props) {
   const [category, setCategory] = useState<Category>('daily');
   const [days, setDays] = useState(DEFAULT_DAILY_DAYS);
   const [full, setFull] = useState(false);
-  const [showAway, setShowAway] = useState(false);
   const [daysOpen, setDaysOpen] = useState(false);
 
   const sections = useMemo<Section[]>(() => {
     const live = points.filter((p) => !p.archived);
-    const away = points.filter((p) => p.archived);
     const out: Section[] = [
       { key: 'daily', title: t.daily, hint: t.dailyHint, category: 'daily', data: live.filter((p) => p.category === 'daily') },
       { key: 'long_term', title: t.longTerm, hint: t.longTermHint, category: 'long_term', data: live.filter((p) => p.category === 'long_term') },
     ];
-    if (away.length > 0) out.push({ key: 'away', title: fill(t.putAwaySection, { n: away.length }), data: showAway ? away : [] });
     return out;
-  }, [points, showAway, t]);
+  }, [points, t]);
 
   const list = useRef<SectionList<Point, Section>>(null);
   // After Keep it: the ids already there, so the list can scroll to the new point once it shows up.
@@ -180,6 +180,7 @@ export function Home(props: Props) {
     </Pressable>
   ) : null;
 
+  const todayLine = useMemo(() => dayLine(props.settings, new Date()), [props.settings, points]);
   const header = (
     <View style={styles.header}>
       {tipCard('settings', t.tipSettings)}
@@ -207,6 +208,7 @@ export function Home(props: Props) {
       {listenButton}
       </View>
       {statusLine && <Text style={[styles.note, { color: theme.muted }]}>{statusLine}</Text>}
+      {hasLive && todayLine && <DayLineCard line={todayLine} t={t} theme={theme} />}
       {tipCard('awake', t.tipAwake)}
       {tipCard('listen', t.tipListen)}
 
@@ -320,18 +322,7 @@ export function Home(props: Props) {
       contentContainerStyle={styles.list}
       keyboardShouldPersistTaps="handled"
       stickySectionHeadersEnabled={false}
-      renderSectionHeader={({ section }) =>
-        section.key === 'away' ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={section.title}
-            accessibilityState={{ expanded: showAway }}
-            onPress={() => setShowAway((v) => !v)}
-            style={styles.sectionHead}
-          >
-            <Text style={[styles.sectionTitle, { color: theme.muted }]}>{showAway ? '▾' : '▸'} {section.title}</Text>
-          </Pressable>
-        ) : (
+      renderSectionHeader={({ section }) => (
           <View style={styles.sectionHead}>
             <View style={styles.titleRow}>
               <View style={[styles.dot, { backgroundColor: tint(theme, section.category!) }]} />
@@ -340,8 +331,7 @@ export function Home(props: Props) {
             </View>
             <Text style={[styles.hint, { color: theme.muted }]}>{section.data.length === 0 ? t.emptyHint : section.hint}</Text>
           </View>
-        )
-      }
+      )}
       renderItem={({ item }) => {
         const colour = tint(theme, item.category);
         const isFresh = !item.archived && props.fresh.has(item.id);

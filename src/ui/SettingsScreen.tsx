@@ -59,7 +59,7 @@ function TestPanel(props: { t: Strings; theme: Theme; asleep: boolean; onSamples
   );
 }
 
-export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Settings; onChange: (s: Settings) => void; onBack: () => void; onGo: (to: 'home' | 'help') => void; testing?: boolean; onSamples?: () => Promise<void>; onBackup: () => Promise<void>; onRestore: (text: string) => Promise<RestoreOutcome> }) {
+export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Settings; onChange: (s: Settings) => void; onBack: () => void; onGo: (to: 'home' | 'help' | 'putaway') => void; putAwayCount: number; testing?: boolean; onSamples?: () => Promise<void>; onBackup: () => Promise<void>; onRestore: (text: string) => Promise<RestoreOutcome> }) {
   const { t, theme, settings: s, onChange } = props;
   const set = (patch: Partial<Settings>) => onChange({ ...s, ...patch });
   // From and until can never meet: an empty window would quietly stop every reminder.
@@ -212,6 +212,7 @@ export function SettingsScreen(props: { t: Strings; theme: Theme; settings: Sett
           <Button label={t.backUp} theme={theme} kind="plain" onPress={() => void props.onBackup()} />
           <Text style={[styles.hint, { color: theme.muted }]}>{t.backUpHint}</Text>
           <Button label={t.restore} theme={theme} kind="plain" onPress={() => setRestoring(true)} />
+          {props.putAwayCount > 0 && <Button label={fill(t.putAwaySection, { n: props.putAwayCount })} theme={theme} kind="plain" onPress={() => props.onGo('putaway')} />}
         </>,
       )}
 
